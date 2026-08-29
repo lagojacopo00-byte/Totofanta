@@ -10,7 +10,8 @@ gratis.
 
 ## Cosa c'è già
 
-- Login organizzatore senza password (link via email, Supabase Auth).
+- Login organizzatore con email + password (un unico account, creato una
+  volta sola direttamente dalla dashboard di Supabase — vedi punto 2).
 - Account vero per ogni giocatore (email + password): l'organizzatore lo
   invita inserendo la sua email e quanti slot gli ha assegnato; quando
   quella persona si registra (o accede, se ha già un account) con QUELLA
@@ -55,37 +56,27 @@ gratis.
      non la usa più per i giocatori, ma la teniamo pronta per usi
      amministrativi futuri)
 
-## 2. Configura le email di autenticazione
+## 2. Niente email da configurare: disattiva la conferma e crea il tuo account
 
-Ci sono due flussi email da collegare allo stesso file
-`src/app/auth/confirm/route.ts`, uno per l'organizzatore e uno per i
-giocatori:
+Per evitare di dover collegare un provider SMTP (i progetti Supabase
+gratuiti, dal 2026, bloccano la personalizzazione dei template email a
+meno di usare un tuo SMTP — non necessario qui), Totofanta è pensato per
+funzionare senza mandare NESSUNA email di autenticazione:
 
-**Magic Link** (accesso organizzatore, senza password) — in
-**Authentication → Email Templates → Magic Link**, sostituisci il link
-del template con:
+1. Vai su **Authentication → Sign In / Providers → Email** e disattiva
+   **"Confirm email"**. Da questo momento, chi si registra come
+   giocatore (`/play/signup`) ottiene subito un account attivo, senza
+   dover cliccare nessun link di conferma.
+2. Crea il tuo account da organizzatore direttamente dalla dashboard:
+   vai su **Authentication → Users → Add user**, inserisci la tua email
+   e una password a tua scelta, e assicurati che l'opzione **"Auto
+   Confirm User"** sia spuntata. Questo crea l'account subito attivo,
+   senza mandare nessuna email.
+3. Userai quella stessa email e password per accedere da `/login`.
 
-```
-{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/dashboard
-```
-
-**Confirm signup** (registrazione giocatore, email + password) — in
-**Authentication → Email Templates → Confirm signup**, sostituisci il
-link con:
-
-```
-{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/play
-```
-
-Se preferisci che i tuoi amici possano giocare subito senza dover
-confermare l'email (utile per un gruppo ristretto), puoi anche disattivare
-la conferma da **Authentication → Sign In / Providers → Email → "Confirm
-email"**: in quel caso il secondo template non serve.
-
-(Il piano gratuito di Supabase manda le email di autenticazione con un
-limite orario basso ma sufficiente per un gruppo di amici; per un uso più
-serio conviene collegare un provider SMTP proprio, sempre da
-**Authentication → SMTP Settings**.)
+Se in futuro vuoi email personalizzate (branding, promemoria, ecc.)
+puoi comunque collegare un provider SMTP tuo da **Authentication → SMTP
+Settings** — ma per giocare con gli amici non serve.
 
 ## 3. Configura il progetto in locale
 
@@ -106,8 +97,7 @@ autenticato.
 
 ## 4. Prova il flusso completo
 
-1. Accedi da `/login` con la tua email (arriva un link, nessuna
-   password).
+1. Accedi da `/login` con l'email e la password create al punto 2.
 2. Crea un torneo da `/dashboard/new`.
 3. Aggiungi almeno due giocatori: per ognuno indichi nome, email e
    quanti slot ha comprato.
@@ -145,10 +135,10 @@ npm test
 4. Deploy. Il piano gratuito di Vercel copre tranquillamente un torneo
    tra amici.
 
-Una volta deployato, assicurati che l'URL del sito sia impostato
-correttamente in **Authentication → URL Configuration → Site URL** su
-Supabase (altrimenti Supabase potrebbe rifiutare i redirect delle email
-di conferma/accesso).
+Una volta deployato, imposta comunque l'URL del sito in
+**Authentication → URL Configuration → Site URL** su Supabase (buona
+pratica generale, anche se con la conferma email disattivata non è più
+un blocco critico).
 
 ## Struttura del progetto
 
@@ -157,7 +147,7 @@ supabase/schema.sql        Schema del database + policy di sicurezza + seed Seri
 src/lib/game-logic.ts      Regole del gioco, pure e testate (node:test)
 src/lib/queries.ts         Tutte le query/scritture verso Supabase
 src/lib/supabase/          Client Supabase (browser, server, service-role)
-src/app/login              Login organizzatore (magic link)
+src/app/login              Login organizzatore (email + password)
 src/app/dashboard          Area organizzatore: tornei, giocatori, giornate, risultati
 src/app/play               Area giocatore: registrazione/accesso (email+password), scelte
 ```
