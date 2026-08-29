@@ -289,6 +289,28 @@ as $$
   );
 $$;
 
+-- Per il link di invito: un torneo esiste ancora "draft" (per decidere se
+-- ci si può ancora iscrivere da soli), e un'anteprima con i soli dati non
+-- sensibili del torneo (nome, competizione, slot di default) per chi non
+-- ne fa ancora parte e quindi non potrebbe altrimenti leggerlo.
+create or replace function public.is_draft_tournament(check_tournament_id uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from tournaments
+    where id = check_tournament_id and status = 'draft'
+  );
+$$;
+
+create or replace function public.tournament_invite_preview(check_tournament_id uuid)
+returns table(name text, competition text, default_num_slots integer)
+language sql stable security definer set search_path = public
+as $$
+  select name, competition, default_num_slots from tournaments
+  where id = check_tournament_id and status = 'draft';
+$$;
+
 grant execute on function
   public.is_tournament_owner(uuid),
   public.is_tournament_player(uuid),
@@ -297,8 +319,11 @@ grant execute on function
   public.owns_matchday(uuid),
   public.plays_in_matchday(uuid),
   public.owns_slot(uuid),
-  public.is_own_slot(uuid)
+  public.is_own_slot(uuid),
+  public.is_draft_tournament(uuid)
 to authenticated, anon;
+
+grant execute on function public.tournament_invite_preview(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- RIGA DI SICUREZZA (RLS)
@@ -358,6 +383,17 @@ create policy "a player claims their own pending invite"
     and email = lower(coalesce(auth.jwt() ->> 'email', ''))
   )
   with check (user_id = auth.uid());
+
+-- Il link di invito: chiunque sia autenticato può iscriversi DA SOLO a un
+-- torneo ancora "draft" se ne conosce l'id (il link stesso funge da
+-- invito), purché lo faccia con la propria email e a proprio nome.
+create policy "a player can join a draft tournament via invite link"
+  on players for insert
+  with check (
+    user_id = auth.uid()
+    and email = lower(coalesce(auth.jwt() ->> 'email', ''))
+    and public.is_draft_tournament(tournament_id)
+  );
 
 -- Slot ------------------------------------------------------------------
 
