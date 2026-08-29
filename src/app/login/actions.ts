@@ -1,28 +1,24 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export async function signInWithEmail(formData: FormData) {
+export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
-  if (!email) {
-    redirect("/login?error=" + encodeURIComponent("Inserisci un indirizzo email"));
+  const password = String(formData.get("password") ?? "");
+
+  if (!email || !password) {
+    redirect("/login?error=" + encodeURIComponent("Inserisci email e password"));
   }
 
   const supabase = await createClient();
-  const origin = (await headers()).get("origin");
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: `${origin}/auth/confirm`,
-    },
-  });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect("/login?error=" + encodeURIComponent(error.message));
+    redirect(
+      "/login?error=" + encodeURIComponent("Email o password non corrette")
+    );
   }
 
-  redirect("/login?sent=1");
+  redirect("/dashboard");
 }
