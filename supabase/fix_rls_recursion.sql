@@ -6,6 +6,11 @@
 -- l'errore "infinite recursion detected in policy for relation
 -- tournaments".
 
+-- L'SQL Editor esegue le query come ruolo "authenticated" (che non può
+-- creare funzioni nello schema): questa riga passa al ruolo "postgres",
+-- il proprietario del database, solo per l'esecuzione di questo script.
+set role postgres;
+
 create or replace function public.is_tournament_owner(check_tournament_id uuid)
 returns boolean
 language sql stable security definer set search_path = public
