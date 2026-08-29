@@ -4,15 +4,19 @@ import { claimPendingInvites } from "@/lib/queries";
 
 /** Da chiamare in cima a ogni pagina/azione dell'area giocatore: rimanda
  * al login se non c'è una sessione valida, e aggancia eventuali inviti in
- * sospeso per la sua email prima di procedere. */
-export async function requirePlayer() {
+ * sospeso per la sua email prima di procedere. Passa `nextPath` (il
+ * percorso della pagina chiamante) quando, dopo il login/registrazione,
+ * l'utente deve tornare esattamente lì invece che sulla lista tornei —
+ * serve per esempio alla pagina di invito (`/play/join/[id]`). */
+export async function requirePlayer(nextPath?: string) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/play/login");
+    const suffix = nextPath ? `?next=${encodeURIComponent(nextPath)}` : "";
+    redirect(`/play/login${suffix}`);
   }
 
   if (user.email) {
