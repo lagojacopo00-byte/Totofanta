@@ -383,6 +383,59 @@ export async function getPlayerMemberships(db: DB, userId: string) {
   return assertNoError(res) as (Player & { tournaments: Tournament })[];
 }
 
+/**
+ * Anteprima pubblica (nome, competizione, slot di default) di un torneo
+ * ancora "draft", per la pagina di invito — usa una funzione del database
+ * perché chi non fa ancora parte del torneo non potrebbe altrimenti
+ * leggere la riga in `tournaments` (RLS). Torna `null` se l'id non esiste
+ * o il torneo è già iniziato.
+ */
+export async function getTournamentInvitePreview(db: DB, tournamentId: string) {
+  const res = await db.rpc("tournament_invite_preview", {
+    check_tournament_id: tournamentId,
+  });
+  const rows = assertNoError(res) as {
+    name: string;
+    competition: string;
+    default_num_slots: number;
+  }[];
+  return rows[0] ?? null;
+}
+
+/**
+ * Un giocatore si iscrive DA SOLO a un torneo (link di invito), invece di
+ * essere aggiunto dall'organizzatore: stessa logica di `addPlayer`, ma con
+ * `user_id` già impostato al suo account fin da subito.
+ */
+export async function selfJoinTournament(
+  db: DB,
+  tournamentId: string,
+  input: { userId: string; displayName: string; email: string; numSlots: number }
+) {
+  const player = assertNoError(
+    await db
+      .from("players")
+      .insert({
+        tournament_id: tournamentId,
+        user_id: input.userId,
+        display_name: input.displayName,
+        email: input.email.trim().toLowerCase(),
+        num_slots: input.numSlots,
+      })
+      .select("*")
+      .single()
+  ) as Player;
+
+  const labels = slotLabels(input.numSlots);
+  const slotsRes = await db
+    .from("slots")
+    .insert(labels.map((label) => ({ player_id: player.id, label })))
+    .select("*");
+  const slots = assertNoError(slotsRes) as Slot[];
+
+  return { ...player, slots };
+}
+
 /** La riga giocatore di QUESTO account in UN torneo specifico. */
 export async function getPlayerForTournament(
   db: DB,
