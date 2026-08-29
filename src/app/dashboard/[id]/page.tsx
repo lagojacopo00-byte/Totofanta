@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/require-user";
 import * as queries from "@/lib/queries";
@@ -47,6 +48,10 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
     .map((p) => p.display_name);
   const isDraft = tournament.status === "draft";
 
+  const host = (await headers()).get("host");
+  const protocol = host?.startsWith("localhost") ? "http" : "https";
+  const inviteLink = host ? `${protocol}://${host}/play/join/${tournament.id}` : null;
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -70,6 +75,24 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
             </p>
           ) : null}
         </div>
+      ) : null}
+
+      {isDraft && inviteLink ? (
+        <section className={cardTight}>
+          <p className="text-xs font-semibold text-foreground-soft">
+            Link di invito
+          </p>
+          <p className="mt-1 text-xs text-foreground-faint">
+            Mandalo ai tuoi amici: chi lo apre (registrandosi, se non ha
+            ancora un account) si iscrive da solo al torneo, senza che tu
+            debba aggiungerlo a mano.
+          </p>
+          <input
+            className={`${input} mt-2 text-xs`}
+            readOnly
+            value={inviteLink}
+          />
+        </section>
       ) : null}
 
       <section className="flex flex-col gap-4">
