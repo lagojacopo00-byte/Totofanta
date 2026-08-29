@@ -6,6 +6,8 @@ import { loginAction } from "./actions";
 export default async function PlayerLoginPage(props: PageProps<"/play/login">) {
   const params = await props.searchParams;
   const error = typeof params.error === "string" ? params.error : null;
+  const next = typeof params.next === "string" ? params.next : null;
+  const signupHref = next ? `/play/signup?next=${encodeURIComponent(next)}` : "/play/signup";
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-6 py-16">
@@ -13,6 +15,7 @@ export default async function PlayerLoginPage(props: PageProps<"/play/login">) {
 
       <form action={loginAction} className={`${card} flex flex-col gap-3`}>
         {error ? <p className="text-sm text-lose">{error}</p> : null}
+        {next ? <input type="hidden" name="next" value={next} /> : null}
 
         <label className={label} htmlFor="email">
           Email
@@ -44,7 +47,7 @@ export default async function PlayerLoginPage(props: PageProps<"/play/login">) {
 
         <p className="text-center text-xs text-foreground-faint">
           Prima volta qui?{" "}
-          <Link href="/play/signup" className="text-accent underline">
+          <Link href={signupHref} className="text-accent underline">
             Crea un account
           </Link>
         </p>
