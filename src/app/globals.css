@@ -1,26 +1,46 @@
 @import "tailwindcss";
 
+/* Totofanta — stessa direzione visiva del concept "Totofanta UI":
+   base scura, verde come accento primario, tipografia Sora + Manrope,
+   JetBrains Mono per numeri e dati. Tema scuro fisso (scelta di stile,
+   non un default dimenticato: rispecchia il genere "fantatool"). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0b120e;
+  --surface: #121b15;
+  --surface-2: #1a251e;
+  --foreground: #ecf5ee;
+  --foreground-soft: #98ac9e;
+  --foreground-faint: #5e7267;
+  --accent: #3ed17e;
+  --accent-deep: #1b8f55;
+  --accent-ink: #072612;
+  --line: #223228;
+  --lose: #ff6e5e;
+  --lose-bg: rgba(255, 110, 94, 0.12);
+  --win-bg: rgba(62, 209, 126, 0.14);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-foreground-soft: var(--foreground-soft);
+  --color-foreground-faint: var(--foreground-faint);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-ink: var(--accent-ink);
+  --color-line: var(--line);
+  --color-lose: var(--lose);
+  --color-lose-bg: var(--lose-bg);
+  --color-win-bg: var(--win-bg);
+  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
