@@ -4,10 +4,18 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+/** Solo un percorso interno che parte da /play: evita che qualcuno
+ * costruisca un link con un "next" verso un altro sito. */
+function safeNext(next: FormDataEntryValue | null): string {
+  const value = typeof next === "string" ? next : "";
+  return value.startsWith("/play") ? value : "/play";
+}
+
 export async function signUpAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const displayName = String(formData.get("display_name") ?? "").trim();
+  const next = safeNext(formData.get("next"));
 
   if (!email || !password) {
     redirect(
@@ -28,7 +36,7 @@ export async function signUpAction(formData: FormData) {
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/confirm?next=/play`,
+      emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next)}`,
       data: displayName ? { display_name: displayName } : undefined,
     },
   });
@@ -39,7 +47,7 @@ export async function signUpAction(formData: FormData) {
 
   if (data.session) {
     // Conferma email disattivata nel progetto Supabase: sessione già attiva.
-    redirect("/play");
+    redirect(next);
   }
 
   redirect("/play/signup?sent=1");
