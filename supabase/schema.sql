@@ -193,6 +193,114 @@ create table matchday_results (
 );
 
 -- ---------------------------------------------------------------------------
+-- FUNZIONI DI SUPPORTO PER LE POLICY (rompono la ricorsione RLS)
+-- ---------------------------------------------------------------------------
+-- Una policy su "tournaments" che interroga "players" e una policy su
+-- "players" che interroga "tournaments" creerebbero un ciclo infinito
+-- (Postgres rivaluta le RLS della tabella interrogata dentro la
+-- subquery, all'infinito). Queste funzioni "security definer" girano
+-- coi permessi di chi le ha create (il proprietario delle tabelle, che
+-- di norma bypassa le RLS): usarle al posto delle subquery dirette
+-- rompe il ciclo.
+
+create or replace function public.is_tournament_owner(check_tournament_id uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from tournaments
+    where id = check_tournament_id and owner_id = auth.uid()
+  );
+$$;
+
+create or replace function public.is_tournament_player(check_tournament_id uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from players
+    where tournament_id = check_tournament_id and user_id = auth.uid()
+  );
+$$;
+
+create or replace function public.owns_player(check_player_id uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from players p
+    join tournaments t on t.id = p.tournament_id
+    where p.id = check_player_id and t.owner_id = auth.uid()
+  );
+$$;
+
+create or replace function public.is_own_player(check_player_id uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from players
+    where id = check_player_id and user_id = auth.uid()
+  );
+$$;
+
+create or replace function public.owns_matchday(check_matchday_id uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from matchdays m
+    join tournaments t on t.id = m.tournament_id
+    where m.id = check_matchday_id and t.owner_id = auth.uid()
+  );
+$$;
+
+create or replace function public.plays_in_matchday(check_matchday_id uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from matchdays m
+    join players p on p.tournament_id = m.tournament_id
+    where m.id = check_matchday_id and p.user_id = auth.uid()
+  );
+$$;
+
+create or replace function public.owns_slot(check_slot_id uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from slots s
+    join players p on p.id = s.player_id
+    join tournaments t on t.id = p.tournament_id
+    where s.id = check_slot_id and t.owner_id = auth.uid()
+  );
+$$;
+
+create or replace function public.is_own_slot(check_slot_id uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from slots s
+    join players p on p.id = s.player_id
+    where s.id = check_slot_id and p.user_id = auth.uid()
+  );
+$$;
+
+grant execute on function
+  public.is_tournament_owner(uuid),
+  public.is_tournament_player(uuid),
+  public.owns_player(uuid),
+  public.is_own_player(uuid),
+  public.owns_matchday(uuid),
+  public.plays_in_matchday(uuid),
+  public.owns_slot(uuid),
+  public.is_own_slot(uuid)
+to authenticated, anon;
+
+-- ---------------------------------------------------------------------------
 -- RIGA DI SICUREZZA (RLS)
 -- ---------------------------------------------------------------------------
 -- Sia l'organizzatore che i giocatori usano il client Supabase autenticato
@@ -216,9 +324,7 @@ create policy "organizer manages own tournaments"
 
 create policy "players read tournaments they belong to"
   on tournaments for select
-  using (
-    id in (select tournament_id from players where user_id = auth.uid())
-  );
+  using (public.is_tournament_player(id));
 
 -- Squadre -------------------------------------------------------------------
 
@@ -228,16 +334,14 @@ create policy "everyone can read the reference team list"
 
 create policy "organizer manages custom teams for own tournament"
   on teams for insert
-  with check (
-    tournament_id in (select id from tournaments where owner_id = auth.uid())
-  );
+  with check (public.is_tournament_owner(tournament_id));
 
 -- Giocatori -------------------------------------------------------------------
 
 create policy "organizer manages players of own tournament"
   on players for all
-  using (tournament_id in (select id from tournaments where owner_id = auth.uid()))
-  with check (tournament_id in (select id from tournaments where owner_id = auth.uid()));
+  using (public.is_tournament_owner(tournament_id))
+  with check (public.is_tournament_owner(tournament_id));
 
 create policy "a player reads their own memberships"
   on players for select
@@ -259,86 +363,45 @@ create policy "a player claims their own pending invite"
 
 create policy "organizer manages slots of own tournament"
   on slots for all
-  using (
-    player_id in (
-      select p.id from players p
-      join tournaments t on t.id = p.tournament_id
-      where t.owner_id = auth.uid()
-    )
-  );
+  using (public.owns_player(player_id))
+  with check (public.owns_player(player_id));
 
 create policy "a player manages their own slots"
   on slots for all
-  using (
-    player_id in (select id from players where user_id = auth.uid())
-  )
-  with check (
-    player_id in (select id from players where user_id = auth.uid())
-  );
+  using (public.is_own_player(player_id))
+  with check (public.is_own_player(player_id));
 
 -- Giornate ------------------------------------------------------------------
 
 create policy "organizer manages matchdays of own tournament"
   on matchdays for all
-  using (tournament_id in (select id from tournaments where owner_id = auth.uid()))
-  with check (tournament_id in (select id from tournaments where owner_id = auth.uid()));
+  using (public.is_tournament_owner(tournament_id))
+  with check (public.is_tournament_owner(tournament_id));
 
 create policy "players read matchdays of tournaments they belong to"
   on matchdays for select
-  using (
-    tournament_id in (select tournament_id from players where user_id = auth.uid())
-  );
+  using (public.is_tournament_player(tournament_id));
 
 -- Picks ------------------------------------------------------------------
 
 create policy "organizer manages picks of own tournament"
   on picks for all
-  using (
-    matchday_id in (
-      select m.id from matchdays m
-      join tournaments t on t.id = m.tournament_id
-      where t.owner_id = auth.uid()
-    )
-  );
+  using (public.owns_matchday(matchday_id));
 
 create policy "a player manages picks on their own slots"
   on picks for all
-  using (
-    slot_id in (
-      select s.id from slots s
-      join players p on p.id = s.player_id
-      where p.user_id = auth.uid()
-    )
-  )
-  with check (
-    slot_id in (
-      select s.id from slots s
-      join players p on p.id = s.player_id
-      where p.user_id = auth.uid()
-    )
-  );
+  using (public.is_own_slot(slot_id))
+  with check (public.is_own_slot(slot_id));
 
 -- Risultati ------------------------------------------------------------------
 
 create policy "organizer manages results of own tournament"
   on matchday_results for all
-  using (
-    matchday_id in (
-      select m.id from matchdays m
-      join tournaments t on t.id = m.tournament_id
-      where t.owner_id = auth.uid()
-    )
-  );
+  using (public.owns_matchday(matchday_id));
 
 create policy "players read results of tournaments they belong to"
   on matchday_results for select
-  using (
-    matchday_id in (
-      select m.id from matchdays m
-      join players p on p.tournament_id = m.tournament_id
-      where p.user_id = auth.uid()
-    )
-  );
+  using (public.plays_in_matchday(matchday_id));
 
 -- ---------------------------------------------------------------------------
 -- SEED — squadre Serie A 2026/2027
