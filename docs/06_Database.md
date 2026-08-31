@@ -10,7 +10,7 @@ esistente — ogni file indica quali eseguire prima).
 | Tabella | A cosa serve |
 |---|---|
 | `profiles` | un profilo per utente Supabase Auth; oggi porta solo `tutorial_seen_at` |
-| `tournaments` | un torneo: nome, competizione, organizzatore (`owner_id`), stato (`draft`/`active`/`finished`), vincitori |
+| `tournaments` | un torneo: nome, competizione, organizzatore (`owner_id`), stato (`draft`/`active`/`finished`), vincitori, `is_test` (torneo di prova) |
 | `teams` | squadre selezionabili: quelle di riferimento condivise (`tournament_id` nullo, es. Serie A precaricata) o custom di un singolo torneo |
 | `players` | un giocatore *in un torneo* (email, nome, account collegato se già registrato) |
 | `slots` | una "vita" indipendente di un giocatore, con etichetta numerica e stato vivo/eliminato |
@@ -62,3 +62,25 @@ un organizzatore su questa piattaforma", non ancora a cambiare
 comportamento dell'app — quello arriverà con le funzioni che lo
 useranno davvero (es. tornei di test, vedi
 [07_Task_sviluppo.md](./07_Task_sviluppo.md)).
+
+## Tornei di test (`tournaments.is_test`)
+
+Colonna booleana, `false` di default. Creabile solo da un account
+`creator` (controllo lato Server Action, non RLS: chiunque potrebbe
+teoricamente scrivere `is_test` via API diretta, ma non è un dato
+sensibile — al massimo un torneo finto etichettato come vero o
+viceversa). Due funzioni in `src/lib/queries.ts` la usano:
+
+- `addTestPlayers`: crea N giocatori con nome/email generati
+  (`test-XXXXXXXX@totofanta.test`), stesso numero di slot di default del
+  torneo.
+- `simulateMatchday`: apre la prossima giornata se serve, assegna una
+  squadra casuale (tra quelle ancora disponibili) a ogni slot vivo senza
+  scelta, genera un esito casuale per ogni squadra coinvolta, e applica
+  le conseguenze con la stessa `submitMatchdayResults` usata per i
+  risultati veri — quindi elimina gli slot, chiude il torneo o apre la
+  giornata successiva esattamente come farebbe l'organizzatore a mano.
+
+Nessuna delle due controlla `is_test` al proprio interno: è il chiamante
+(le Server Action in `src/app/dashboard/[id]/actions.ts`) a verificarlo,
+per non rischiare mai di usarle per sbaglio su un torneo vero.
