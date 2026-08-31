@@ -3,6 +3,7 @@ import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
 import { button, card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { TeamBadge, TeamLabel } from "@/components/team-badge";
+import { PickCountdown } from "@/components/pick-countdown";
 import { submitPickAction } from "./actions";
 
 const outcomeLabel = { win: "Vinta", draw: "Pareggio", loss: "Persa" } as const;
@@ -113,6 +114,11 @@ export default async function PlayerTournamentPage(
         <h1 className="mt-1 break-words font-display text-2xl font-extrabold">
           {tournament.name}
         </h1>
+        {tournament.status === "active" ? (
+          <div className="mt-1.5">
+            <PickCountdown />
+          </div>
+        ) : null}
       </div>
 
       {tournament.status === "finished" ? (
