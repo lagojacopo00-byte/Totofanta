@@ -85,6 +85,12 @@ create table tournaments (
     check (results_mode in ('manual')),
   status text not null default 'draft'
     check (status in ('draft', 'active', 'finished')),
+  -- Torneo "di prova" per il Creator: giocatori finti, giornate simulate
+  -- istantaneamente (vedi addTestPlayers/simulateMatchday in
+  -- src/lib/queries.ts), per bilanciare slot/durata senza aspettare il
+  -- calendario reale. Non cambia nessuna regola di gioco, solo chi/come
+  -- vengono generati i giocatori e i risultati.
+  is_test boolean not null default false,
   -- Valorizzata quando il torneo finisce: la giornata in cui si è deciso
   -- il vincitore (per vittoria "normale" o per spareggio ex aequo).
   decisive_matchday integer,
