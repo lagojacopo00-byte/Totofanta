@@ -1,6 +1,8 @@
+import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   applyMatchdayResults,
+  teamsAvailableForSlot,
   type AliveSlot,
   type MatchdayPick,
   type Outcome as GameOutcome,
@@ -51,7 +53,12 @@ export async function getOrganizerTournaments(db: DB, ownerId: string) {
 export async function createTournament(
   db: DB,
   ownerId: string,
-  input: { name: string; competition: string; default_num_slots: number }
+  input: {
+    name: string;
+    competition: string;
+    default_num_slots: number;
+    is_test?: boolean;
+  }
 ) {
   const res = await db
     .from("tournaments")
@@ -60,6 +67,7 @@ export async function createTournament(
       name: input.name,
       competition: input.competition,
       default_num_slots: input.default_num_slots,
+      is_test: input.is_test ?? false,
     })
     .select("*")
     .single();
@@ -642,4 +650,101 @@ export async function promoteToCreator(db: DB, userId: string) {
       .eq("id", userId)
       .eq("role", "player")
   );
+}
+
+/**
+ * Aggiunge N giocatori finti a un torneo DI TEST (nome ed email generati,
+ * stesso numero di slot di default del torneo): serve a popolare in
+ * blocco un torneo di prova senza dover invitare persone vere. Nessun
+ * controllo qui su tournament.is_test — è il chiamante (Server Action) a
+ * doverlo verificare, per non rischiare mai di usarla su un torneo vero.
+ */
+export async function addTestPlayers(
+  db: DB,
+  tournament: Tournament,
+  count: number
+) {
+  const created: (Player & { slots: Slot[] })[] = [];
+  for (let i = 0; i < count; i++) {
+    const suffix = randomUUID().slice(0, 8);
+    created.push(
+      await addPlayer(db, tournament, {
+        displayName: `Giocatore test ${suffix}`,
+        email: `test-${suffix}@totofanta.test`,
+        numSlots: tournament.default_num_slots,
+      })
+    );
+  }
+  return created;
+}
+
+export type SimulateMatchdayResult = {
+  matchdayNumber: number;
+  picksMade: number;
+  tournamentFinished: boolean;
+};
+
+/**
+ * Simula un'intera giornata di un torneo DI TEST: assegna una squadra
+ * scelta a caso (tra quelle non ancora usate su quello slot) a ogni slot
+ * vivo che non ha ancora scelto per la giornata aperta, genera un esito
+ * casuale per ogni squadra così coinvolta, e applica le conseguenze come
+ * farebbe l'organizzatore a mano (submitMatchdayResults) — elimina gli
+ * slot che non sopravvivono, chiude il torneo o apre la giornata
+ * successiva. Serve a bilanciare slot/durata senza aspettare il
+ * calendario reale. Nessun controllo qui su tournament.is_test — stesso
+ * discorso di addTestPlayers.
+ */
+export async function simulateMatchday(
+  db: DB,
+  tournament: Tournament
+): Promise<SimulateMatchdayResult> {
+  const matchdays = await getMatchdays(db, tournament.id);
+  const matchday =
+    matchdays.find((m) => m.status === "open") ??
+    (await createNextMatchday(db, tournament));
+
+  const players = await getPlayersWithSlots(db, tournament.id);
+  const aliveSlots = players.flatMap((p) =>
+    p.slots.filter((s) => s.status === "alive")
+  );
+  const allSlotIds = players.flatMap((p) => p.slots.map((s) => s.id));
+
+  const [allHistory, currentPicks, availableTeams] = await Promise.all([
+    getAllPicksForTournamentSlots(db, allSlotIds),
+    getPicksForMatchday(db, matchday.id),
+    getAvailableTeams(db, tournament.id, tournament.competition),
+  ]);
+
+  const alreadyPicked = new Set(currentPicks.map((p) => p.slot_id));
+  let picksMade = 0;
+
+  for (const slot of aliveSlots) {
+    if (alreadyPicked.has(slot.id)) continue;
+    const usedTeamIds = allHistory
+      .filter((p) => p.slot_id === slot.id)
+      .map((p) => p.team_id);
+    const options = teamsAvailableForSlot(availableTeams, usedTeamIds);
+    if (options.length === 0) continue; // ha già usato tutte le squadre disponibili
+    const team = options[Math.floor(Math.random() * options.length)];
+    await submitPick(db, slot.id, matchday.id, team.id);
+    picksMade++;
+  }
+
+  const finalPicks = await getPicksForMatchday(db, matchday.id);
+  const teamIdsInPlay = Array.from(new Set(finalPicks.map((p) => p.team_id)));
+  const possibleOutcomes: GameOutcome[] = ["win", "draw", "loss"];
+  const outcomesByTeam: Record<string, GameOutcome> = {};
+  for (const teamId of teamIdsInPlay) {
+    outcomesByTeam[teamId] =
+      possibleOutcomes[Math.floor(Math.random() * possibleOutcomes.length)];
+  }
+
+  const result = await submitMatchdayResults(db, tournament, matchday, outcomesByTeam);
+
+  return {
+    matchdayNumber: matchday.number,
+    picksMade,
+    tournamentFinished: result.tournamentFinished,
+  };
 }
