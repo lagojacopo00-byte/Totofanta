@@ -36,6 +36,12 @@ export default async function PlayAreaLayout({
             >
               Come funziona
             </Link>
+            <Link
+              href="/play/regolamento"
+              className="text-xs text-foreground-faint underline hover:text-accent"
+            >
+              Regolamento
+            </Link>
             <span className="hidden text-xs text-foreground-faint sm:inline">
               {user.email}
             </span>
