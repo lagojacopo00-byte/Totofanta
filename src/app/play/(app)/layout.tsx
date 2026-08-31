@@ -23,7 +23,13 @@ export default async function PlayAreaLayout({
       <header className="border-b border-line px-4 py-3 sm:px-6 sm:py-4">
         <div className="mx-auto flex w-full max-w-lg flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <Brandbar subtitle="Area giocatore" />
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 sm:gap-3">
+            <Link
+              href="/play"
+              className="text-xs text-foreground-faint underline hover:text-accent"
+            >
+              I tuoi tornei
+            </Link>
             <Link
               href="/play/how-it-works"
               className="text-xs text-foreground-faint underline hover:text-accent"
