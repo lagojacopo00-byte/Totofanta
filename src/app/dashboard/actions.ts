@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/supabase/require-user";
-import { createTournament, promoteToCreator } from "@/lib/queries";
+import { createTournament, getProfileRole, promoteToCreator } from "@/lib/queries";
 
 export async function signOutAction() {
   const supabase = await createClient();
@@ -26,10 +26,18 @@ export async function createTournamentAction(formData: FormData) {
     redirect("/dashboard/new?error=" + encodeURIComponent("Dai un nome al torneo"));
   }
 
+  // Il checkbox "torneo di test" è mostrato solo ai creator, ma il
+  // controllo va rifatto qui: un form è dati arbitrari dal client, non ci
+  // si può fidare che chi non è creator non l'abbia inviato lo stesso.
+  const requestedTest = formData.get("is_test") === "on";
+  const role = requestedTest ? await getProfileRole(supabase, user.id) : "player";
+  const isTest = requestedTest && role === "creator";
+
   const tournament = await createTournament(supabase, user.id, {
     name,
     competition,
     default_num_slots: defaultNumSlots,
+    is_test: isTest,
   });
   // Creare un torneo è ciò che rende "creator" un account a livello di
   // piattaforma (ruolo globale, distinto dall'essere organizzatore di
