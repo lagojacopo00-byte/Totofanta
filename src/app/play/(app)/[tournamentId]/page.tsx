@@ -24,7 +24,16 @@ export default async function PlayerTournamentPage(
   if (!player) notFound();
 
   const tournament = player.tournaments;
-  const slots = [...player.slots].sort((a, b) => a.label.localeCompare(b.label));
+  // Gli slot sono numerati ("1", "2", ...) per i tornei nuovi, ma quelli
+  // creati prima possono ancora avere etichette a lettere: l'ordinamento
+  // numerico ha priorità quando entrambe le etichette sono numeri, con un
+  // confronto testuale come ripiego per non spezzare i casi misti.
+  const slots = [...player.slots].sort((a, b) => {
+    const numA = Number(a.label);
+    const numB = Number(b.label);
+    if (!Number.isNaN(numA) && !Number.isNaN(numB)) return numA - numB;
+    return a.label.localeCompare(b.label);
+  });
 
   const [matchdays, allPicks, availableTeams, standings] = await Promise.all([
     queries.getMatchdays(supabase, tournament.id),
