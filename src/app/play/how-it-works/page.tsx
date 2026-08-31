@@ -68,6 +68,15 @@ export default async function HowItWorksPage(
             l&apos;organizzatore, che inserisce anche i risultati.
           </p>
         </section>
+
+        <section className={cardTight}>
+          <p className={eyebrow}>Il ritmo, di solito</p>
+          <p className="mt-1.5 text-sm text-foreground-soft">
+            Indicativamente: scegli la squadra entro giovedì sera, i
+            risultati arrivano dopo il weekend. I tempi esatti li decide
+            l&apos;organizzatore torneo per torneo.
+          </p>
+        </section>
       </div>
 
       <form
