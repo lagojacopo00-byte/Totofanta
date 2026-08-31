@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import { Brandbar } from "@/components/brandbar";
 import { button, card, cardTight, eyebrow } from "@/components/ui";
@@ -75,7 +76,12 @@ export default async function HowItWorksPage(
             Scegli la squadra entro giovedì. Da venerdì le scelte sono
             chiuse: lunedì a mezzanotte escono i risultati e si aprono le
             squadre per la giornata successiva. Nella tua home e nella
-            pagina del torneo trovi sempre il conto alla rovescia.
+            pagina del torneo trovi sempre il conto alla rovescia. Per i
+            casi particolari (rinvii, tavolino, mancata scelta) c&apos;è il{" "}
+            <Link href="/play/regolamento" className="underline hover:text-accent">
+              regolamento completo
+            </Link>
+            .
           </p>
         </section>
       </div>
