@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
+import { isPickingWindowOpen } from "@/lib/pick-window";
 
 /**
  * Riceve la scelta di un giocatore. Il client Supabase qui è quello della
@@ -17,6 +18,12 @@ export async function submitPickAction(
   matchdayId: string,
   formData: FormData
 ) {
+  if (!isPickingWindowOpen()) {
+    throw new Error(
+      "Le scelte per questa giornata sono chiuse: si schiera solo da lunedì a giovedì. Aspetta i risultati di lunedì."
+    );
+  }
+
   const { supabase, user } = await requirePlayer();
   const teamId = String(formData.get("team_id") ?? "");
   if (!teamId) return;
