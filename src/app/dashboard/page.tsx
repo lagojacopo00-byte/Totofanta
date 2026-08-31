@@ -43,7 +43,14 @@ export default async function DashboardPage() {
                 className={`${card} flex items-center justify-between gap-4 transition-colors hover:border-accent`}
               >
                 <div>
-                  <p className="font-display text-lg font-bold">{t.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-display text-lg font-bold">{t.name}</p>
+                    {t.is_test ? (
+                      <span className="inline-flex items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-foreground-faint">
+                        Test
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="text-xs text-foreground-faint">{t.competition}</p>
                 </div>
                 <span className={t.status === "finished" ? pillOut : pillAlive}>
