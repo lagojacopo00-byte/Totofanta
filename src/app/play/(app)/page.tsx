@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import { getPlayerMemberships } from "@/lib/queries";
 import { card, eyebrow, pillAlive, pillOut } from "@/components/ui";
+import { PickCountdown } from "@/components/pick-countdown";
 
 const statusLabel: Record<string, string> = {
   draft: "Non ancora iniziato",
@@ -19,6 +20,10 @@ export default async function PlayHomePage() {
       ? user.user_metadata.display_name
       : (user.email ?? "").split("@")[0];
 
+  const hasActiveTournament = memberships.some(
+    (m) => m.tournaments.status === "active"
+  );
+
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <div className="min-w-0">
@@ -26,6 +31,11 @@ export default async function PlayHomePage() {
         <h1 className="mt-1 truncate font-display text-3xl font-extrabold">
           Ciao, {displayName}
         </h1>
+        {hasActiveTournament ? (
+          <div className="mt-1.5">
+            <PickCountdown />
+          </div>
+        ) : null}
       </div>
 
       {memberships.length === 0 ? (
