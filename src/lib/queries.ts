@@ -276,6 +276,18 @@ export async function submitPick(
   return assertNoError(res) as Pick;
 }
 
+/** Toglie una scelta specifica (usata dall'organizzatore per liberare uno
+ * slot su una giornata, es. per lasciare che scelga un'altra squadra). */
+export async function deletePick(db: DB, slotId: string, matchdayId: string) {
+  assertNoError(
+    await db
+      .from("picks")
+      .delete()
+      .eq("slot_id", slotId)
+      .eq("matchday_id", matchdayId)
+  );
+}
+
 export async function getMatchdayResults(db: DB, matchdayId: string) {
   const res = await db
     .from("matchday_results")
