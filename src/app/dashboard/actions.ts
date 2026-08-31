@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/supabase/require-user";
-import { createTournament } from "@/lib/queries";
+import { createTournament, promoteToCreator } from "@/lib/queries";
 
 export async function signOutAction() {
   const supabase = await createClient();
@@ -31,6 +31,10 @@ export async function createTournamentAction(formData: FormData) {
     competition,
     default_num_slots: defaultNumSlots,
   });
+  // Creare un torneo è ciò che rende "creator" un account a livello di
+  // piattaforma (ruolo globale, distinto dall'essere organizzatore di
+  // questo singolo torneo): vedi docs/01_Visione_progetto.md.
+  await promoteToCreator(supabase, user.id);
 
   revalidatePath("/dashboard");
   redirect(`/dashboard/${tournament.id}`);
