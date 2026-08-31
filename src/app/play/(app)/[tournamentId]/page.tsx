@@ -55,14 +55,37 @@ export default async function PlayerTournamentPage(
   const teamById = new Map(availableTeams.map((t) => [t.id, t.name]));
   const matchdayByNumber = new Map(matchdays.map((m) => [m.id, m.number]));
 
-  // Statistiche del torneo, per la panoramica in alto: quanti giocatori in
-  // totale e quanti slot sono ancora vivi sul totale complessivo.
+  // Classifica ordinata per slot vivi (decrescente), con posizione in
+  // classifica calcolata gestendo i pari merito: chi ha lo stesso numero
+  // di slot vivi condivide la stessa posizione.
+  const rankedStandings = standings
+    .map((s) => ({
+      ...s,
+      alive: s.slots.filter((sl) => sl.status === "alive").length,
+    }))
+    .sort((a, b) => b.alive - a.alive);
+  const withRank = rankedStandings.reduce<
+    ((typeof rankedStandings)[number] & { rank: number })[]
+  >((acc, s, idx) => {
+    const previous = acc[idx - 1];
+    const rank = previous && previous.alive === s.alive ? previous.rank : idx + 1;
+    acc.push({ ...s, rank });
+    return acc;
+  }, []);
+
+  // Statistiche del torneo, per la panoramica: quanti giocatori in totale
+  // e quanti slot sono ancora vivi sul totale complessivo.
   const totalPlayers = standings.length;
   const totalSlots = standings.reduce((sum, s) => sum + s.slots.length, 0);
   const aliveSlots = standings.reduce(
     (sum, s) => sum + s.slots.filter((sl) => sl.status === "alive").length,
     0
   );
+
+  const me = withRank.find((s) => s.id === player.id);
+  const myRank = me?.rank ?? 1;
+  const myAliveSlots = slots.filter((s) => s.status === "alive").length;
+  const tiedWithMe = withRank.filter((s) => s.rank === myRank).length - 1;
 
   // Tutte le squadre già giocate da questo giocatore (su qualunque suo
   // slot), per il piccolo "album" delle squadre bruciate finora.
@@ -84,10 +107,10 @@ export default async function PlayerTournamentPage(
   const isWinner = tournament.winners.includes(player.id);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
+    <div className="flex min-w-0 flex-col gap-6">
+      <div className="min-w-0">
         <p className={eyebrow}>{tournament.competition}</p>
-        <h1 className="mt-1 font-display text-2xl font-extrabold">
+        <h1 className="mt-1 break-words font-display text-2xl font-extrabold">
           {tournament.name}
         </h1>
       </div>
@@ -112,83 +135,34 @@ export default async function PlayerTournamentPage(
         </p>
       ) : null}
 
-      <div className="grid grid-cols-3 gap-2.5">
-        <div className={`${cardTight} text-center`}>
-          <p className="font-mono text-2xl font-bold text-foreground">
-            {totalPlayers}
+      {/* La tua posizione: il primo numero che deve saltare all'occhio
+          entrando nel torneo. */}
+      <section className={`${card} border-accent/30`}>
+        <p className={eyebrow}>La tua posizione</p>
+        <div className="mt-2 flex items-end justify-between gap-4">
+          <p className="font-display text-4xl font-extrabold leading-none text-foreground">
+            {myRank}
+            <span className="ml-1 text-base font-bold text-foreground-faint">
+              /{totalPlayers}
+            </span>
           </p>
-          <p className="mt-0.5 text-[11px] text-foreground-faint">
-            {totalPlayers === 1 ? "giocatore" : "giocatori"}
-          </p>
+          <span className={myAliveSlots > 0 ? pillAlive : pillOut}>
+            {myAliveSlots}/{slots.length} tuoi slot vivi
+          </span>
         </div>
-        <div className={`${cardTight} text-center`}>
-          <p className="font-mono text-2xl font-bold text-accent">
-            {aliveSlots}
+        {totalPlayers > 1 ? (
+          <p className="mt-2 text-xs text-foreground-faint">
+            {tiedWithMe > 0
+              ? `A pari merito con altri ${tiedWithMe} ${tiedWithMe === 1 ? "giocatore" : "giocatori"}.`
+              : myRank === 1
+                ? "Sei al comando."
+                : "Continua così per risalire la classifica."}
           </p>
-          <p className="mt-0.5 text-[11px] text-foreground-faint">
-            slot in gara
-          </p>
-        </div>
-        <div className={`${cardTight} text-center`}>
-          <p className="font-mono text-2xl font-bold text-foreground">
-            {totalSlots}
-          </p>
-          <p className="mt-0.5 text-[11px] text-foreground-faint">
-            slot totali
-          </p>
-        </div>
-      </div>
+        ) : null}
+      </section>
 
-      {playedTeamNames.length > 0 ? (
-        <section className={cardTight}>
-          <p className={eyebrow}>Le squadre che hai già giocato</p>
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {playedTeamNames.map((name) => (
-              <TeamBadge key={name} name={name} size="md" />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {standings.length > 1 ? (
-        <section className={cardTight}>
-          <p className={eyebrow}>Classifica</p>
-          <ul className="mt-2 flex flex-col gap-1.5">
-            {standings
-              .slice()
-              .sort((a, b) => {
-                const aliveA = a.slots.filter((s) => s.status === "alive").length;
-                const aliveB = b.slots.filter((s) => s.status === "alive").length;
-                return aliveB - aliveA;
-              })
-              .map((s) => {
-                const alive = s.slots.filter((sl) => sl.status === "alive").length;
-                const isMe = s.id === player.id;
-                return (
-                  <li
-                    key={s.id}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span
-                      className={
-                        isMe
-                          ? "font-display font-bold text-foreground"
-                          : "text-foreground-soft"
-                      }
-                    >
-                      {s.display_name}
-                      {isMe ? " (tu)" : ""}
-                    </span>
-                    <span className={alive > 0 ? pillAlive : pillOut}>
-                      {alive}/{s.slots.length} vivi
-                    </span>
-                  </li>
-                );
-              })}
-          </ul>
-        </section>
-      ) : null}
-
+      {/* Slot e scelta squadra: quello per cui si torna sull'app ogni
+          settimana, subito visibile appena si entra. */}
       <section className="flex flex-col gap-4">
         {slots.map((slot) => {
           const slotPicks = allPicks
@@ -207,8 +181,8 @@ export default async function PlayerTournamentPage(
           );
 
           return (
-            <div key={slot.id} className={card}>
-              <div className="flex items-center justify-between">
+            <div key={slot.id} className={`${card} min-w-0`}>
+              <div className="flex items-center justify-between gap-2">
                 <p className="font-display text-lg font-bold">
                   Slot {slot.label}
                 </p>
@@ -318,6 +292,80 @@ export default async function PlayerTournamentPage(
           );
         })}
       </section>
+
+      <div className="grid grid-cols-3 gap-2.5">
+        <div className={`${cardTight} text-center`}>
+          <p className="font-mono text-2xl font-bold text-foreground">
+            {totalPlayers}
+          </p>
+          <p className="mt-0.5 text-[11px] text-foreground-faint">
+            {totalPlayers === 1 ? "giocatore" : "giocatori"}
+          </p>
+        </div>
+        <div className={`${cardTight} text-center`}>
+          <p className="font-mono text-2xl font-bold text-accent">
+            {aliveSlots}
+          </p>
+          <p className="mt-0.5 text-[11px] text-foreground-faint">
+            slot in gara
+          </p>
+        </div>
+        <div className={`${cardTight} text-center`}>
+          <p className="font-mono text-2xl font-bold text-foreground">
+            {totalSlots}
+          </p>
+          <p className="mt-0.5 text-[11px] text-foreground-faint">
+            slot totali
+          </p>
+        </div>
+      </div>
+
+      {playedTeamNames.length > 0 ? (
+        <section className={cardTight}>
+          <p className={eyebrow}>Le squadre che hai già giocato</p>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            {playedTeamNames.map((name) => (
+              <TeamBadge key={name} name={name} size="md" />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {withRank.length > 1 ? (
+        <section className={cardTight}>
+          <p className={eyebrow}>Classifica</p>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {withRank.map((s) => {
+              const isMe = s.id === player.id;
+              return (
+                <li
+                  key={s.id}
+                  className="flex items-center justify-between gap-2 text-sm"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="font-mono text-xs text-foreground-faint">
+                      {s.rank}°
+                    </span>
+                    <span
+                      className={
+                        isMe
+                          ? "truncate font-display font-bold text-foreground"
+                          : "truncate text-foreground-soft"
+                      }
+                    >
+                      {s.display_name}
+                      {isMe ? " (tu)" : ""}
+                    </span>
+                  </span>
+                  <span className={s.alive > 0 ? pillAlive : pillOut}>
+                    {s.alive}/{s.slots.length} vivi
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }
