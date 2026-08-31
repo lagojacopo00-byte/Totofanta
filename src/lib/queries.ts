@@ -396,14 +396,19 @@ export async function claimPendingInvites(
   return assertNoError(res) as { id: string }[];
 }
 
-/** Tutti i tornei in cui questo account gioca (non li organizza). */
+/** Tutti i tornei in cui questo account gioca (non li organizza), con lo
+ * stato dei propri slot per ciascuno — per l'anteprima nella home
+ * ("quanti slot ho ancora vivi in questo torneo"). */
 export async function getPlayerMemberships(db: DB, userId: string) {
   const res = await db
     .from("players")
-    .select("*, tournaments(*)")
+    .select("*, tournaments(*), slots(id, status)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
-  return assertNoError(res) as (Player & { tournaments: Tournament })[];
+  return assertNoError(res) as (Player & {
+    tournaments: Tournament;
+    slots: Slot[];
+  })[];
 }
 
 /**
