@@ -193,6 +193,24 @@ create table matchday_results (
 );
 
 -- ---------------------------------------------------------------------------
+-- CALENDARIO SERIE A
+-- ---------------------------------------------------------------------------
+-- Accoppiamenti reali (chi gioca contro chi) per ogni giornata di
+-- campionato, tenuti aggiornati a mano dall'organizzatore da
+-- /dashboard/fixtures. La giornata N di un torneo corrisponde alla
+-- giornata N reale: non è legato a un torneo specifico, è condiviso da
+-- tutti (come l'elenco squadre).
+create table serie_a_fixtures (
+  id uuid primary key default gen_random_uuid(),
+  round integer not null check (round between 1 and 38),
+  home_team text not null,
+  away_team text not null,
+  created_at timestamptz not null default now(),
+  unique (round, home_team),
+  unique (round, away_team)
+);
+
+-- ---------------------------------------------------------------------------
 -- FUNZIONI DI SUPPORTO PER LE POLICY (rompono la ricorsione RLS)
 -- ---------------------------------------------------------------------------
 -- Una policy su "tournaments" che interroga "players" e una policy su
@@ -339,6 +357,7 @@ alter table slots enable row level security;
 alter table matchdays enable row level security;
 alter table picks enable row level security;
 alter table matchday_results enable row level security;
+alter table serie_a_fixtures enable row level security;
 
 -- Tornei ------------------------------------------------------------------
 
@@ -371,6 +390,13 @@ create policy "organizer manages players of own tournament"
 create policy "a player reads their own memberships"
   on players for select
   using (user_id = auth.uid());
+
+-- Per la classifica che vede ogni giocatore (chi è ancora in gara, chi è
+-- eliminato): può leggere anche gli ALTRI giocatori del/dei tornei a cui
+-- partecipa (non solo la propria riga).
+create policy "players read all players of tournaments they belong to"
+  on players for select
+  using (public.is_tournament_player(tournament_id));
 
 -- Il passaggio chiave dell'invito: appena un account autenticato ha la
 -- stessa email di un invito ancora "orfano" (user_id NULL), può
@@ -407,6 +433,18 @@ create policy "a player manages their own slots"
   using (public.is_own_player(player_id))
   with check (public.is_own_player(player_id));
 
+-- Per la classifica: uno slot altrui è leggibile (solo status/etichetta,
+-- non i pick) da chi partecipa allo stesso torneo.
+create policy "players read slots of tournaments they belong to"
+  on slots for select
+  using (
+    exists (
+      select 1 from players p
+      where p.id = slots.player_id
+        and public.is_tournament_player(p.tournament_id)
+    )
+  );
+
 -- Giornate ------------------------------------------------------------------
 
 create policy "organizer manages matchdays of own tournament"
@@ -439,6 +477,22 @@ create policy "players read results of tournaments they belong to"
   on matchday_results for select
   using (public.plays_in_matchday(matchday_id));
 
+-- Calendario Serie A ----------------------------------------------------
+
+-- Consultabile da chiunque sia autenticato (organizzatore o giocatore, in
+-- qualunque torneo): non è un dato sensibile, è il calendario pubblico.
+create policy "authenticated users read serie a fixtures"
+  on serie_a_fixtures for select
+  using (auth.uid() is not null);
+
+-- Chiunque sia autenticato può tenerlo aggiornato: l'app non ha un ruolo
+-- "admin" separato dall'organizzatore, e il calendario è condiviso da
+-- tutti i tornei.
+create policy "authenticated users manage serie a fixtures"
+  on serie_a_fixtures for all
+  using (auth.uid() is not null)
+  with check (auth.uid() is not null);
+
 -- ---------------------------------------------------------------------------
 -- SEED — squadre Serie A 2026/2027
 -- ---------------------------------------------------------------------------
@@ -463,4 +517,265 @@ insert into teams (name, competition) values
   ('Torino', 'Serie A'),
   ('Udinese', 'Serie A'),
   ('Venezia', 'Serie A')
+on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+-- SEED — calendario Serie A 2026/2027, giornate 1-25
+-- ---------------------------------------------------------------------------
+-- Accoppiamenti raccolti da ricerca web (non fonte ufficiale in tempo
+-- reale): gli orari/date reali cambiano spesso per gli anticipi/posticipi
+-- TV, ma l'accoppiamento (chi gioca contro chi) in una data giornata resta
+-- valido. Le giornate 26-38 e qualunque correzione si aggiungono da
+-- /dashboard/fixtures.
+insert into serie_a_fixtures (round, home_team, away_team) values
+  (1, 'Atalanta', 'Sassuolo'),
+  (1, 'Bologna', 'Lazio'),
+  (1, 'Frosinone', 'Juventus'),
+  (1, 'Genoa', 'Napoli'),
+  (1, 'Inter', 'Monza'),
+  (1, 'Parma', 'Cagliari'),
+  (1, 'Roma', 'Fiorentina'),
+  (1, 'Torino', 'Milan'),
+  (1, 'Udinese', 'Como'),
+  (1, 'Venezia', 'Lecce'),
+  (2, 'Atalanta', 'Bologna'),
+  (2, 'Cagliari', 'Inter'),
+  (2, 'Fiorentina', 'Frosinone'),
+  (2, 'Juventus', 'Parma'),
+  (2, 'Lazio', 'Genoa'),
+  (2, 'Lecce', 'Roma'),
+  (2, 'Milan', 'Venezia'),
+  (2, 'Monza', 'Udinese'),
+  (2, 'Napoli', 'Como'),
+  (2, 'Sassuolo', 'Torino'),
+  (3, 'Bologna', 'Sassuolo'),
+  (3, 'Cagliari', 'Lecce'),
+  (3, 'Fiorentina', 'Torino'),
+  (3, 'Frosinone', 'Venezia'),
+  (3, 'Genoa', 'Como'),
+  (3, 'Inter', 'Napoli'),
+  (3, 'Juventus', 'Milan'),
+  (3, 'Parma', 'Monza'),
+  (3, 'Roma', 'Atalanta'),
+  (3, 'Udinese', 'Lazio'),
+  (4, 'Atalanta', 'Cagliari'),
+  (4, 'Como', 'Parma'),
+  (4, 'Genoa', 'Frosinone'),
+  (4, 'Inter', 'Udinese'),
+  (4, 'Lazio', 'Milan'),
+  (4, 'Lecce', 'Monza'),
+  (4, 'Napoli', 'Bologna'),
+  (4, 'Sassuolo', 'Juventus'),
+  (4, 'Torino', 'Roma'),
+  (4, 'Venezia', 'Fiorentina'),
+  (5, 'Bologna', 'Torino'),
+  (5, 'Fiorentina', 'Napoli'),
+  (5, 'Frosinone', 'Como'),
+  (5, 'Juventus', 'Atalanta'),
+  (5, 'Milan', 'Lecce'),
+  (5, 'Monza', 'Sassuolo'),
+  (5, 'Parma', 'Genoa'),
+  (5, 'Roma', 'Inter'),
+  (5, 'Udinese', 'Cagliari'),
+  (5, 'Venezia', 'Lazio'),
+  (6, 'Atalanta', 'Venezia'),
+  (6, 'Cagliari', 'Juventus'),
+  (6, 'Como', 'Roma'),
+  (6, 'Genoa', 'Fiorentina'),
+  (6, 'Inter', 'Parma'),
+  (6, 'Lazio', 'Monza'),
+  (6, 'Lecce', 'Bologna'),
+  (6, 'Napoli', 'Frosinone'),
+  (6, 'Sassuolo', 'Milan'),
+  (6, 'Torino', 'Udinese'),
+  (7, 'Bologna', 'Inter'),
+  (7, 'Fiorentina', 'Como'),
+  (7, 'Frosinone', 'Sassuolo'),
+  (7, 'Juventus', 'Lazio'),
+  (7, 'Milan', 'Atalanta'),
+  (7, 'Monza', 'Cagliari'),
+  (7, 'Parma', 'Torino'),
+  (7, 'Roma', 'Genoa'),
+  (7, 'Udinese', 'Lecce'),
+  (7, 'Venezia', 'Napoli'),
+  (8, 'Atalanta', 'Frosinone'),
+  (8, 'Cagliari', 'Bologna'),
+  (8, 'Como', 'Sassuolo'),
+  (8, 'Genoa', 'Venezia'),
+  (8, 'Inter', 'Fiorentina'),
+  (8, 'Lazio', 'Parma'),
+  (8, 'Lecce', 'Juventus'),
+  (8, 'Napoli', 'Roma'),
+  (8, 'Torino', 'Monza'),
+  (8, 'Udinese', 'Milan'),
+  (9, 'Fiorentina', 'Atalanta'),
+  (9, 'Frosinone', 'Lecce'),
+  (9, 'Genoa', 'Juventus'),
+  (9, 'Milan', 'Bologna'),
+  (9, 'Monza', 'Napoli'),
+  (9, 'Parma', 'Udinese'),
+  (9, 'Roma', 'Cagliari'),
+  (9, 'Sassuolo', 'Lazio'),
+  (9, 'Torino', 'Como'),
+  (9, 'Venezia', 'Inter'),
+  (10, 'Atalanta', 'Parma'),
+  (10, 'Bologna', 'Monza'),
+  (10, 'Como', 'Venezia'),
+  (10, 'Frosinone', 'Torino'),
+  (10, 'Juventus', 'Napoli'),
+  (10, 'Lazio', 'Cagliari'),
+  (10, 'Lecce', 'Genoa'),
+  (10, 'Milan', 'Inter'),
+  (10, 'Sassuolo', 'Fiorentina'),
+  (10, 'Udinese', 'Roma'),
+  (11, 'Cagliari', 'Frosinone'),
+  (11, 'Fiorentina', 'Juventus'),
+  (11, 'Genoa', 'Milan'),
+  (11, 'Inter', 'Como'),
+  (11, 'Monza', 'Atalanta'),
+  (11, 'Napoli', 'Lazio'),
+  (11, 'Parma', 'Bologna'),
+  (11, 'Roma', 'Sassuolo'),
+  (11, 'Torino', 'Lecce'),
+  (11, 'Venezia', 'Udinese'),
+  (12, 'Atalanta', 'Inter'),
+  (12, 'Bologna', 'Udinese'),
+  (12, 'Como', 'Cagliari'),
+  (12, 'Juventus', 'Venezia'),
+  (12, 'Lazio', 'Lecce'),
+  (12, 'Milan', 'Frosinone'),
+  (12, 'Monza', 'Fiorentina'),
+  (12, 'Napoli', 'Torino'),
+  (12, 'Parma', 'Roma'),
+  (12, 'Sassuolo', 'Genoa'),
+  (13, 'Cagliari', 'Milan'),
+  (13, 'Como', 'Juventus'),
+  (13, 'Frosinone', 'Parma'),
+  (13, 'Inter', 'Genoa'),
+  (13, 'Lecce', 'Atalanta'),
+  (13, 'Roma', 'Monza'),
+  (13, 'Sassuolo', 'Napoli'),
+  (13, 'Torino', 'Lazio'),
+  (13, 'Udinese', 'Fiorentina'),
+  (13, 'Venezia', 'Bologna'),
+  (14, 'Bologna', 'Roma'),
+  (14, 'Fiorentina', 'Cagliari'),
+  (14, 'Frosinone', 'Inter'),
+  (14, 'Genoa', 'Torino'),
+  (14, 'Juventus', 'Udinese'),
+  (14, 'Lazio', 'Atalanta'),
+  (14, 'Milan', 'Parma'),
+  (14, 'Monza', 'Como'),
+  (14, 'Napoli', 'Lecce'),
+  (14, 'Venezia', 'Sassuolo'),
+  (15, 'Atalanta', 'Genoa'),
+  (15, 'Cagliari', 'Venezia'),
+  (15, 'Como', 'Bologna'),
+  (15, 'Inter', 'Torino'),
+  (15, 'Juventus', 'Monza'),
+  (15, 'Lazio', 'Roma'),
+  (15, 'Lecce', 'Sassuolo'),
+  (15, 'Napoli', 'Milan'),
+  (15, 'Parma', 'Fiorentina'),
+  (15, 'Udinese', 'Frosinone'),
+  (16, 'Atalanta', 'Napoli'),
+  (16, 'Fiorentina', 'Bologna'),
+  (16, 'Frosinone', 'Lazio'),
+  (16, 'Genoa', 'Udinese'),
+  (16, 'Lecce', 'Inter'),
+  (16, 'Milan', 'Como'),
+  (16, 'Roma', 'Juventus'),
+  (16, 'Sassuolo', 'Parma'),
+  (16, 'Torino', 'Cagliari'),
+  (16, 'Venezia', 'Monza'),
+  (17, 'Bologna', 'Juventus'),
+  (17, 'Cagliari', 'Genoa'),
+  (17, 'Como', 'Lecce'),
+  (17, 'Fiorentina', 'Lazio'),
+  (17, 'Inter', 'Sassuolo'),
+  (17, 'Monza', 'Milan'),
+  (17, 'Parma', 'Napoli'),
+  (17, 'Roma', 'Frosinone'),
+  (17, 'Torino', 'Venezia'),
+  (17, 'Udinese', 'Atalanta'),
+  (18, 'Atalanta', 'Como'),
+  (18, 'Frosinone', 'Bologna'),
+  (18, 'Genoa', 'Monza'),
+  (18, 'Juventus', 'Torino'),
+  (18, 'Lazio', 'Inter'),
+  (18, 'Lecce', 'Parma'),
+  (18, 'Milan', 'Fiorentina'),
+  (18, 'Napoli', 'Cagliari'),
+  (18, 'Sassuolo', 'Udinese'),
+  (18, 'Venezia', 'Roma'),
+  (19, 'Bologna', 'Genoa'),
+  (19, 'Cagliari', 'Sassuolo'),
+  (19, 'Como', 'Lazio'),
+  (19, 'Fiorentina', 'Lecce'),
+  (19, 'Inter', 'Juventus'),
+  (19, 'Monza', 'Frosinone'),
+  (19, 'Parma', 'Venezia'),
+  (19, 'Roma', 'Milan'),
+  (19, 'Torino', 'Atalanta'),
+  (19, 'Udinese', 'Napoli'),
+  (20, 'Atalanta', 'Roma'),
+  (20, 'Cagliari', 'Como'),
+  (20, 'Juventus', 'Genoa'),
+  (20, 'Lazio', 'Bologna'),
+  (20, 'Lecce', 'Udinese'),
+  (20, 'Milan', 'Torino'),
+  (20, 'Napoli', 'Fiorentina'),
+  (20, 'Parma', 'Inter'),
+  (20, 'Sassuolo', 'Monza'),
+  (20, 'Venezia', 'Frosinone'),
+  (21, 'Bologna', 'Atalanta'),
+  (21, 'Como', 'Napoli'),
+  (21, 'Fiorentina', 'Sassuolo'),
+  (21, 'Frosinone', 'Milan'),
+  (21, 'Genoa', 'Parma'),
+  (21, 'Inter', 'Venezia'),
+  (21, 'Juventus', 'Cagliari'),
+  (21, 'Lecce', 'Torino'),
+  (21, 'Monza', 'Lazio'),
+  (21, 'Roma', 'Udinese'),
+  (22, 'Atalanta', 'Fiorentina'),
+  (22, 'Cagliari', 'Parma'),
+  (22, 'Genoa', 'Lecce'),
+  (22, 'Lazio', 'Venezia'),
+  (22, 'Milan', 'Juventus'),
+  (22, 'Monza', 'Roma'),
+  (22, 'Napoli', 'Inter'),
+  (22, 'Sassuolo', 'Como'),
+  (22, 'Torino', 'Frosinone'),
+  (22, 'Udinese', 'Bologna'),
+  (23, 'Atalanta', 'Lazio'),
+  (23, 'Bologna', 'Milan'),
+  (23, 'Como', 'Monza'),
+  (23, 'Fiorentina', 'Udinese'),
+  (23, 'Inter', 'Cagliari'),
+  (23, 'Juventus', 'Sassuolo'),
+  (23, 'Lecce', 'Napoli'),
+  (23, 'Parma', 'Frosinone'),
+  (23, 'Roma', 'Torino'),
+  (23, 'Venezia', 'Genoa'),
+  (24, 'Bologna', 'Como'),
+  (24, 'Cagliari', 'Lazio'),
+  (24, 'Frosinone', 'Fiorentina'),
+  (24, 'Genoa', 'Atalanta'),
+  (24, 'Inter', 'Milan'),
+  (24, 'Monza', 'Lecce'),
+  (24, 'Napoli', 'Juventus'),
+  (24, 'Roma', 'Parma'),
+  (24, 'Torino', 'Sassuolo'),
+  (24, 'Udinese', 'Venezia'),
+  (25, 'Atalanta', 'Monza'),
+  (25, 'Como', 'Torino'),
+  (25, 'Fiorentina', 'Inter'),
+  (25, 'Juventus', 'Bologna'),
+  (25, 'Lazio', 'Napoli'),
+  (25, 'Lecce', 'Frosinone'),
+  (25, 'Milan', 'Genoa'),
+  (25, 'Sassuolo', 'Roma'),
+  (25, 'Udinese', 'Parma'),
+  (25, 'Venezia', 'Cagliari')
 on conflict do nothing;
