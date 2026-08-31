@@ -32,14 +32,14 @@ questo non è un obiettivo a breve termine — vedi
   globale sulla piattaforma.
 - **Giocatore**: chi partecipa a un torneo (una riga in `players`, con
   uno o più `slots`). Gioca dall'area `/play`.
-- **Creator** (proposto, non ancora implementato): un ruolo unico a
-  livello di piattaforma, distinto dall'organizzatore di un singolo
-  torneo — pensato per chi sviluppa/gestisce Totofanta stesso (es. per
-  creare tornei di test). Vedi la nota in
-  [07_Task_sviluppo.md](./07_Task_sviluppo.md) sul task "ruoli
-  PLAYER/ADMIN": il concetto va chiarito con l'utente prima di
-  implementarlo, perché rischia di sovrapporsi o confondersi col ruolo
-  "organizzatore" già esistente.
+- **Creator**: ruolo unico a livello di piattaforma (`profiles.role`),
+  distinto dall'organizzatore di un singolo torneo — pensato per
+  funzioni future valide su tutta l'app (es. tornei di test). Deciso con
+  l'utente: si diventa "creator" automaticamente la prima volta che si
+  crea un torneo, senza nessun pannello di assegnazione a mano e senza
+  restringere chi può creare un torneo (resta come oggi, self-service).
+  Dettagli tecnici in [06_Database.md](./06_Database.md) e nel task
+  chiuso in [07_Task_sviluppo.md](./07_Task_sviluppo.md).
 
 Lo stesso account può essere organizzatore di un torneo e giocatore in un
 altro (o nello stesso).
