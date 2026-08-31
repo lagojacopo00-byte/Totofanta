@@ -20,10 +20,10 @@ export default async function PlayAreaLayout({
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="border-b border-line px-6 py-4">
-        <div className="mx-auto flex w-full max-w-lg items-center justify-between">
+      <header className="border-b border-line px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto flex w-full max-w-lg flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <Brandbar subtitle="Area giocatore" />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <Link
               href="/play/how-it-works"
               className="text-xs text-foreground-faint underline hover:text-accent"
@@ -34,14 +34,14 @@ export default async function PlayAreaLayout({
               {user.email}
             </span>
             <form action={playerSignOutAction}>
-              <button className={buttonGhost} type="submit">
+              <button className={`${buttonGhost} px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm`} type="submit">
                 Esci
               </button>
             </form>
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-lg flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:px-6 sm:py-10">
         {children}
       </main>
     </div>
