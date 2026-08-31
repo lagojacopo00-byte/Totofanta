@@ -70,11 +70,12 @@ export default async function HowItWorksPage(
         </section>
 
         <section className={cardTight}>
-          <p className={eyebrow}>Il ritmo, di solito</p>
+          <p className={eyebrow}>Il ritmo della settimana</p>
           <p className="mt-1.5 text-sm text-foreground-soft">
-            Indicativamente: scegli la squadra entro giovedì sera, i
-            risultati arrivano dopo il weekend. I tempi esatti li decide
-            l&apos;organizzatore torneo per torneo.
+            Scegli la squadra entro giovedì. Da venerdì le scelte sono
+            chiuse: lunedì a mezzanotte escono i risultati e si aprono le
+            squadre per la giornata successiva. Nella tua home e nella
+            pagina del torneo trovi sempre il conto alla rovescia.
           </p>
         </section>
       </div>
