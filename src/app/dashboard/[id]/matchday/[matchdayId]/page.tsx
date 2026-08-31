@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/require-user";
 import * as queries from "@/lib/queries";
 import { button, card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
+import { TeamLabel } from "@/components/team-badge";
 import { submitResultsAction } from "./actions";
 
 const outcomeLabel = { win: "Vinta", draw: "Pareggiata", loss: "Persa" } as const;
@@ -64,7 +65,9 @@ export default async function MatchdayPage(
           {teamIds.map((teamId) => (
             <div key={teamId} className={`${card} flex items-center justify-between gap-4`}>
               <div>
-                <p className="font-display font-bold">{teamName.get(teamId) ?? teamId}</p>
+                <p className="font-display font-bold">
+                  <TeamLabel name={teamName.get(teamId) ?? teamId} size="md" />
+                </p>
                 <p className="text-xs text-foreground-faint">
                   {pickersByTeam.get(teamId)?.join(", ")}
                 </p>
@@ -102,7 +105,9 @@ export default async function MatchdayPage(
                 className={`${cardTight} flex items-center justify-between gap-4`}
               >
                 <div>
-                  <p className="font-display font-bold">{teamName.get(teamId) ?? teamId}</p>
+                  <p className="font-display font-bold">
+                  <TeamLabel name={teamName.get(teamId) ?? teamId} size="md" />
+                </p>
                   <p className="text-xs text-foreground-faint">
                     {pickersByTeam.get(teamId)?.join(", ")}
                   </p>
