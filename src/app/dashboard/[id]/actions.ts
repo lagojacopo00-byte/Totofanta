@@ -50,6 +50,20 @@ export async function editPlayerSlotsAction(
   revalidatePath(`/dashboard/${tournamentId}`);
 }
 
+/** Toglie del tutto un giocatore dal torneo. Consentito solo mentre il
+ * torneo è ancora "draft", per lo stesso motivo di editPlayerSlotsAction:
+ * dopo che una giornata è stata aperta, i pick già fatti dipendono da
+ * quel giocatore e non vogliamo rimescolare le carte a metà partita. */
+export async function removePlayerAction(tournamentId: string, playerId: string) {
+  const { supabase, tournament } = await ownedTournament(tournamentId);
+  if (tournament.status !== "draft") {
+    throw new Error("Un giocatore si può rimuovere solo prima che il torneo inizi");
+  }
+
+  await queries.removePlayer(supabase, playerId);
+  revalidatePath(`/dashboard/${tournamentId}`);
+}
+
 export async function startTournamentAction(tournamentId: string) {
   const { supabase, tournament } = await ownedTournament(tournamentId);
   await queries.createNextMatchday(supabase, tournament);
