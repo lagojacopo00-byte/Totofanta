@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/supabase/require-user";
 import * as queries from "@/lib/queries";
 import { button, buttonGhost, card, cardTight, eyebrow, input, label } from "@/components/ui";
+import { TeamBadge } from "@/components/team-badge";
 import { addFixtureAction, deleteFixtureAction } from "./actions";
 
 export default async function FixturesPage() {
@@ -105,8 +106,12 @@ export default async function FixturesPage() {
                     key={f.id}
                     className="flex items-center justify-between gap-2 text-sm"
                   >
-                    <span>
-                      {f.home_team} – {f.away_team}
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <TeamBadge name={f.home_team} size="xs" />
+                      <span>{f.home_team}</span>
+                      <span className="text-foreground-faint">–</span>
+                      <TeamBadge name={f.away_team} size="xs" />
+                      <span>{f.away_team}</span>
                     </span>
                     <form action={deleteFixtureAction.bind(null, f.id)}>
                       <button
