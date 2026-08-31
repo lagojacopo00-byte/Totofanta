@@ -9,13 +9,18 @@
 
 ## Area organizzatore (`/dashboard`, richiede login organizzatore)
 
-- `/dashboard` — elenco dei propri tornei
+- `/dashboard` — elenco dei propri tornei (con badge "Test" per quelli di
+  prova)
 - `/dashboard/new` — crea un nuovo torneo (nome, competizione, slot di
-  default)
+  default); chi è già "creator" (vedi
+  [01_Visione_progetto.md](./01_Visione_progetto.md)) vede anche il
+  checkbox "torneo di test"
 - `/dashboard/[id]` — pagina del torneo: link di invito, squadre
   disponibili (aggiungi/rimuovi squadre custom), giocatori (aggiungi,
   cambia slot, rimuovi — solo prima che il torneo inizi), avvia il
-  torneo, elenco giornate
+  torneo, elenco giornate; se il torneo è "di test", anche una sezione
+  per aggiungere giocatori finti in blocco e simulare intere giornate
+  all'istante
 - `/dashboard/[id]/matchday/[matchdayId]` — gestione di una giornata:
   gestisci le scelte di ogni giocatore (se aperta), inserisci/consulta i
   risultati
@@ -37,4 +42,5 @@
 
 Vedi [07_Task_sviluppo.md](./07_Task_sviluppo.md) per lo stato di
 ciascuna: onboarding a schermate, redesign della schermata di scelta come
-lista partite, dashboard "Creator" per tornei di test, gestione ruoli.
+lista partite, stato partita valida/esclusa, login/redirect unificati per
+ruolo.
