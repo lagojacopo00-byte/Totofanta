@@ -540,3 +540,25 @@ export async function upsertFixture(
 export async function deleteFixture(db: DB, fixtureId: string) {
   assertNoError(await db.from("serie_a_fixtures").delete().eq("id", fixtureId));
 }
+
+/** true se questo account ha già visto il tutorial "come funziona" almeno
+ * una volta (a livello di account, non di singolo torneo: chi entra in più
+ * tornei nel tempo non se lo rivede ogni volta). */
+export async function hasSeenTutorial(db: DB, userId: string) {
+  const res = await db
+    .from("profiles")
+    .select("tutorial_seen_at")
+    .eq("id", userId)
+    .maybeSingle();
+  const row = assertNoError(res) as { tutorial_seen_at: string | null } | null;
+  return Boolean(row?.tutorial_seen_at);
+}
+
+export async function markTutorialSeen(db: DB, userId: string) {
+  assertNoError(
+    await db
+      .from("profiles")
+      .update({ tutorial_seen_at: new Date().toISOString() })
+      .eq("id", userId)
+  );
+}
