@@ -22,7 +22,10 @@ create extension if not exists "pgcrypto";
 create table profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email text not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Quando l'account ha visto per la prima volta il tutorial "come
+  -- funziona" nell'area giocatore. null = non ancora visto.
+  tutorial_seen_at timestamptz
 );
 
 alter table profiles enable row level security;
