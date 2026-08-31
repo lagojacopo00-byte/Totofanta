@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Brandbar } from "@/components/brandbar";
 import { buttonGhost } from "@/components/ui";
 import { requireUser } from "@/lib/supabase/require-user";
@@ -14,6 +15,9 @@ export default async function DashboardLayout({
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between">
           <Brandbar subtitle="Dashboard organizzatore" />
           <div className="flex items-center gap-3">
+            <Link href="/dashboard/fixtures" className={buttonGhost}>
+              Calendario Serie A
+            </Link>
             <span className="hidden text-xs text-foreground-faint sm:inline">
               {user.email}
             </span>
