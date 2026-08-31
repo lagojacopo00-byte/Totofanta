@@ -89,3 +89,41 @@ export async function removeTeamAction(tournamentId: string, teamId: string) {
   await queries.removeTeamFromTournament(supabase, tournamentId, teamId);
   revalidatePath(`/dashboard/${tournamentId}`);
 }
+
+/** Verifica, oltre a essere l'organizzatore, che il torneo sia
+ * effettivamente "di test": le funzioni di test (giocatori finti,
+ * simulazione) non vanno mai usate su un torneo vero, quindi lo
+ * ricontrolliamo qui invece di fidarci solo del fatto che la UI le
+ * nasconde per i tornei normali. */
+async function ownedTestTournament(tournamentId: string) {
+  const owned = await ownedTournament(tournamentId);
+  if (!owned.tournament.is_test) {
+    throw new Error("Questa funzione è disponibile solo per i tornei di test");
+  }
+  return owned;
+}
+
+/** Aggiunge N giocatori finti a un torneo di test, per popolarlo in
+ * blocco senza invitare persone vere. */
+export async function addTestPlayersAction(
+  tournamentId: string,
+  formData: FormData
+) {
+  const { supabase, tournament } = await ownedTestTournament(tournamentId);
+  const count = Math.max(1, Math.min(50, Number(formData.get("count") ?? 0) || 0));
+  if (count < 1) return;
+
+  await queries.addTestPlayers(supabase, tournament, count);
+  revalidatePath(`/dashboard/${tournamentId}`);
+}
+
+/** Simula un'intera giornata di un torneo di test (scelte e risultati
+ * casuali), per bilanciare slot/durata senza aspettare il calendario
+ * reale — vedi queries.simulateMatchday. */
+export async function simulateMatchdayAction(tournamentId: string) {
+  const { supabase, tournament } = await ownedTestTournament(tournamentId);
+  if (tournament.status === "finished") return;
+
+  await queries.simulateMatchday(supabase, tournament);
+  revalidatePath(`/dashboard/${tournamentId}`);
+}
