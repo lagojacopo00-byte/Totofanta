@@ -69,3 +69,13 @@ export interface MatchdayResult {
   team_id: string;
   outcome: Outcome;
 }
+
+/** Un accoppiamento reale di Serie A per una giornata (round) numerata
+ * come le giornate del torneo (giornata torneo N = giornata reale N).
+ * Inserito/aggiornato a mano dall'organizzatore in /dashboard/fixtures. */
+export interface Fixture {
+  id: string;
+  round: number;
+  home_team: string;
+  away_team: string;
+}
