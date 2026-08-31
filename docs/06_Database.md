@@ -44,6 +44,21 @@ brain-dump precedente, se si vuole un vocabolario ufficiale univoco.
 - **Data/ora delle partite**: richiesta per raggruppare la schermata di
   scelta "per giorno" — oggi `serie_a_fixtures` ha solo il numero di
   giornata, non una data.
-- **Ruolo ADMIN/Creator globale**: richiederebbe una colonna ruolo su
-  `profiles` (oggi assente) — da chiarire prima cosa deve effettivamente
-  sbloccare, vedi [01_Visione_progetto.md](./01_Visione_progetto.md).
+
+## Ruolo globale `profiles.role`
+
+Colonna `role` su `profiles` (`'player'` di default, `'creator'`),
+aggiunta per dare un dato esplicito al ruolo "Creator" descritto in
+[01_Visione_progetto.md](./01_Visione_progetto.md). Si diventa
+`'creator'` automaticamente al momento di creare un torneo
+(`createTournamentAction` chiama `promoteToCreator`) — non c'è nessun
+pannello per assegnarlo a mano, e creare un torneo resta possibile per
+chiunque come oggi (nessuna nuova restrizione introdotta). La
+migrazione `add_creator_role.sql` promuove anche retroattivamente chi
+ha già creato tornei in passato. Login e redirect (`/login` →
+`/dashboard`, `/play/login` → `/play` o alla pagina richiesta) restano
+invariati: il ruolo oggi serve solo a rendere interrogabile "chi è già
+un organizzatore su questa piattaforma", non ancora a cambiare
+comportamento dell'app — quello arriverà con le funzioni che lo
+useranno davvero (es. tornei di test, vedi
+[07_Task_sviluppo.md](./07_Task_sviluppo.md)).
