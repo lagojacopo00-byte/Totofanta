@@ -133,8 +133,8 @@ create index players_user_idx on players (user_id);
 -- ---------------------------------------------------------------------------
 -- SLOT
 -- ---------------------------------------------------------------------------
--- Uno slot = una "vita" indipendente del giocatore. `label` è la lettera
--- (A, B, C...) mostrata all'utente. Lo storico delle squadre di uno slot si
+-- Uno slot = una "vita" indipendente del giocatore. `label` è il numero
+-- (1, 2, 3...) mostrato all'utente. Lo storico delle squadre di uno slot si
 -- ricava dalle sue righe in `picks`.
 create table slots (
   id uuid primary key default gen_random_uuid(),
@@ -382,6 +382,16 @@ create policy "everyone can read the reference team list"
 create policy "organizer manages custom teams for own tournament"
   on teams for insert
   with check (public.is_tournament_owner(tournament_id));
+
+-- Solo le squadre aggiunte a mano per un torneo specifico (tournament_id
+-- non nullo) si possono togliere, e solo dal suo organizzatore: le squadre
+-- di riferimento condivise (tournament_id nullo, es. la Serie A precaricata)
+-- non sono mai toccate da questa policy.
+create policy "organizer removes custom teams of own tournament"
+  on teams for delete
+  using (
+    tournament_id is not null and public.is_tournament_owner(tournament_id)
+  );
 
 -- Giocatori -------------------------------------------------------------------
 
