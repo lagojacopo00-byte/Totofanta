@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
 import { button, card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
+import { TeamBadge, TeamLabel } from "@/components/team-badge";
 import { submitPickAction } from "./actions";
 
 const outcomeLabel = { win: "Vinta", draw: "Pareggio", loss: "Persa" } as const;
@@ -54,6 +55,25 @@ export default async function PlayerTournamentPage(
   const teamById = new Map(availableTeams.map((t) => [t.id, t.name]));
   const matchdayByNumber = new Map(matchdays.map((m) => [m.id, m.number]));
 
+  // Statistiche del torneo, per la panoramica in alto: quanti giocatori in
+  // totale e quanti slot sono ancora vivi sul totale complessivo.
+  const totalPlayers = standings.length;
+  const totalSlots = standings.reduce((sum, s) => sum + s.slots.length, 0);
+  const aliveSlots = standings.reduce(
+    (sum, s) => sum + s.slots.filter((sl) => sl.status === "alive").length,
+    0
+  );
+
+  // Tutte le squadre già giocate da questo giocatore (su qualunque suo
+  // slot), per il piccolo "album" delle squadre bruciate finora.
+  const playedTeamNames = Array.from(
+    new Set(
+      allPicks
+        .map((p) => teamById.get(p.team_id))
+        .filter((name): name is string => Boolean(name))
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
   let winnerNames: string[] = [];
   if (tournament.status === "finished" && tournament.winners.length > 0) {
     const allPlayers = await queries.getPlayersWithSlots(supabase, tournament.id);
@@ -90,6 +110,44 @@ export default async function PlayerTournamentPage(
           Il torneo non è ancora iniziato: l&apos;organizzatore aprirà la
           prima giornata a breve.
         </p>
+      ) : null}
+
+      <div className="grid grid-cols-3 gap-2.5">
+        <div className={`${cardTight} text-center`}>
+          <p className="font-mono text-2xl font-bold text-foreground">
+            {totalPlayers}
+          </p>
+          <p className="mt-0.5 text-[11px] text-foreground-faint">
+            {totalPlayers === 1 ? "giocatore" : "giocatori"}
+          </p>
+        </div>
+        <div className={`${cardTight} text-center`}>
+          <p className="font-mono text-2xl font-bold text-accent">
+            {aliveSlots}
+          </p>
+          <p className="mt-0.5 text-[11px] text-foreground-faint">
+            slot in gara
+          </p>
+        </div>
+        <div className={`${cardTight} text-center`}>
+          <p className="font-mono text-2xl font-bold text-foreground">
+            {totalSlots}
+          </p>
+          <p className="mt-0.5 text-[11px] text-foreground-faint">
+            slot totali
+          </p>
+        </div>
+      </div>
+
+      {playedTeamNames.length > 0 ? (
+        <section className={cardTight}>
+          <p className={eyebrow}>Le squadre che hai già giocato</p>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            {playedTeamNames.map((name) => (
+              <TeamBadge key={name} name={name} size="md" />
+            ))}
+          </div>
+        </section>
       ) : null}
 
       {standings.length > 1 ? (
@@ -163,12 +221,12 @@ export default async function PlayerTournamentPage(
 
               {slot.status === "alive" && openMatchday ? (
                 pickForOpenMatchday ? (
-                  <p className="mt-3 text-sm text-foreground-soft">
-                    Giornata {openMatchday.number}: hai scelto{" "}
-                    <strong className="text-foreground">
-                      {teamById.get(pickForOpenMatchday.team_id) ?? "—"}
-                    </strong>
-                    . In attesa del risultato.
+                  <p className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-foreground-soft">
+                    <span>Giornata {openMatchday.number}: hai scelto</span>
+                    <TeamLabel
+                      name={teamById.get(pickForOpenMatchday.team_id) ?? "—"}
+                    />
+                    <span>. In attesa del risultato.</span>
                   </p>
                 ) : (
                   <form
@@ -178,27 +236,40 @@ export default async function PlayerTournamentPage(
                       slot.id,
                       openMatchday.id
                     )}
-                    className="mt-3 flex gap-2"
+                    className="mt-3 flex flex-col gap-3"
                   >
-                    <select
-                      name="team_id"
-                      required
-                      defaultValue=""
-                      className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-                    >
-                      <option value="" disabled>
-                        Scegli una squadra per la giornata {openMatchday.number}
-                      </option>
+                    <p className="text-xs text-foreground-faint">
+                      Scegli una squadra per la giornata {openMatchday.number}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                       {available.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {opponentLabel.has(t.name)
-                            ? `${t.name} — ${opponentLabel.get(t.name)}`
-                            : t.name}
-                        </option>
+                        <label
+                          key={t.id}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface-2 px-2.5 py-2 text-xs transition-colors has-[:checked]:border-accent has-[:checked]:bg-win-bg"
+                        >
+                          <input
+                            type="radio"
+                            name="team_id"
+                            value={t.id}
+                            required
+                            className="sr-only"
+                          />
+                          <TeamBadge name={t.name} size="sm" />
+                          <span className="flex min-w-0 flex-col">
+                            <span className="truncate font-semibold text-foreground">
+                              {t.name}
+                            </span>
+                            {opponentLabel.has(t.name) ? (
+                              <span className="truncate text-[10px] text-foreground-faint">
+                                {opponentLabel.get(t.name)}
+                              </span>
+                            ) : null}
+                          </span>
+                        </label>
                       ))}
-                    </select>
-                    <button className={button} type="submit">
-                      Scegli
+                    </div>
+                    <button className={`${button} self-start`} type="submit">
+                      Conferma scelta
                     </button>
                   </form>
                 )
@@ -218,10 +289,14 @@ export default async function PlayerTournamentPage(
                     return (
                       <li
                         key={p.id}
-                        className="flex items-center justify-between text-xs"
+                        className="flex items-center justify-between gap-2 text-xs"
                       >
-                        <span className="text-foreground-faint">
-                          G{number} &middot; {teamById.get(p.team_id) ?? "—"}
+                        <span className="flex items-center gap-1.5 text-foreground-faint">
+                          <span>G{number}</span>
+                          <TeamLabel
+                            name={teamById.get(p.team_id) ?? "—"}
+                            size="xs"
+                          />
                         </span>
                         <span
                           className={
