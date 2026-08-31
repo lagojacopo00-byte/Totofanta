@@ -12,86 +12,60 @@ export default async function HowItWorksPage(
   await requirePlayer(`/play/how-it-works?next=${encodeURIComponent(next)}`);
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-5 px-4 py-8 sm:px-6 sm:py-10">
       <Brandbar subtitle="Come funziona" />
 
       <div>
-        <p className={eyebrow}>Prima di iniziare</p>
-        <h1 className="mt-1 font-display text-2xl font-extrabold">
-          Le regole in breve
+        <p className={eyebrow}>Il gioco</p>
+        <h1 className="mt-1 font-display text-3xl font-extrabold leading-tight">
+          Una giornata, una scelta. Sbagli e sei fuori.
         </h1>
-        <p className="mt-2 text-sm text-foreground-soft">
-          Totofanta è un &quot;ultimo che resta vince&quot;: niente
-          punteggi, niente formazioni. Solo una squadra a giornata, e chi
-          sbaglia è fuori.
+        <p className="mt-3 text-sm leading-relaxed text-foreground-soft">
+          Totofanta segue le partite vere del campionato. Ogni giornata
+          scegli la squadra che pensi vincerà. Vince davvero? Resti in
+          corsa. Pareggia o perde? Sei eliminato — zero scuse, come nel
+          calcio vero. Chi resiste più a lungo entra nella storia del
+          torneo.
         </p>
       </div>
 
+      <section className={`${card} border-accent/30`}>
+        <p className={eyebrow}>Con gli amici, per la gloria</p>
+        <p className="mt-2 text-sm leading-relaxed text-foreground-soft">
+          Crea un torneo, invita chi vuoi e — se decidete voi — mettete
+          in palio un premio vero. Chi tiene in vita la propria squadra
+          più a lungo si guadagna il trofeo (e il diritto di vanteria per
+          un anno intero).
+        </p>
+      </section>
+
       <div className="flex flex-col gap-3">
         <section className={cardTight}>
-          <p className={eyebrow}>1 · Le tue vite</p>
+          <p className={eyebrow}>Le tue vite</p>
           <p className="mt-1.5 text-sm text-foreground-soft">
-            Quando entri in un torneo hai una o più &quot;vite&quot;
-            (qui le chiamiamo <strong className="text-foreground">slot</strong>).
-            Se ne hai più di una, funzionano in modo completamente
-            indipendente: puoi perderne una e continuare a giocare con le
-            altre.
+            Hai una o più vite indipendenti (gli <strong className="text-foreground">slot</strong>):
+            perderne una non ti butta fuori dalle altre. Su ogni vita non
+            puoi ripetere una squadra già scelta: una volta giocata, è
+            bruciata per sempre su quello slot.
           </p>
         </section>
 
         <section className={cardTight}>
-          <p className={eyebrow}>2 · Una scelta a giornata</p>
+          <p className={eyebrow}>Chi vince il torneo</p>
           <p className="mt-1.5 text-sm text-foreground-soft">
-            Per ogni giornata di campionato ancora aperta, scegli{" "}
-            <strong className="text-foreground">una squadra</strong> per
-            ciascuna vita ancora viva. Se dimentichi di scegliere entro la
-            chiusura della giornata, quella vita viene eliminata come se
-            avesse perso.
+            Si va avanti finché c&apos;è più di un giocatore in gara.
+            Resta uno solo con vite ancora vive? Ha vinto lui. Se una
+            giornata elimina tutti insieme, vincono ex aequo tutti quelli
+            che erano ancora in corsa prima.
           </p>
         </section>
 
         <section className={cardTight}>
-          <p className={eyebrow}>3 · Vince solo chi vince davvero</p>
+          <p className={eyebrow}>Nell&apos;app trovi</p>
           <p className="mt-1.5 text-sm text-foreground-soft">
-            Se la squadra che hai scelto <strong className="text-accent">vince</strong>,
-            la tua vita sopravvive alla giornata successiva. Se{" "}
-            <strong className="text-lose">pareggia o perde</strong>, quella
-            vita è eliminata: game over solo per quello slot, non per te.
-          </p>
-        </section>
-
-        <section className={cardTight}>
-          <p className={eyebrow}>4 · Ogni squadra una sola volta</p>
-          <p className="mt-1.5 text-sm text-foreground-soft">
-            Su una stessa vita non puoi ripetere una squadra già scelta in
-            precedenza: una volta usata, per quello slot è &quot;bruciata&quot;
-            per il resto del torneo. Slot diversi possono invece scegliere
-            anche la stessa squadra.
-          </p>
-        </section>
-
-        <section className={cardTight}>
-          <p className={eyebrow}>5 · Chi vince il torneo</p>
-          <p className="mt-1.5 text-sm text-foreground-soft">
-            Il torneo continua finché resta più di un giocatore con
-            almeno una vita in gara. Quando resta un solo giocatore con
-            vite ancora vive, ha vinto lui. Se una giornata elimina
-            proprio tutte le vite rimaste in un colpo solo, vincono ex
-            aequo tutti quelli che erano ancora in gara prima di quella
-            giornata.
-          </p>
-        </section>
-
-        <section className={cardTight}>
-          <p className={eyebrow}>6 · Cosa trovi nell&apos;app</p>
-          <p className="mt-1.5 text-sm text-foreground-soft">
-            Nella pagina del torneo trovi la{" "}
-            <strong className="text-foreground">classifica</strong> con
-            chi è ancora vivo o eliminato, e nel menu di scelta della
-            squadra vedi anche l&apos;avversario di giornata, quando
-            l&apos;organizzatore lo ha inserito. È l&apos;organizzatore ad
-            aprire le giornate e a inserire i risultati: a te resta solo
-            scegliere bene.
+            La classifica di chi è vivo o eliminato, e l&apos;avversario
+            di giornata per ogni squadra scelta. Le giornate le apre
+            l&apos;organizzatore, che inserisce anche i risultati.
           </p>
         </section>
       </div>
@@ -106,7 +80,7 @@ export default async function HowItWorksPage(
           &quot;Come funziona&quot; nell&apos;area giocatore.
         </p>
         <button className={button} type="submit">
-          Ho capito, continua
+          Si comincia
         </button>
       </form>
     </main>
