@@ -39,8 +39,17 @@
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
+/* Difesa contro il contenuto dinamico (nomi torneo, nomi giocatori, nomi
+   squadra) che su schermi stretti come iPhone può altrimenti allargare la
+   pagina e "tagliare" cose fuori dallo schermo. */
+html {
+  overflow-x: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  overflow-x: hidden;
+  overflow-wrap: break-word;
 }
