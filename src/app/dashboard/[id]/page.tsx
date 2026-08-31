@@ -16,9 +16,11 @@ import { TeamLabel } from "@/components/team-badge";
 import {
   addPlayerAction,
   addTeamAction,
+  addTestPlayersAction,
   editPlayerSlotsAction,
   removePlayerAction,
   removeTeamAction,
+  simulateMatchdayAction,
   startTournamentAction,
 } from "./actions";
 
@@ -60,7 +62,14 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <p className={eyebrow}>{tournament.competition}</p>
+        <div className="flex items-center gap-2">
+          <p className={eyebrow}>{tournament.competition}</p>
+          {tournament.is_test ? (
+            <span className="inline-flex items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-foreground-faint">
+              Torneo di test
+            </span>
+          ) : null}
+        </div>
         <h1 className="mt-1 font-display text-2xl font-extrabold">
           {tournament.name}
         </h1>
@@ -270,6 +279,54 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
           Totofanta con questa stessa email: si aggancia da solo al torneo.
         </p>
       </section>
+
+      {tournament.is_test ? (
+        <section className={`${card} flex flex-col gap-3 border-dashed`}>
+          <div>
+            <p className={eyebrow}>Strumenti torneo di test</p>
+            <p className="mt-1 text-xs text-foreground-soft">
+              Solo su questo torneo: aggiungi giocatori finti e simula
+              giornate intere all&apos;istante (scelte e risultati casuali),
+              per provare quanti slot/quanto dura senza aspettare il
+              calendario reale.
+            </p>
+          </div>
+
+          <form
+            action={addTestPlayersAction.bind(null, tournament.id)}
+            className="flex flex-col gap-2 sm:flex-row"
+          >
+            <input
+              className={`${input} sm:w-32`}
+              name="count"
+              type="number"
+              min={1}
+              max={50}
+              defaultValue={10}
+              title="Quanti giocatori finti aggiungere"
+            />
+            <button className={buttonGhost} type="submit">
+              Aggiungi giocatori finti
+            </button>
+          </form>
+
+          {tournament.status === "finished" ? (
+            <p className="text-xs text-foreground-faint">
+              Torneo finito: non c&apos;è più nessuna giornata da simulare.
+            </p>
+          ) : (
+            <form action={simulateMatchdayAction.bind(null, tournament.id)}>
+              <button
+                className={button}
+                type="submit"
+                disabled={players.length < 1}
+              >
+                Simula giornata
+              </button>
+            </form>
+          )}
+        </section>
+      ) : null}
 
       {tournament.status === "draft" ? (
         <form action={startTournamentAction.bind(null, tournament.id)}>
