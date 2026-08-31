@@ -5,6 +5,8 @@ import * as queries from "@/lib/queries";
 import { button, card, eyebrow, input, label } from "@/components/ui";
 import { joinTournamentAction } from "./actions";
 
+const joinPath = (tournamentId: string) => `/play/join/${tournamentId}`;
+
 export default async function JoinTournamentPage(
   props: PageProps<"/play/join/[tournamentId]">
 ) {
@@ -12,7 +14,16 @@ export default async function JoinTournamentPage(
   const params = await props.searchParams;
   const error = typeof params.error === "string" ? params.error : null;
 
-  const { supabase, user } = await requirePlayer(`/play/join/${tournamentId}`);
+  const { supabase, user } = await requirePlayer(joinPath(tournamentId));
+
+  // Prima volta in assoluto che questo account entra nell'area
+  // giocatore? Mostra il tutorial prima di qualsiasi altra cosa, e torna
+  // qui subito dopo per completare l'iscrizione.
+  if (!(await queries.hasSeenTutorial(supabase, user.id))) {
+    redirect(
+      `/play/how-it-works?next=${encodeURIComponent(joinPath(tournamentId))}`
+    );
+  }
 
   // Se è già iscritto (magari un invito già agganciato in automatico da
   // requirePlayer, o un'iscrizione precedente), niente modulo: si va
