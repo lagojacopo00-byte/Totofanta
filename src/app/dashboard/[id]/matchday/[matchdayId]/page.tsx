@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/require-user";
 import * as queries from "@/lib/queries";
-import { button, card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
+import { button, buttonGhost, card, cardTight, eyebrow, input, pillAlive, pillOut } from "@/components/ui";
 import { TeamLabel } from "@/components/team-badge";
-import { submitResultsAction } from "./actions";
+import { organizerClearPickAction, organizerSetPickAction, submitResultsAction } from "./actions";
 
 const outcomeLabel = { win: "Vinta", draw: "Pareggiata", loss: "Persa" } as const;
 
@@ -19,10 +19,14 @@ export default async function MatchdayPage(
   const matchday = await queries.getMatchday(supabase, matchdayId);
   if (matchday.tournament_id !== id) notFound();
 
-  const [picks, players] = await Promise.all([
+  const [picks, players, availableTeams] = await Promise.all([
     queries.getPicksForMatchday(supabase, matchday.id),
     queries.getPlayersWithSlots(supabase, id),
+    queries.getAvailableTeams(supabase, id, tournament.competition),
   ]);
+
+  const allSlotIds = players.flatMap((p) => p.slots.map((s) => s.id));
+  const allHistory = await queries.getAllPicksForTournamentSlots(supabase, allSlotIds);
 
   const slotOwner = new Map<string, string>();
   for (const p of players) {
@@ -44,6 +48,29 @@ export default async function MatchdayPage(
   const results = isOpen ? [] : await queries.getMatchdayResults(supabase, matchday.id);
   const resultByTeam = new Map(results.map((r) => [r.team_id, r.outcome]));
 
+  // Righe per la gestione manuale delle scelte (solo giornata aperta): una
+  // per ogni slot ancora vivo, con la scelta attuale (se c'è) e le squadre
+  // ancora disponibili per quello slot — l'organizzatore può schierare,
+  // cambiare o togliere la scelta di chiunque, senza il vincolo del
+  // giovedì che vale per i giocatori.
+  const managedRows = isOpen
+    ? players.flatMap((p) =>
+        p.slots
+          .filter((s) => s.status === "alive")
+          .map((s) => {
+            const history = allHistory.filter((pk) => pk.slot_id === s.id);
+            const currentPick = history.find((pk) => pk.matchday_id === matchday.id);
+            const usedElsewhere = history
+              .filter((pk) => pk.matchday_id !== matchday.id)
+              .map((pk) => pk.team_id);
+            const available = availableTeams.filter(
+              (t) => !usedElsewhere.includes(t.id)
+            );
+            return { player: p, slot: s, currentPick, available };
+          })
+      )
+    : [];
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -52,6 +79,99 @@ export default async function MatchdayPage(
           Giornata {matchday.number}
         </h1>
       </div>
+
+      {isOpen ? (
+        <section className="flex flex-col gap-3">
+          <div>
+            <p className={eyebrow}>Gestisci le scelte</p>
+            <p className="mt-1 text-xs text-foreground-soft">
+              Puoi schierare, cambiare o togliere la scelta di ogni
+              giocatore quando vuoi — anche oltre la scadenza di giovedì
+              che vale per loro.
+            </p>
+          </div>
+          {managedRows.length === 0 ? (
+            <p className="text-sm text-foreground-faint">
+              Nessuno slot in gara al momento.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {managedRows.map(({ player, slot, currentPick, available }) => (
+                <li
+                  key={slot.id}
+                  className={`${cardTight} flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between`}
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {player.display_name} · slot {slot.label}
+                    </p>
+                    <p className="mt-0.5 text-xs text-foreground-faint">
+                      {currentPick ? (
+                        <TeamLabel
+                          name={teamName.get(currentPick.team_id) ?? "—"}
+                          size="xs"
+                        />
+                      ) : (
+                        "Nessuna scelta"
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <form
+                      action={organizerSetPickAction.bind(
+                        null,
+                        id,
+                        slot.id,
+                        matchday.id
+                      )}
+                      className="flex items-center gap-1.5"
+                    >
+                      <select
+                        className={`${input} w-auto py-1.5 text-xs`}
+                        name="team_id"
+                        defaultValue={currentPick?.team_id ?? ""}
+                        required
+                      >
+                        <option value="" disabled>
+                          Scegli squadra…
+                        </option>
+                        {available.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        className={`${buttonGhost} px-2.5 py-1.5 text-xs`}
+                        type="submit"
+                      >
+                        Salva
+                      </button>
+                    </form>
+                    {currentPick ? (
+                      <form
+                        action={organizerClearPickAction.bind(
+                          null,
+                          id,
+                          slot.id,
+                          matchday.id
+                        )}
+                      >
+                        <button
+                          className={`${buttonGhost} px-2.5 py-1.5 text-xs border-lose/40 text-lose hover:border-lose hover:text-lose`}
+                          type="submit"
+                        >
+                          Rimuovi
+                        </button>
+                      </form>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
       {teamIds.length === 0 ? (
         <p className="text-sm text-foreground-soft">
