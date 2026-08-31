@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
-import { button, card, eyebrow, pillAlive, pillOut } from "@/components/ui";
+import { button, card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { submitPickAction } from "./actions";
 
 const outcomeLabel = { win: "Vinta", draw: "Pareggio", loss: "Persa" } as const;
@@ -23,10 +23,11 @@ export default async function PlayerTournamentPage(
   const tournament = player.tournaments;
   const slots = [...player.slots].sort((a, b) => a.label.localeCompare(b.label));
 
-  const [matchdays, allPicks, availableTeams] = await Promise.all([
+  const [matchdays, allPicks, availableTeams, standings] = await Promise.all([
     queries.getMatchdays(supabase, tournament.id),
     queries.getAllPicksForTournamentSlots(supabase, slots.map((s) => s.id)),
     queries.getAvailableTeams(supabase, tournament.id, tournament.competition),
+    queries.getTournamentStandings(supabase, tournament.id),
   ]);
 
   const openMatchday = matchdays.find((m) => m.status === "open");
@@ -34,6 +35,18 @@ export default async function PlayerTournamentPage(
     supabase,
     matchdays.map((m) => m.id)
   );
+
+  // Accoppiamenti reali di Serie A per la giornata aperta (giornata N del
+  // torneo = giornata reale N), per mostrare l'avversario nel menu di
+  // scelta — vedi src/app/dashboard/fixtures.
+  const openFixtures = openMatchday
+    ? await queries.getFixturesForRound(supabase, openMatchday.number)
+    : [];
+  const opponentLabel = new Map<string, string>();
+  for (const f of openFixtures) {
+    opponentLabel.set(f.home_team, `vs ${f.away_team} (casa)`);
+    opponentLabel.set(f.away_team, `vs ${f.home_team} (trasferta)`);
+  }
   const resultKey = (matchdayId: string, teamId: string) => `${matchdayId}:${teamId}`;
   const resultByKey = new Map(
     results.map((r) => [resultKey(r.matchday_id, r.team_id), r.outcome])
@@ -77,6 +90,45 @@ export default async function PlayerTournamentPage(
           Il torneo non è ancora iniziato: l&apos;organizzatore aprirà la
           prima giornata a breve.
         </p>
+      ) : null}
+
+      {standings.length > 1 ? (
+        <section className={cardTight}>
+          <p className={eyebrow}>Classifica</p>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {standings
+              .slice()
+              .sort((a, b) => {
+                const aliveA = a.slots.filter((s) => s.status === "alive").length;
+                const aliveB = b.slots.filter((s) => s.status === "alive").length;
+                return aliveB - aliveA;
+              })
+              .map((s) => {
+                const alive = s.slots.filter((sl) => sl.status === "alive").length;
+                const isMe = s.id === player.id;
+                return (
+                  <li
+                    key={s.id}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <span
+                      className={
+                        isMe
+                          ? "font-display font-bold text-foreground"
+                          : "text-foreground-soft"
+                      }
+                    >
+                      {s.display_name}
+                      {isMe ? " (tu)" : ""}
+                    </span>
+                    <span className={alive > 0 ? pillAlive : pillOut}>
+                      {alive}/{s.slots.length} vivi
+                    </span>
+                  </li>
+                );
+              })}
+          </ul>
+        </section>
       ) : null}
 
       <section className="flex flex-col gap-4">
@@ -139,7 +191,9 @@ export default async function PlayerTournamentPage(
                       </option>
                       {available.map((t) => (
                         <option key={t.id} value={t.id}>
-                          {t.name}
+                          {opponentLabel.has(t.name)
+                            ? `${t.name} — ${opponentLabel.get(t.name)}`
+                            : t.name}
                         </option>
                       ))}
                     </select>
