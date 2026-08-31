@@ -25,7 +25,14 @@ create table profiles (
   created_at timestamptz not null default now(),
   -- Quando l'account ha visto per la prima volta il tutorial "come
   -- funziona" nell'area giocatore. null = non ancora visto.
-  tutorial_seen_at timestamptz
+  tutorial_seen_at timestamptz,
+  -- Ruolo globale sulla piattaforma (non legato a un singolo torneo):
+  -- tutti partono "player", e si diventa "creator" automaticamente la
+  -- prima volta che si crea un torneo (vedi createTournamentAction).
+  -- Serve per future funzioni valide su tutta la piattaforma (es. tornei
+  -- di test), distinte dall'essere organizzatore di un torneo specifico
+  -- (tournaments.owner_id), che resta un concetto per-torneo a sé.
+  role text not null default 'player' check (role in ('player', 'creator'))
 );
 
 alter table profiles enable row level security;
