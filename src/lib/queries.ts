@@ -23,7 +23,7 @@ import type {
 type DB = SupabaseClient;
 
 function slotLabels(n: number): string[] {
-  return Array.from({ length: n }, (_, i) => String.fromCharCode(65 + i));
+  return Array.from({ length: n }, (_, i) => String(i + 1));
 }
 
 function assertNoError<T>(result: { data: T; error: unknown }): T {
@@ -137,6 +137,40 @@ export async function getAvailableTeams(
     .or(`tournament_id.eq.${tournamentId},competition.eq.${competition}`)
     .order("name", { ascending: true });
   return assertNoError(res) as Team[];
+}
+
+/** Aggiunge una squadra "su misura" per un torneo specifico: usata quando
+ * la competizione non è la Serie A precaricata (o comunque manca qualche
+ * squadra) e l'organizzatore deve popolare a mano l'elenco delle squadre
+ * selezionabili dai giocatori. */
+export async function addTeamToTournament(
+  db: DB,
+  tournamentId: string,
+  competition: string,
+  name: string
+) {
+  const res = await db
+    .from("teams")
+    .insert({ tournament_id: tournamentId, competition, name: name.trim() })
+    .select("*")
+    .single();
+  return assertNoError(res) as Team;
+}
+
+/** Toglie una squadra aggiunta a mano per questo torneo (non tocca mai le
+ * squadre di riferimento condivise, quelle con tournament_id nullo). */
+export async function removeTeamFromTournament(
+  db: DB,
+  tournamentId: string,
+  teamId: string
+) {
+  assertNoError(
+    await db
+      .from("teams")
+      .delete()
+      .eq("id", teamId)
+      .eq("tournament_id", tournamentId)
+  );
 }
 
 export async function addPlayer(
