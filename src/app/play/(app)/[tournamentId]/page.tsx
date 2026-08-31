@@ -4,6 +4,7 @@ import * as queries from "@/lib/queries";
 import { button, card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { TeamBadge, TeamLabel } from "@/components/team-badge";
 import { PickCountdown } from "@/components/pick-countdown";
+import { isPickingWindowOpen } from "@/lib/pick-window";
 import { submitPickAction } from "./actions";
 
 const outcomeLabel = { win: "Vinta", draw: "Pareggio", loss: "Persa" } as const;
@@ -106,6 +107,7 @@ export default async function PlayerTournamentPage(
       .map((p) => p.display_name);
   }
   const isWinner = tournament.winners.includes(player.id);
+  const pickingOpen = isPickingWindowOpen();
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -207,6 +209,12 @@ export default async function PlayerTournamentPage(
                       name={teamById.get(pickForOpenMatchday.team_id) ?? "—"}
                     />
                     <span>. In attesa del risultato.</span>
+                  </p>
+                ) : !pickingOpen ? (
+                  <p className="mt-3 text-sm text-foreground-faint">
+                    Le scelte per questa giornata sono chiuse: si schiera
+                    solo da lunedì a giovedì. Aspetta i risultati di
+                    lunedì.
                   </p>
                 ) : (
                   <form
