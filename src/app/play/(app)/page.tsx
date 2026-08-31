@@ -13,12 +13,18 @@ export default async function PlayHomePage() {
   const { supabase, user } = await requirePlayer();
   const memberships = await getPlayerMemberships(supabase, user.id);
 
+  const displayName =
+    typeof user.user_metadata?.display_name === "string" &&
+    user.user_metadata.display_name.trim().length > 0
+      ? user.user_metadata.display_name
+      : (user.email ?? "").split("@")[0];
+
   return (
-    <div className="flex flex-col gap-6">
-      <div>
+    <div className="flex min-w-0 flex-col gap-6">
+      <div className="min-w-0">
         <p className={eyebrow}>I tuoi tornei</p>
-        <h1 className="mt-1 font-display text-2xl font-extrabold">
-          Ciao!
+        <h1 className="mt-1 truncate font-display text-3xl font-extrabold">
+          Ciao, {displayName}
         </h1>
       </div>
 
@@ -32,30 +38,39 @@ export default async function PlayHomePage() {
         </div>
       ) : (
         <ul className="flex flex-col gap-3">
-          {memberships.map((m) => (
-            <li key={m.id}>
-              <Link
-                href={`/play/${m.tournament_id}`}
-                className={`${card} flex items-center justify-between gap-4 transition-colors hover:border-accent`}
-              >
-                <div>
-                  <p className="font-display text-lg font-bold">
-                    {m.tournaments.name}
-                  </p>
-                  <p className="text-xs text-foreground-faint">
-                    {m.tournaments.competition} &middot; {m.num_slots} slot
-                  </p>
-                </div>
-                <span
-                  className={
-                    m.tournaments.status === "finished" ? pillOut : pillAlive
-                  }
+          {memberships.map((m) => {
+            const alive = m.slots.filter((s) => s.status === "alive").length;
+            const total = m.slots.length;
+            return (
+              <li key={m.id}>
+                <Link
+                  href={`/play/${m.tournament_id}`}
+                  className={`${card} flex min-w-0 items-center justify-between gap-4 transition-colors hover:border-accent`}
                 >
-                  {statusLabel[m.tournaments.status]}
-                </span>
-              </Link>
-            </li>
-          ))}
+                  <div className="min-w-0">
+                    <p className="truncate font-display text-lg font-bold">
+                      {m.tournaments.name}
+                    </p>
+                    <p className="truncate text-xs text-foreground-faint">
+                      {m.tournaments.competition}
+                    </p>
+                  </div>
+                  <div className="flex flex-none flex-col items-end gap-1.5">
+                    <span
+                      className={
+                        m.tournaments.status === "finished" ? pillOut : pillAlive
+                      }
+                    >
+                      {alive}/{total} slot vivi
+                    </span>
+                    <span className="text-[11px] text-foreground-faint">
+                      {statusLabel[m.tournaments.status]}
+                    </span>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
