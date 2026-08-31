@@ -12,10 +12,13 @@ import {
   pillAlive,
   pillOut,
 } from "@/components/ui";
+import { TeamLabel } from "@/components/team-badge";
 import {
   addPlayerAction,
+  addTeamAction,
   editPlayerSlotsAction,
   removePlayerAction,
+  removeTeamAction,
   startTournamentAction,
 } from "./actions";
 
@@ -39,9 +42,10 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
     notFound();
   }
 
-  const [players, matchdays] = await Promise.all([
+  const [players, matchdays, availableTeams] = await Promise.all([
     queries.getPlayersWithSlots(supabase, tournament.id),
     queries.getMatchdays(supabase, tournament.id),
+    queries.getAvailableTeams(supabase, tournament.id, tournament.competition),
   ]);
 
   const winnerNames = players
@@ -95,6 +99,68 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
           />
         </section>
       ) : null}
+
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className={eyebrow}>Squadre</p>
+          <span className="text-xs text-foreground-faint">
+            {availableTeams.length} disponibili
+          </span>
+        </div>
+
+        {availableTeams.length === 0 ? (
+          <p className="text-sm text-lose">
+            Nessuna squadra disponibile per &quot;{tournament.competition}
+            &quot;: senza almeno una squadra i giocatori non potranno
+            scegliere nulla. Aggiungile qui sotto.
+          </p>
+        ) : availableTeams.length < 10 ? (
+          <p className="text-xs text-foreground-faint">
+            Solo {availableTeams.length} squadre disponibili: su un torneo
+            lungo qualche slot potrebbe restare senza scelte prima della
+            fine. Puoi aggiungerne altre qui sotto.
+          </p>
+        ) : null}
+
+        {availableTeams.length > 0 ? (
+          <ul className="flex flex-wrap gap-1.5">
+            {availableTeams.map((t) => (
+              <li
+                key={t.id}
+                className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 py-1 pl-2.5 pr-1.5"
+              >
+                <TeamLabel name={t.name} size="xs" />
+                {t.tournament_id === tournament.id ? (
+                  <form action={removeTeamAction.bind(null, tournament.id, t.id)}>
+                    <button
+                      className="rounded-full px-1 text-xs text-foreground-faint hover:text-lose"
+                      type="submit"
+                      title={`Togli ${t.name}`}
+                    >
+                      ×
+                    </button>
+                  </form>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        <form
+          action={addTeamAction.bind(null, tournament.id)}
+          className={`${cardTight} flex flex-col gap-2 sm:flex-row`}
+        >
+          <input
+            className={input}
+            name="name"
+            placeholder="Nome squadra (es. Real Madrid)"
+            required
+          />
+          <button className={buttonGhost} type="submit">
+            Aggiungi squadra
+          </button>
+        </form>
+      </section>
 
       <section className="flex flex-col gap-4">
         <p className={eyebrow}>Giocatori</p>
