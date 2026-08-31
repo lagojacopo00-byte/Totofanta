@@ -6,6 +6,7 @@ import {
   type Outcome as GameOutcome,
 } from "./game-logic";
 import type {
+  Fixture,
   Matchday,
   MatchdayResult,
   Pick,
@@ -107,6 +108,19 @@ export async function getTeamsByIds(db: DB, ids: string[]) {
   return assertNoError(res) as Team[];
 }
 
+/** L'elenco di riferimento delle squadre di una competizione (es. tutta
+ * la Serie A), a prescindere da un torneo specifico — per la pagina di
+ * amministrazione del calendario. */
+export async function getReferenceTeams(db: DB, competition: string) {
+  const res = await db
+    .from("teams")
+    .select("*")
+    .eq("competition", competition)
+    .is("tournament_id", null)
+    .order("name", { ascending: true });
+  return assertNoError(res) as Team[];
+}
+
 export async function getPicksForSlot(db: DB, slotId: string) {
   const res = await db.from("picks").select("*").eq("slot_id", slotId);
   return assertNoError(res) as Pick[];
@@ -151,6 +165,15 @@ export async function addPlayer(
   const slots = assertNoError(slotsRes) as Slot[];
 
   return { ...player, slots };
+}
+
+/**
+ * Toglie del tutto un giocatore da un torneo (e i suoi slot/pick a
+ * cascata). Da chiamare solo mentre il torneo è ancora "draft" — è il
+ * chiamante (vedi le Server Actions) a doverlo verificare.
+ */
+export async function removePlayer(db: DB, playerId: string) {
+  assertNoError(await db.from("players").delete().eq("id", playerId));
 }
 
 /**
@@ -453,4 +476,67 @@ export async function getPlayerForTournament(
     tournaments: Tournament;
   };
   return row;
+}
+
+/**
+ * Panoramica di tutti i giocatori di un torneo (nome + stato dei loro
+ * slot), per la "classifica" che vede ogni giocatore — volutamente senza
+ * email, a differenza di `getPlayersWithSlots` che è per l'organizzatore.
+ * Richiede la policy "players read all players of tournaments they
+ * belong to" (vedi supabase/add_features.sql).
+ */
+export async function getTournamentStandings(db: DB, tournamentId: string) {
+  const res = await db
+    .from("players")
+    .select("id, display_name, slots(status)")
+    .eq("tournament_id", tournamentId)
+    .order("created_at", { ascending: true });
+  return assertNoError(res) as {
+    id: string;
+    display_name: string;
+    slots: { status: "alive" | "eliminated" }[];
+  }[];
+}
+
+/**
+ * Gli accoppiamenti reali di Serie A per una giornata (round). La
+ * giornata N del torneo corrisponde alla giornata reale N: l'organizzatore
+ * tiene aggiornati gli accoppiamenti da /dashboard/fixtures.
+ */
+export async function getFixturesForRound(db: DB, round: number) {
+  const res = await db
+    .from("serie_a_fixtures")
+    .select("*")
+    .eq("round", round)
+    .order("home_team", { ascending: true });
+  return assertNoError(res) as Fixture[];
+}
+
+/** Tutti gli accoppiamenti salvati, per la pagina di amministrazione. */
+export async function getAllFixtures(db: DB) {
+  const res = await db
+    .from("serie_a_fixtures")
+    .select("*")
+    .order("round", { ascending: true })
+    .order("home_team", { ascending: true });
+  return assertNoError(res) as Fixture[];
+}
+
+export async function upsertFixture(
+  db: DB,
+  input: { round: number; homeTeam: string; awayTeam: string }
+) {
+  const res = await db
+    .from("serie_a_fixtures")
+    .upsert(
+      { round: input.round, home_team: input.homeTeam, away_team: input.awayTeam },
+      { onConflict: "round,home_team" }
+    )
+    .select("*")
+    .single();
+  return assertNoError(res) as Fixture;
+}
+
+export async function deleteFixture(db: DB, fixtureId: string) {
+  assertNoError(await db.from("serie_a_fixtures").delete().eq("id", fixtureId));
 }
