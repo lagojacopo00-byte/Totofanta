@@ -12,6 +12,9 @@ export interface Tournament {
   tie_break_rule: "ex_aequo";
   results_mode: "manual";
   status: TournamentStatus;
+  // Torneo "di prova" per il Creator: giocatori finti, giornate simulate.
+  // Vedi addTestPlayers/simulateMatchday in src/lib/queries.ts.
+  is_test: boolean;
   decisive_matchday: number | null;
   winners: string[];
   created_at: string;
