@@ -15,6 +15,7 @@ import {
 import {
   addPlayerAction,
   editPlayerSlotsAction,
+  removePlayerAction,
   startTournamentAction,
 } from "./actions";
 
@@ -134,22 +135,32 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
                       {alive}/{p.slots.length} slot vivi
                     </p>
                     {isDraft ? (
-                      <form
-                        action={editPlayerSlotsAction.bind(null, tournament.id, p.id)}
-                        className="flex items-center gap-1.5"
-                      >
-                        <input
-                          className={`${input} w-16 px-2 py-1 text-center`}
-                          type="number"
-                          name="num_slots"
-                          min={1}
-                          max={100}
-                          defaultValue={p.num_slots}
-                        />
-                        <button className={buttonGhost} type="submit">
-                          Aggiorna slot
-                        </button>
-                      </form>
+                      <div className="flex items-center gap-1.5">
+                        <form
+                          action={editPlayerSlotsAction.bind(null, tournament.id, p.id)}
+                          className="flex items-center gap-1.5"
+                        >
+                          <input
+                            className={`${input} w-16 px-2 py-1 text-center`}
+                            type="number"
+                            name="num_slots"
+                            min={1}
+                            max={100}
+                            defaultValue={p.num_slots}
+                          />
+                          <button className={buttonGhost} type="submit">
+                            Aggiorna slot
+                          </button>
+                        </form>
+                        <form action={removePlayerAction.bind(null, tournament.id, p.id)}>
+                          <button
+                            className={`${buttonGhost} border-lose/40 text-lose hover:border-lose hover:text-lose`}
+                            type="submit"
+                          >
+                            Rimuovi
+                          </button>
+                        </form>
+                      </div>
                     ) : null}
                   </div>
                 </li>
