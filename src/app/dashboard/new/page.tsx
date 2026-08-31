@@ -1,9 +1,17 @@
 import { card, eyebrow, input, label, button } from "@/components/ui";
+import { requireUser } from "@/lib/supabase/require-user";
+import { getProfileRole } from "@/lib/queries";
 import { createTournamentAction } from "../actions";
 
 export default async function NewTournamentPage(props: PageProps<"/dashboard/new">) {
   const params = await props.searchParams;
   const error = typeof params.error === "string" ? params.error : null;
+
+  // Il checkbox "torneo di test" si vede solo se si è già creator (si
+  // diventa creator creando un primo torneo vero): vedi
+  // docs/01_Visione_progetto.md.
+  const { supabase, user } = await requireUser();
+  const isCreator = (await getProfileRole(supabase, user.id)) === "creator";
 
   return (
     <div className="flex flex-col gap-6">
@@ -75,6 +83,20 @@ export default async function NewTournamentPage(props: PageProps<"/dashboard/new
             individualmente, in base a quanti ne ha comprati.
           </p>
         </div>
+
+        {isCreator ? (
+          <label className="flex items-start gap-2.5 rounded-lg border border-line bg-surface-2 px-3 py-2.5 text-sm text-foreground-soft">
+            <input type="checkbox" name="is_test" className="mt-0.5" />
+            <span>
+              <span className="font-semibold text-foreground">
+                Torneo di test
+              </span>{" "}
+              — potrai aggiungere giocatori finti e simulare intere
+              giornate all&apos;istante, per provare quanti slot/quanto
+              dura, senza aspettare il calendario reale.
+            </span>
+          </label>
+        ) : null}
 
         <button className={`${button} mt-2`} type="submit">
           Crea torneo
