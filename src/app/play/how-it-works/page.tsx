@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import { Brandbar } from "@/components/brandbar";
+import { BackLink } from "@/components/back-link";
 import { button, card, cardTight, eyebrow } from "@/components/ui";
 import { markTutorialSeenAction } from "./actions";
 
@@ -14,6 +15,7 @@ export default async function HowItWorksPage(
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-5 px-4 py-8 sm:px-6 sm:py-10">
+      <BackLink href="/play" label="I tuoi tornei" />
       <Brandbar subtitle="Come funziona" />
 
       <div>

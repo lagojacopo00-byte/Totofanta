@@ -7,6 +7,7 @@ import { PickCountdown } from "@/components/pick-countdown";
 import { isPickingWindowOpen } from "@/lib/pick-window";
 import { groupFixturesByDay } from "@/lib/match-window";
 import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
+import { BackLink } from "@/components/back-link";
 
 const outcomeLabel = { win: "Vinta", draw: "Pareggio", loss: "Persa" } as const;
 
@@ -163,6 +164,8 @@ export default async function PlayerTournamentPage(
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
+      <BackLink href="/play" label="I tuoi tornei" />
+
       <div className="min-w-0">
         <p className={eyebrow}>{tournament.competition}</p>
         <h1 className="mt-1 break-words font-display text-2xl font-extrabold">

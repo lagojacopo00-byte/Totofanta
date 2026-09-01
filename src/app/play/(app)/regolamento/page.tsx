@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import { cardTight, eyebrow } from "@/components/ui";
+import { BackLink } from "@/components/back-link";
 
 export default async function RegolamentoPage() {
   await requirePlayer();
 
   return (
     <div className="flex flex-col gap-6">
+      <BackLink href="/play" label="I tuoi tornei" />
+
       <div>
         <p className={eyebrow}>Regole del gioco</p>
         <h1 className="mt-1 font-display text-2xl font-extrabold sm:text-3xl">
