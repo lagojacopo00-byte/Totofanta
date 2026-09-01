@@ -61,3 +61,30 @@ export async function toggleFixtureStatusAction(
   await queries.setFixtureStatus(supabase, fixtureId, next);
   revalidatePath("/dashboard/fixtures");
 }
+
+/** Salva l'esito reale di una partita e prova subito a chiudere la
+ * giornata corrispondente su ogni torneo Serie A che ce l'ha aperta —
+ * solo se ormai TUTTA quella giornata ha un esito noto (vedi
+ * tryFinalizeRoundEverywhere). Riservata al creator: un potere che tocca
+ * tutti i tornei insieme, non il singolo organizzatore. */
+export async function setFixtureResultAction(
+  fixtureId: string,
+  round: number,
+  formData: FormData
+) {
+  const { supabase, user } = await requireUser();
+  const role = await queries.getProfileRole(supabase, user.id);
+  if (role !== "creator") {
+    throw new Error("Solo il creator può inserire i risultati reali");
+  }
+
+  const raw = String(formData.get("result") ?? "");
+  const result =
+    raw === "home_win" || raw === "draw" || raw === "away_win" ? raw : null;
+
+  await queries.updateFixtureResult(supabase, fixtureId, result);
+  if (result) {
+    await queries.tryFinalizeRoundEverywhere(supabase, round);
+  }
+  revalidatePath("/dashboard/fixtures");
+}

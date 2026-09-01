@@ -78,6 +78,8 @@ export interface MatchdayResult {
 
 export type FixtureStatus = "scheduled" | "excluded";
 
+export type FixtureResult = "home_win" | "draw" | "away_win";
+
 /** Un accoppiamento reale di Serie A per una giornata (round) numerata
  * come le giornate del torneo (giornata torneo N = giornata reale N).
  * Inserito/aggiornato a mano dall'organizzatore in /dashboard/fixtures. */
@@ -91,4 +93,7 @@ export interface Fixture {
   // 'excluded' = non conta ai fini del gioco per la sua giornata (vedi
   // supabase/schema.sql e docs/02_Regole_gioco.md).
   status: FixtureStatus;
+  // Esito reale, caricato dal creator. Null finché non giocata/inserita —
+  // vedi tryFinalizeRoundEverywhere in src/lib/queries.ts.
+  result: FixtureResult | null;
 }

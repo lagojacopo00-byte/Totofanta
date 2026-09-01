@@ -168,6 +168,7 @@ export default async function PlayerTournamentPage(
       homeTeam: f.home_team,
       awayTeam: f.away_team,
       kickoffAt: f.kickoff_at,
+      result: f.result,
     })),
   }));
   const otherTeams = availableTeams.filter((t) => !teamNamesInFixtures.has(t.name));

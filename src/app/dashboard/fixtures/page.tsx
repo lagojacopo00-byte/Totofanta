@@ -3,10 +3,12 @@ import * as queries from "@/lib/queries";
 import { button, buttonGhost, card, cardTight, eyebrow, input, label } from "@/components/ui";
 import { TeamBadge } from "@/components/team-badge";
 import { BackLink } from "@/components/back-link";
+import type { Fixture, FixtureResult } from "@/lib/types";
 import {
   addFixtureAction,
   deleteFixtureAction,
   setFixtureKickoffAction,
+  setFixtureResultAction,
   toggleFixtureStatusAction,
 } from "./actions";
 
@@ -17,6 +19,18 @@ const dayLabel = new Intl.DateTimeFormat("it-IT", {
   hour: "2-digit",
   minute: "2-digit",
 });
+
+const resultLabel: Record<FixtureResult, (f: Fixture) => string> = {
+  home_win: (f) => `Vittoria ${f.home_team}`,
+  draw: () => "Pareggio",
+  away_win: (f) => `Vittoria ${f.away_team}`,
+};
+
+const resultShort: Record<FixtureResult, string> = {
+  home_win: "1",
+  draw: "X",
+  away_win: "2",
+};
 
 /** Formato accettato da <input type="datetime-local">: ora locale senza
  * fuso, senza i secondi. */
@@ -29,12 +43,14 @@ function toDatetimeLocalValue(iso: string | null): string {
 }
 
 export default async function FixturesPage() {
-  const { supabase } = await requireUser();
+  const { supabase, user } = await requireUser();
 
-  const [fixtures, teams] = await Promise.all([
+  const [fixtures, teams, role] = await Promise.all([
     queries.getAllFixtures(supabase),
     queries.getReferenceTeams(supabase, "Serie A"),
+    queries.getProfileRole(supabase, user.id),
   ]);
+  const isCreator = role === "creator";
 
   const byRound = new Map<number, typeof fixtures>();
   for (const f of fixtures) {
@@ -156,6 +172,11 @@ export default async function FixturesPage() {
                               Esclusa
                             </span>
                           ) : null}
+                          {f.result ? (
+                            <span className="inline-flex items-center rounded-full border border-accent/40 bg-win-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-accent">
+                              {resultLabel[f.result](f)}
+                            </span>
+                          ) : null}
                         </span>
                         {f.kickoff_at ? (
                           <span className="text-xs text-foreground-faint">
@@ -168,6 +189,39 @@ export default async function FixturesPage() {
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
+                        {isCreator ? (
+                          <div
+                            className="flex items-center gap-1"
+                            title="Esito reale: chiude subito la giornata su ogni torneo Serie A che ce l'ha aperta, appena tutte le partite di questa giornata hanno un esito"
+                          >
+                            {(["home_win", "draw", "away_win"] as const).map((r) => (
+                              <form key={r} action={setFixtureResultAction.bind(null, f.id, f.round)}>
+                                <input type="hidden" name="result" value={r} />
+                                <button
+                                  className={`flex h-7 w-7 items-center justify-center rounded-full border font-mono text-xs font-bold transition-colors ${
+                                    f.result === r
+                                      ? "border-accent bg-accent text-accent-ink"
+                                      : "border-line text-foreground-soft hover:border-accent hover:text-accent"
+                                  }`}
+                                  type="submit"
+                                >
+                                  {resultShort[r]}
+                                </button>
+                              </form>
+                            ))}
+                            {f.result ? (
+                              <form action={setFixtureResultAction.bind(null, f.id, f.round)}>
+                                <button
+                                  className="flex h-7 w-7 items-center justify-center rounded-full border border-line text-xs text-foreground-faint hover:border-lose hover:text-lose"
+                                  type="submit"
+                                  title="Cancella l'esito"
+                                >
+                                  ×
+                                </button>
+                              </form>
+                            ) : null}
+                          </div>
+                        ) : null}
                         <form
                           action={setFixtureKickoffAction.bind(null, f.id)}
                           className="flex items-center gap-1.5"

@@ -63,6 +63,10 @@ export interface PickerFixture {
   homeTeam: string;
   awayTeam: string;
   kickoffAt: string | null;
+  /** Esito reale, caricato dal creator — se noto, il picker (in sola
+   * lettura mentre le scelte sono chiuse) mostra chi ha vinto invece del
+   * solo orario, come un piccolo "monitor" della giornata in corso. */
+  result: "home_win" | "draw" | "away_win" | null;
 }
 
 export interface PickerDayGroup {
@@ -315,7 +319,14 @@ export function TeamPicker({
               <div className="flex min-w-0 flex-col gap-2">
                 {fixtures.map((f) => (
                   <div key={f.id} className="min-w-0 rounded-lg border border-line p-3">
-                    {f.kickoffAt ? (
+                    {f.result ? (
+                      <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-accent">
+                        <span className="h-1.5 w-1.5 flex-none rounded-full bg-accent" />
+                        {f.result === "draw"
+                          ? "Finita · pareggio"
+                          : `Finita · ha vinto ${f.result === "home_win" ? f.homeTeam : f.awayTeam}`}
+                      </p>
+                    ) : f.kickoffAt ? (
                       <p className="mb-1.5 text-[10px] text-foreground-faint">
                         {kickoffTimeFormat.format(new Date(f.kickoffAt))}
                       </p>

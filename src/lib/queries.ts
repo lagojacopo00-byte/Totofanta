@@ -10,6 +10,7 @@ import {
 import { isWithinMatchWindow } from "./match-window";
 import type {
   Fixture,
+  FixtureResult,
   FixtureStatus,
   Matchday,
   MatchdayResult,
@@ -702,6 +703,80 @@ export async function setFixtureStatus(
   assertNoError(
     await db.from("serie_a_fixtures").update({ status }).eq("id", fixtureId)
   );
+}
+
+/** Salva l'esito reale di una partita — solo il creator può chiamarla
+ * (verificato dal chiamante, vedi setFixtureResultAction). Da sola non
+ * elimina nessuno slot: vedi tryFinalizeRoundEverywhere. */
+export async function updateFixtureResult(
+  db: DB,
+  fixtureId: string,
+  result: FixtureResult | null
+) {
+  assertNoError(
+    await db.from("serie_a_fixtures").update({ result }).eq("id", fixtureId)
+  );
+}
+
+/**
+ * Chiude automaticamente la giornata aperta di ogni torneo Serie A attivo
+ * che corrisponde a questo round — ma SOLO se tutte le partite non escluse
+ * di quel round hanno ormai un risultato reale caricato dal creator.
+ *
+ * Deciso con l'utente: il creator carica i risultati partita per partita,
+ * anche "quasi in live" appena finisce una partita — ma l'eliminazione
+ * scatta solo a giornata intera nota, mai prima. Il motivo è tecnico: la
+ * logica di gioco (applyMatchdayResults) tratta una squadra senza esito
+ * ancora noto come se avesse perso, per non lasciare mai uno slot "a
+ * metà" — quindi applicare risultati parziali eliminerebbe per errore chi
+ * ha scelto una squadra che deve ancora giocare. Va richiamata dopo ogni
+ * salvataggio di risultato: se la giornata non è ancora completa, non
+ * fa nulla (nessun errore, va bene richiamarla finché non lo è).
+ */
+export async function tryFinalizeRoundEverywhere(db: DB, round: number) {
+  const fixtures = await getFixturesForRound(db, round);
+  const relevant = fixtures.filter((f) => f.status !== "excluded");
+  if (relevant.length === 0 || relevant.some((f) => !f.result)) {
+    return { finalized: [] as string[] };
+  }
+
+  const outcomeByTeamName = new Map<string, GameOutcome>();
+  for (const f of relevant) {
+    if (f.result === "home_win") {
+      outcomeByTeamName.set(f.home_team, "win");
+      outcomeByTeamName.set(f.away_team, "loss");
+    } else if (f.result === "away_win") {
+      outcomeByTeamName.set(f.home_team, "loss");
+      outcomeByTeamName.set(f.away_team, "win");
+    } else {
+      outcomeByTeamName.set(f.home_team, "draw");
+      outcomeByTeamName.set(f.away_team, "draw");
+    }
+  }
+
+  const res = await db
+    .from("matchdays")
+    .select("*, tournaments(*)")
+    .eq("number", round)
+    .eq("status", "open");
+  const rows = assertNoError(res) as (Matchday & { tournaments: Tournament | null })[];
+
+  const finalized: string[] = [];
+  for (const row of rows) {
+    const tournament = row.tournaments;
+    if (!tournament || tournament.competition !== "Serie A" || tournament.status !== "active") {
+      continue;
+    }
+    const teams = await getAvailableTeams(db, tournament.id, tournament.competition);
+    const outcomesByTeam: Record<string, GameOutcome> = {};
+    for (const t of teams) {
+      const outcome = outcomeByTeamName.get(t.name);
+      if (outcome) outcomesByTeam[t.id] = outcome;
+    }
+    await submitMatchdayResults(db, tournament, row, outcomesByTeam);
+    finalized.push(tournament.id);
+  }
+  return { finalized };
 }
 
 /** Nomi delle squadre "escluse" ai fini del gioco per una giornata
