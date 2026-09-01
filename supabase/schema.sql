@@ -221,6 +221,18 @@ create table serie_a_fixtures (
   round integer not null check (round between 1 and 38),
   home_team text not null,
   away_team text not null,
+  -- Data/ora reale del calcio d'inizio. Null finché l'organizzatore non la
+  -- inserisce da /dashboard/fixtures: serve a raggruppare le partite della
+  -- giornata per giorno (ven/sab/dom/lun) nella schermata di scelta e a
+  -- capire se una partita rientra nella finestra ufficiale di gioco.
+  kickoff_at timestamptz,
+  -- 'excluded' = l'organizzatore ha deciso a mano che questa partita non
+  -- conta ai fini del gioco per la sua giornata (rinvio fuori finestra,
+  -- tavolino ancora da decidere, ecc.): le squadre coinvolte non sono
+  -- selezionabili, e un pick già fatto su una di esse non conta né come
+  -- vittoria né come sconfitta (vedi exemptSlotIds in
+  -- src/lib/game-logic.ts e submitMatchdayResults in src/lib/queries.ts).
+  status text not null default 'scheduled' check (status in ('scheduled', 'excluded')),
   created_at timestamptz not null default now(),
   unique (round, home_team),
   unique (round, away_team)
