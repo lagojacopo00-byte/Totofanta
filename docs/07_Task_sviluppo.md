@@ -223,6 +223,15 @@ richiede prima una decisione di prodotto).
   raggiungibili da nessuna UI. Se in futuro serve di nuovo un torneo con
   competizione custom, questa funzione andrà reintrodotta (magari solo
   quando `tournament.competition !== "Serie A"`).
+- **Login unificato e interruttore modalità admin/giocatore**: risolto
+  il task "complesso" rimasto aperto a lungo. Un solo accesso per tutta
+  l'app (`/login` è ora un redirect a `/play/login`, che serve sia
+  organizzatori che giocatori — la sessione era già condivisa, restava
+  solo la UI duplicata). Nuovo interruttore visibile: "Modalità admin"
+  nel menu ☰ dell'area giocatore (va a `/dashboard`) e "Modalità
+  giocatore" nell'header della dashboard organizzatore (va a `/play`).
+  Il creator continua a giocare come chiunque altro, nessuna perdita di
+  accesso a `/play`.
 - **Data nel picker, tasto indietro dashboard, più margine dai bordi**:
   ogni gruppo giorno nel picker mostra anche la data (non solo "Sabato",
   anche "22 agosto"); aggiunto `BackLink` (mancava) a tutte le pagine
@@ -242,18 +251,7 @@ richiede prima una decisione di prodotto).
 
 ## Da fare — complessa
 
-- **Unificare login e redirect in base al ruolo**: oggi `/login` →
-  `/dashboard` e `/play/login` → `/play` (o alla pagina richiesta)
-  restano due porte separate, invariate dall'introduzione del ruolo
-  `creator`. **Deciso con l'utente**: il creator deve continuare a poter
-  giocare esattamente come un giocatore normale (nessuna perdita di
-  accesso a `/play`); in più, se lo desidera, può entrare in una
-  "modalità admin" che gli dà tutte le funzionalità di admin di lega
-  (es. modificare gli slot degli altri giocatori — già oggi possibile
-  dalla dashboard organizzatore). Resta da disegnare *come* si passa da
-  una modalità all'altra (un solo login con selettore, o un interruttore
-  dentro l'app): rimandato di proposito a quando si affronta questo task,
-  per non distrarre da database e flussi principali (ora completati).
+Nessuna al momento.
 
 ## Bassa priorità (esplicitamente rimandato dall'utente)
 
