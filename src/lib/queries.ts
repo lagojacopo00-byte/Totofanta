@@ -87,6 +87,13 @@ export async function getTournament(db: DB, tournamentId: string) {
   return assertNoError(res) as Tournament;
 }
 
+/** Cancella un torneo e tutto ciò che dipende da lui (giocatori, slot,
+ * giornate, scelte, risultati, squadre custom): tutte le foreign key
+ * verso `tournaments` sono `on delete cascade`, quindi basta questa. */
+export async function deleteTournament(db: DB, tournamentId: string) {
+  assertNoError(await db.from("tournaments").delete().eq("id", tournamentId));
+}
+
 export async function getPlayersWithSlots(db: DB, tournamentId: string) {
   const res = await db
     .from("players")

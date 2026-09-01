@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/require-user";
 import * as queries from "@/lib/queries";
 
@@ -68,6 +69,16 @@ export async function startTournamentAction(tournamentId: string) {
   const { supabase, tournament } = await ownedTournament(tournamentId);
   await queries.createNextMatchday(supabase, tournament);
   revalidatePath(`/dashboard/${tournamentId}`);
+}
+
+/** Cancella del tutto il torneo (giocatori, scelte, risultati inclusi):
+ * irreversibile, quindi la UI chiede conferma prima di inviare il form
+ * che chiama questa action. */
+export async function deleteTournamentAction(tournamentId: string) {
+  const { supabase } = await ownedTournament(tournamentId);
+  await queries.deleteTournament(supabase, tournamentId);
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
 }
 
 /** Aggiunge una squadra su misura per questo torneo — serve soprattutto

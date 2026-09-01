@@ -13,6 +13,7 @@ import {
   pillOut,
 } from "@/components/ui";
 import { TeamLabel } from "@/components/team-badge";
+import { DeleteTournamentButton } from "./delete-tournament-button";
 import {
   addPlayerAction,
   addTeamAction,
@@ -358,6 +359,17 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
           </ul>
         </section>
       )}
+
+      <section className={`${cardTight} flex items-center justify-between gap-4 border-dashed`}>
+        <div>
+          <p className="text-sm font-semibold text-foreground">Cancella torneo</p>
+          <p className="text-xs text-foreground-faint">
+            Rimuove il torneo e tutto ciò che contiene: giocatori, scelte,
+            risultati. Non si può annullare.
+          </p>
+        </div>
+        <DeleteTournamentButton tournamentId={tournament.id} tournamentName={tournament.name} />
+      </section>
     </div>
   );
 }
