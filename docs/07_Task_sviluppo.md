@@ -90,6 +90,12 @@ richiede prima una decisione di prodotto).
   "column does not exist", non intercettato da nessun try/catch, e
   Next.js mostra l'errore generico. Scatta per qualunque torneo con una
   giornata aperta, cioè il caso normale.
+  **Stesso problema, impatto più ampio**: `getProfileRole` (usata da
+  `/dashboard/new` per decidere se mostrare la checkbox "torneo di test")
+  seleziona `profiles.role`, colonna anch'essa mancante — quindi molto
+  probabilmente **l'organizzatore non riesce ad aprire la pagina "nuovo
+  torneo"**, non solo il giocatore ad aprire un torneo. Stessa causa,
+  stessa fix.
   **Fix pronta**: incollare ed eseguire
   [`supabase/URGENTE_migrazioni_mancanti.sql`](../supabase/URGENTE_migrazioni_mancanti.sql)
   nell'SQL Editor di Supabase (idempotente, non tocca dati esistenti).
