@@ -1,27 +1,14 @@
 import { notFound } from "next/navigation";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
-import { button, card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
+import { card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { TeamBadge, TeamLabel } from "@/components/team-badge";
 import { PickCountdown } from "@/components/pick-countdown";
 import { isPickingWindowOpen } from "@/lib/pick-window";
-import { groupFixturesByDay, type MatchDayGroup } from "@/lib/match-window";
-import { submitPickAction } from "./actions";
+import { groupFixturesByDay } from "@/lib/match-window";
+import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
 
 const outcomeLabel = { win: "Vinta", draw: "Pareggio", loss: "Persa" } as const;
-
-const dayGroupLabel: Record<MatchDayGroup, string> = {
-  venerdì: "Venerdì",
-  sabato: "Sabato",
-  domenica: "Domenica",
-  lunedì: "Lunedì",
-  altro: "Data da confermare",
-};
-
-const kickoffTimeFormat = new Intl.DateTimeFormat("it-IT", {
-  hour: "2-digit",
-  minute: "2-digit",
-});
 
 export default async function PlayerTournamentPage(
   props: PageProps<"/play/[tournamentId]">
@@ -70,21 +57,15 @@ export default async function PlayerTournamentPage(
         queries.getExcludedTeamNames(supabase, openMatchday.number),
       ])
     : [[], new Set<string>()];
-  // Partite della giornata aperta raggruppate per giorno, per la
-  // schermata di scelta come lista partite (vedi src/lib/match-window.ts).
-  // Le squadre disponibili ma senza una partita in calendario questa
-  // giornata (es. competizioni personalizzate senza calendario) restano
-  // scelte in fondo, fuori dai gruppi.
   const fixtureDayGroups = groupFixturesByDay(openFixtures);
   const teamNamesInFixtures = new Set(
     openFixtures.flatMap((f) => [f.home_team, f.away_team])
   );
-  const teamByName = new Map(availableTeams.map((t) => [t.name, t]));
+  const teamById = new Map(availableTeams.map((t) => [t.id, t.name]));
   const resultKey = (matchdayId: string, teamId: string) => `${matchdayId}:${teamId}`;
   const resultByKey = new Map(
     results.map((r) => [resultKey(r.matchday_id, r.team_id), r.outcome])
   );
-  const teamById = new Map(availableTeams.map((t) => [t.id, t.name]));
   const matchdayByNumber = new Map(matchdays.map((m) => [m.id, m.number]));
 
   // Classifica ordinata per slot vivi (decrescente), con posizione in
@@ -138,6 +119,47 @@ export default async function PlayerTournamentPage(
   }
   const isWinner = tournament.winners.includes(player.id);
   const pickingOpen = isPickingWindowOpen();
+
+  const myAliveSlotsList = slots.filter((s) => s.status === "alive");
+
+  // Per il picker unico: le squadre che OGNI slot può ancora scegliere per
+  // la giornata aperta (tutte le disponibili nel torneo, tranne quelle
+  // escluse questa giornata e quelle già usate su QUESTO slot in ALTRE
+  // giornate — la scelta già fatta per la giornata aperta, se c'è, non
+  // conta come "già usata" contro se stessa: si può ancora cambiare).
+  const pickerSlots: PickerSlot[] = openMatchday
+    ? myAliveSlotsList.map((slot) => {
+        const usedElsewhere = new Set(
+          allPicks
+            .filter((p) => p.slot_id === slot.id && p.matchday_id !== openMatchday.id)
+            .map((p) => p.team_id)
+        );
+        const eligibleTeamIds = availableTeams
+          .filter((t) => !excludedTeamNames.has(t.name) && !usedElsewhere.has(t.id))
+          .map((t) => t.id);
+        const current = allPicks.find(
+          (p) => p.slot_id === slot.id && p.matchday_id === openMatchday.id
+        );
+        return {
+          id: slot.id,
+          label: slot.label,
+          eligibleTeamIds,
+          currentTeamId: current?.team_id ?? null,
+        };
+      })
+    : [];
+
+  const pickerDayGroups: PickerDayGroup[] = fixtureDayGroups.map(({ group, fixtures }) => ({
+    group,
+    fixtures: fixtures.map((f) => ({
+      id: f.id,
+      homeTeam: f.home_team,
+      awayTeam: f.away_team,
+      kickoffAt: f.kickoff_at,
+    })),
+  }));
+  const otherTeams = availableTeams.filter((t) => !teamNamesInFixtures.has(t.name));
+  const teamOptions = availableTeams.map((t) => ({ id: t.id, name: t.name }));
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -199,9 +221,39 @@ export default async function PlayerTournamentPage(
         ) : null}
       </section>
 
-      {/* Slot e scelta squadra: quello per cui si torna sull'app ogni
-          settimana, subito visibile appena si entra. */}
-      <section className="flex flex-col gap-4">
+      {/* Scelta squadra: un'unica lista di partite per tutta la giornata,
+          non una copia per ogni slot — si assegnano più slot alla stessa
+          squadra cliccandola più volte (vedi team-picker.tsx). */}
+      {openMatchday && myAliveSlotsList.length > 0 ? (
+        pickingOpen ? (
+          <TeamPicker
+            tournamentId={tournament.id}
+            matchdayId={openMatchday.id}
+            matchdayNumber={openMatchday.number}
+            slots={pickerSlots}
+            dayGroups={pickerDayGroups}
+            otherTeams={otherTeams}
+            excludedTeamNames={Array.from(excludedTeamNames)}
+            teams={teamOptions}
+          />
+        ) : (
+          <section className={card}>
+            <p className={eyebrow}>Giornata {openMatchday.number}</p>
+            <p className="mt-2 text-sm text-foreground-faint">
+              Le scelte per questa giornata sono chiuse: si schiera solo da
+              lunedì a giovedì. Aspetta i risultati di lunedì.
+            </p>
+          </section>
+        )
+      ) : tournament.status === "active" && myAliveSlotsList.length > 0 ? (
+        <p className="text-sm text-foreground-faint">
+          Nessuna giornata aperta al momento.
+        </p>
+      ) : null}
+
+      {/* I tuoi slot: stato ed esiti di ognuno, indipendentemente da come
+          sono stati assegnati sopra. */}
+      <section className="flex flex-col gap-3">
         {slots.map((slot) => {
           const slotPicks = allPicks
             .filter((p) => p.slot_id === slot.id)
@@ -210,66 +262,14 @@ export default async function PlayerTournamentPage(
                 (matchdayByNumber.get(a.matchday_id) ?? 0) -
                 (matchdayByNumber.get(b.matchday_id) ?? 0)
             );
-          const usedTeamIds = slotPicks.map((p) => p.team_id);
           const pickForOpenMatchday = openMatchday
             ? slotPicks.find((p) => p.matchday_id === openMatchday.id)
             : undefined;
-          const otherTeams = availableTeams.filter(
-            (t) => !teamNamesInFixtures.has(t.name) && !usedTeamIds.includes(t.id)
-          );
-
-          // Un'opzione di scelta (una squadra): oscurata e non cliccabile
-          // se già usata su questo slot, se la sua partita è esclusa/fuori
-          // dalla finestra ven-sab-dom-lun, o se non fa parte delle
-          // squadre disponibili per questo torneo.
-          const renderTeamOption = (teamName: string) => {
-            const team = teamByName.get(teamName);
-            const isExcluded = excludedTeamNames.has(teamName);
-            const isUsed = team ? usedTeamIds.includes(team.id) : false;
-            const disabled = !team || isExcluded || isUsed;
-            const reason = !team
-              ? "non in questo torneo"
-              : isExcluded
-                ? "non disponibile"
-                : isUsed
-                  ? "già scelta"
-                  : null;
-            return (
-              <label
-                key={teamName}
-                className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 text-xs transition-colors ${
-                  disabled
-                    ? "cursor-not-allowed border-line bg-surface-2/50 opacity-50"
-                    : "cursor-pointer border-line bg-surface-2 has-[:checked]:border-accent has-[:checked]:bg-win-bg"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="team_id"
-                  value={team?.id ?? ""}
-                  required
-                  disabled={disabled}
-                  className="sr-only"
-                />
-                <TeamBadge name={teamName} size="sm" />
-                <span className="flex min-w-0 flex-col">
-                  <span className="truncate font-semibold text-foreground">
-                    {teamName}
-                  </span>
-                  {reason ? (
-                    <span className="truncate text-[10px] text-foreground-faint">
-                      {reason}
-                    </span>
-                  ) : null}
-                </span>
-              </label>
-            );
-          };
 
           return (
-            <div key={slot.id} className={`${card} min-w-0`}>
+            <div key={slot.id} className={`${cardTight} min-w-0`}>
               <div className="flex items-center justify-between gap-2">
-                <p className="font-display text-lg font-bold">
+                <p className="font-display text-sm font-bold">
                   Slot {slot.label}
                 </p>
                 <span className={slot.status === "alive" ? pillAlive : pillOut}>
@@ -279,81 +279,19 @@ export default async function PlayerTournamentPage(
                 </span>
               </div>
 
-              {slot.status === "alive" && openMatchday ? (
-                pickForOpenMatchday ? (
-                  <p className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-foreground-soft">
-                    <span>Giornata {openMatchday.number}: hai scelto</span>
-                    <TeamLabel
-                      name={teamById.get(pickForOpenMatchday.team_id) ?? "—"}
-                    />
-                    <span>. In attesa del risultato.</span>
-                  </p>
-                ) : !pickingOpen ? (
-                  <p className="mt-3 text-sm text-foreground-faint">
-                    Le scelte per questa giornata sono chiuse: si schiera
-                    solo da lunedì a giovedì. Aspetta i risultati di
-                    lunedì.
-                  </p>
-                ) : (
-                  <form
-                    action={submitPickAction.bind(
-                      null,
-                      tournament.id,
-                      slot.id,
-                      openMatchday.id
-                    )}
-                    className="mt-3 flex flex-col gap-3"
-                  >
-                    <p className="text-xs text-foreground-faint">
-                      Scegli una squadra per la giornata {openMatchday.number}
-                    </p>
-                    <div className="flex flex-col gap-3">
-                      {fixtureDayGroups.map(({ group, fixtures }) => (
-                        <div key={group} className="flex flex-col gap-1.5">
-                          <p className="text-[11px] font-bold uppercase tracking-wide text-foreground-faint">
-                            {dayGroupLabel[group]}
-                          </p>
-                          <div className="flex flex-col gap-2">
-                            {fixtures.map((f) => (
-                              <div key={f.id} className="flex flex-col gap-1">
-                                {f.kickoff_at ? (
-                                  <p className="text-[10px] text-foreground-faint">
-                                    {kickoffTimeFormat.format(new Date(f.kickoff_at))}
-                                  </p>
-                                ) : null}
-                                <div className="grid grid-cols-2 gap-1.5">
-                                  {renderTeamOption(f.home_team)}
-                                  {renderTeamOption(f.away_team)}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                      {otherTeams.length > 0 ? (
-                        <div className="flex flex-col gap-1.5">
-                          <p className="text-[11px] font-bold uppercase tracking-wide text-foreground-faint">
-                            Altre squadre disponibili
-                          </p>
-                          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                            {otherTeams.map((t) => renderTeamOption(t.name))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                    <button className={`${button} self-start`} type="submit">
-                      Conferma scelta
-                    </button>
-                  </form>
-                )
-              ) : slot.status === "alive" ? (
-                <p className="mt-3 text-sm text-foreground-faint">
-                  Nessuna giornata aperta al momento.
+              {pickForOpenMatchday ? (
+                <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-foreground-soft">
+                  <span>Giornata {openMatchday!.number}:</span>
+                  <TeamLabel
+                    name={teamById.get(pickForOpenMatchday.team_id) ?? "—"}
+                    size="xs"
+                  />
+                  <span>in attesa del risultato.</span>
                 </p>
               ) : null}
 
               {slotPicks.length > 0 ? (
-                <ul className="mt-4 flex flex-col gap-1.5 border-t border-line pt-3">
+                <ul className="mt-2.5 flex flex-col gap-1.5 border-t border-line pt-2.5">
                   {slotPicks.map((p) => {
                     const number = matchdayByNumber.get(p.matchday_id);
                     const outcome = resultByKey.get(
