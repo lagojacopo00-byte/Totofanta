@@ -67,8 +67,11 @@ stato partita:
   serve un nuovo inserimento risultati). Lo stato "esclusa" serve a
   evitare il problema alla radice, marcando la partita PRIMA di chiudere
   la giornata.
-- **Calcolo "entro lunedì 23:59"**: resta a discrezione dell'organizzatore
-  come oggi (`results_mode` ha un solo valore, `'manual'`) — nessun
-  automatismo che blocchi o forzi l'inserimento risultati a un orario
-  preciso. Coerente con l'import automatico dei risultati, esplicitamente
-  rimandato a bassa priorità (vedi `07_Task_sviluppo.md`).
+- **Calcolo "entro lunedì 23:59"**: resta a discrezione di chi inserisce i
+  risultati (`results_mode` ha un solo valore, `'manual'`) — nessun
+  automatismo che blocchi o forzi l'inserimento a un orario preciso.
+  L'import automatico via CSV/scraping resta rimandato a bassa priorità
+  (vedi `07_Task_sviluppo.md`), ma da quando esiste l'inserimento
+  centralizzato del creator (`serie_a_fixtures.result`, uno per partita
+  invece che uno per torneo) l'inserimento manuale è comunque unico per
+  tutti i tornei Serie A, non più ripetuto da ogni organizzatore.

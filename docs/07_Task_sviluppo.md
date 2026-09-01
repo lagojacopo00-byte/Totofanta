@@ -223,6 +223,22 @@ richiede prima una decisione di prodotto).
   raggiungibili da nessuna UI. Se in futuro serve di nuovo un torneo con
   competizione custom, questa funzione andrà reintrodotta (magari solo
   quando `tournament.competition !== "Serie A"`).
+- **Risultati centralizzati dal creator**: il creator carica l'esito
+  reale di ogni partita (1/X/2) una volta sola da `/dashboard/fixtures`
+  (nuova colonna `serie_a_fixtures.result`, migrazione manuale
+  [`supabase/add_fixture_result.sql`](../supabase/add_fixture_result.sql)),
+  invece che ogni admin di lega lo inserisca separatamente per il
+  proprio torneo. Riservato al creator, verificato lato server. Chiude
+  la giornata aperta di ogni torneo Serie A attivo che corrisponde a
+  quel round SOLO quando tutte le partite non escluse hanno ormai un
+  esito noto (mai prima, anche se i risultati arrivano partita per
+  partita: `applyMatchdayResults` tratta una squadra senza esito come
+  se avesse perso, quindi applicare risultati parziali eliminerebbe per
+  errore chi ha scelto una squadra che deve ancora giocare) — vedi
+  `tryFinalizeRoundEverywhere` in
+  [queries.ts](../src/lib/queries.ts). Il picker del giocatore (già in
+  sola lettura durante il weekend) mostra l'esito di ogni partita non
+  appena caricato, come un piccolo "monitor" della giornata in corso.
 - **Login unificato e interruttore modalità admin/giocatore**: risolto
   il task "complesso" rimasto aperto a lungo. Un solo accesso per tutta
   l'app (`/login` è ora un redirect a `/play/login`, che serve sia
