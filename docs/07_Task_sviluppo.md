@@ -12,10 +12,10 @@ richiede prima una decisione di prodotto).
 1. Logiche di gioco — solide, vedi [02_Regole_gioco.md](./02_Regole_gioco.md)
 2. Gestione utenti — Supabase Auth + inviti già a posto; il ruolo
    PLAYER/ADMIN resta da chiarire (vedi sotto)
-3. Database — solido, mancano solo i pezzi elencati sotto (stato partita,
-   eventuale ruolo)
+3. Database — a posto, incluso lo stato partita valida/esclusa
 4. Gestione tornei — a posto lato organizzatore, inclusi i tornei di test
-5. Flussi principali — a posto (invito, scelta, risultati, regolamento)
+5. Flussi principali — invito/regolamento/schermata di scelta a posto
+   (redesign come lista partite per giornata completato)
 6. Solo dopo: direzione visiva/UX — vedi
    [08_Direzione_visiva_UX.md](./08_Direzione_visiva_UX.md), tenuta
    volutamente in fondo a questo file
@@ -47,6 +47,26 @@ richiede prima una decisione di prodotto).
   blocco e simulare intere giornate all'istante (scelte e risultati
   casuali), per bilanciare slot/durata senza aspettare il calendario
   reale. Dettagli in [06_Database.md](./06_Database.md).
+- Stato partita valida/esclusa: `serie_a_fixtures` ha ora data/ora
+  (`kickoff_at`) e stato (`status`, valida/esclusa); una partita esclusa
+  (a mano, o perché fuori dalla finestra ven-sab-dom-lun) non è
+  selezionabile e chi l'aveva già scelta resta vivo senza che conti né
+  vittoria né sconfitta. Dettagli in [06_Database.md](./06_Database.md) e
+  [02_Regole_gioco.md](./02_Regole_gioco.md).
+- Redesign schermata di scelta come lista partite per giornata: in
+  `/play/[tournamentId]` le partite della giornata sono ora raggruppate
+  per giorno (Venerdì/Sabato/Domenica/Lunedì/"Data da confermare",
+  ordine cronologico crescente ven→lun — interpretazione di "decrescente"
+  nella richiesta originale, da confermare con l'utente), mostrate a
+  coppie casa-ospiti con
+  l'orario quando disponibile; le squadre non disponibili (già scelte su
+  quello slot, o appartenenti a una partita esclusa/fuori finestra) sono
+  oscurate, non cliccabili e mostrano il motivo ("già scelta" / "non
+  disponibile"). Le squadre senza una partita in calendario quella
+  giornata (tornei con competizione custom) restano selezionabili in una
+  sezione a parte "Altre squadre disponibili" — la funzione esistente per
+  aggiungere/rimuovere squadre custom di un torneo (dashboard
+  organizzatore, sezione "Squadre") non è stata toccata.
 
 ## Da fare — semplice
 
@@ -71,20 +91,18 @@ richiede prima una decisione di prodotto).
 
 ## Da fare — complessa
 
-- **Stato partita valida/esclusa**: nuovo modello dati sul calendario
-  (oggi `serie_a_fixtures` non ha nemmeno un `id` proprio) più UI di
-  gestione e filtro delle squadre non selezionabili.
-- **Redesign schermata di scelta come lista partite per giornata**: il
-  cambiamento più visibile del documento di brainstorming. Richiede
-  data/ora sulle fixture (assente oggi) per raggruppare "per giorno", più
-  un redesign del componente di scelta squadra.
 - **Unificare login e redirect in base al ruolo**: oggi `/login` →
   `/dashboard` e `/play/login` → `/play` (o alla pagina richiesta)
   restano due porte separate, invariate dall'introduzione del ruolo
-  `creator`. Se si vuole un solo punto d'accesso che smisti
-  automaticamente in base al ruolo (l'idea originale di "ADMIN nascosto
-  con redirect automatico"), va deciso esplicitamente: un creator che
-  gioca anche come giocatore non deve perdere l'accesso a `/play`.
+  `creator`. **Deciso con l'utente**: il creator deve continuare a poter
+  giocare esattamente come un giocatore normale (nessuna perdita di
+  accesso a `/play`); in più, se lo desidera, può entrare in una
+  "modalità admin" che gli dà tutte le funzionalità di admin di lega
+  (es. modificare gli slot degli altri giocatori — già oggi possibile
+  dalla dashboard organizzatore). Resta da disegnare *come* si passa da
+  una modalità all'altra (un solo login con selettore, o un interruttore
+  dentro l'app): rimandato di proposito a quando si affronta questo task,
+  per non distrarre da database e flussi principali (ora completati).
 
 ## Bassa priorità (esplicitamente rimandato dall'utente)
 
