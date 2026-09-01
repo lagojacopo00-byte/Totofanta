@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import { getPlayerMemberships } from "@/lib/queries";
-import { card, eyebrow, pillAlive, pillOut } from "@/components/ui";
+import { buttonGhost, card, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { PickCountdown } from "@/components/pick-countdown";
 
 const statusLabel: Record<string, string> = {
@@ -83,6 +83,13 @@ export default async function PlayHomePage() {
           })}
         </ul>
       )}
+
+      {/* Chi gioca può anche organizzare: stesso account, nessun login a
+          parte. Va alla dashboard organizzatore, dove si diventa "admin di
+          lega" per quel torneo creandolo. */}
+      <Link href="/dashboard/new" className={`${buttonGhost} self-start`}>
+        + Crea torneo
+      </Link>
     </div>
   );
 }
