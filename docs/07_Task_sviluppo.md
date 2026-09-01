@@ -203,9 +203,17 @@ richiede prima una decisione di prodotto).
   e mostrava sempre "Data da confermare". Migrazione manuale
   [`supabase/set_matchday1_kickoffs.sql`](../supabase/set_matchday1_kickoffs.sql)
   (fonte: ricerca web — giorno affidabile, orario esatto ricostruito
-  sugli slot standard dove non confermato da più fonti). Le giornate
-  2-25 restano senza orario finché non le si popola allo stesso modo o
-  a mano da `/dashboard/fixtures`.
+  sugli slot standard dove non confermato da più fonti).
+- **Giorni giornate 2-25**: migrazione manuale
+  [`supabase/set_kickoffs_2_25.sql`](../supabase/set_kickoffs_2_25.sql).
+  A differenza della giornata 1 (già giocata), queste sono ancora nel
+  futuro: l'orario tv esatto di ogni partita non è deciso nella realtà
+  a questo punto della stagione, quindi non è "trovabile" da nessuna
+  parte — **deciso con l'utente**: usato il weekend reale di ogni
+  giornata (fisso in anticipo dal calendario stagionale, fonte: ricerca
+  web), partite divise tra sabato/domenica a un orario indicativo delle
+  15:00 — solo il giorno è affidabile, non l'ora esatta. Giornate 9 e 18
+  infrasettimanali (mercoledì): tutte le partite in un giorno.
 - **Rimossa la sezione "Squadre" dalla dashboard organizzatore**:
   richiesta esplicita dell'utente, non voleva vederle né aggiungerne da
   lì. **Attenzione**: era il modo per aggiungere squadre custom a un
