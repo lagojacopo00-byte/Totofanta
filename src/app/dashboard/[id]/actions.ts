@@ -86,6 +86,17 @@ export async function deleteTournamentAction(tournamentId: string) {
   redirect("/dashboard");
 }
 
+/** Annulla l'ultima giornata completata: rete di sicurezza per un
+ * risultato inserito per sbaglio. Cancella anche la giornata successiva
+ * se nel frattempo era già stata aperta (con le eventuali scelte già
+ * fatte dai giocatori) — la UI deve aver già avvisato di questo rischio
+ * prima di arrivare qui, vedi UndoLastMatchdayButton. */
+export async function undoLastMatchdayAction(tournamentId: string) {
+  const { supabase, tournament } = await ownedTournament(tournamentId);
+  await queries.undoLastMatchday(supabase, tournament);
+  revalidatePath(`/dashboard/${tournamentId}`);
+}
+
 /** Aggiunge una squadra su misura per questo torneo — serve soprattutto
  * quando la competizione non è la Serie A precaricata, ma è utile anche
  * per completare un elenco che risulta incompleto. */

@@ -273,6 +273,33 @@ richiede prima una decisione di prodotto).
   in sola lettura): entrambi i flussi usano il template di default così
   com'è, leggendo la sessione dal frammento dell'URL lato browser — vedi
   `reset-password-form.tsx` e la nota nel README.
+- **Annulla ultima giornata** (rete di sicurezza per un risultato inserito
+  per sbaglio, in `/dashboard/[id]`): nuova `undoLastMatchday` in
+  [queries.ts](../src/lib/queries.ts) riapre l'ultima giornata COMPLETATA
+  (sempre e solo quella, mai una a scelta più indietro — richiamarla più
+  volte torna indietro una giornata alla volta), cancella i suoi risultati
+  salvati, rimette vivi gli slot che aveva eliminato (letti da
+  `eliminated_matchday`, univoco per slot) e, se era stata lei a chiudere
+  il torneo (vittoria o spareggio ex aequo), lo riporta "active" azzerando
+  `decisive_matchday`/`winners`. Se la giornata successiva era già stata
+  aperta (succede in automatico appena si chiude una giornata), viene
+  cancellata — con le eventuali scelte già fatte dai giocatori sopra: la
+  UI (`UndoLastMatchdayButton`) mostra prima quante andrebbero perse
+  (`getUndoLastMatchdayPreview`) e chiede conferma esplicita. Le scelte
+  della giornata annullata non si toccano: non erano mai state cancellate
+  da `submitMatchdayResults`, tornano visibili così com'erano appena la
+  giornata riapre. Verificato end-to-end con dati disposable su un torneo
+  di test contro il database di produzione (annullo di una giornata
+  normale con next matchday già aperto e con una scelta sopra, e annullo
+  della giornata che aveva chiuso il torneo per spareggio zero superstiti).
+  Nessuna modifica allo schema/RLS: le policy "organizer manages..." già
+  esistenti per slots/matchdays/matchday_results coprono tutto.
+  In questo test è emerso un bug di schema pre-esistente e non collegato
+  (segnalato a parte, non ancora corretto): cancellare un torneo con
+  squadre custom (competizione diversa da Serie A) già scelte/valutate
+  fallisce per un vincolo di chiave esterna mancante
+  (`picks.team_id`/`matchday_results.team_id` non hanno `on delete
+  cascade` verso `teams`).
 
 ## Da fare — semplice
 

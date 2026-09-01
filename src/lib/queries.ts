@@ -483,6 +483,115 @@ export async function submitMatchdayResults(
   return result;
 }
 
+function lastCompletedMatchday(matchdays: Matchday[]): Matchday | null {
+  const completed = matchdays.filter((m) => m.status === "completed");
+  if (completed.length === 0) return null;
+  return completed.reduce((max, m) => (m.number > max.number ? m : max));
+}
+
+/** Cosa succederebbe annullando l'ultima giornata completata, senza
+ * toccare nulla: per far vedere all'organizzatore il rischio (scelte già
+ * fatte sulla giornata successiva, se già aperta) prima che confermi —
+ * vedi undoLastMatchday più sotto, di cui questa rispecchia la logica. */
+export async function getUndoLastMatchdayPreview(db: DB, tournamentId: string) {
+  const matchdays = await getMatchdays(db, tournamentId);
+  const target = lastCompletedMatchday(matchdays);
+  if (!target) return null;
+
+  const nextMatchday = matchdays.find((m) => m.number === target.number + 1) ?? null;
+  const picksAtRisk = nextMatchday
+    ? (await getPicksForMatchday(db, nextMatchday.id)).length
+    : 0;
+
+  return {
+    matchdayNumber: target.number,
+    nextMatchdayNumber: nextMatchday?.number ?? null,
+    picksAtRisk,
+  };
+}
+
+/**
+ * Annulla l'ultima giornata COMPLETATA di un torneo — la "rete di
+ * sicurezza" per quando l'organizzatore si accorge di aver sbagliato un
+ * risultato dopo averlo già salvato. Riporta la giornata a "open",
+ * cancella i risultati salvati per lei, rimette in vita gli slot che
+ * proprio lei aveva eliminato (riconosciuti da `eliminated_matchday`,
+ * univoco per slot) e, se era stata lei a chiudere il torneo (vittoria o
+ * spareggio ex aequo), lo riporta "active" azzerando `decisive_matchday`
+ * e `winners`. Le scelte (picks) di quella giornata non vengono toccate:
+ * non sono mai state cancellate da submitMatchdayResults (a parte quelle
+ * esentate per una partita esclusa, che è corretto restino libere), quindi
+ * tornano visibili così com'erano appena la giornata riapre.
+ *
+ * Nel frattempo può già essere stata aperta la giornata successiva
+ * (submitMatchdayResults la crea in automatico): va cancellata per
+ * tornare allo stato di prima, insieme a QUALUNQUE scelta i giocatori
+ * potrebbero già averci fatto. Per questo la funzione conta e restituisce
+ * quante scelte andrebbero perse, così la UI può avvisare prima di
+ * chiamarla (vedi undoLastMatchdayAction).
+ *
+ * Si annulla sempre e solo l'ultima giornata completata (mai una a scelta
+ * più indietro): richiamandola più volte si torna indietro una giornata
+ * alla volta.
+ */
+export async function undoLastMatchday(db: DB, tournament: Tournament) {
+  const matchdays = await getMatchdays(db, tournament.id);
+  const target = lastCompletedMatchday(matchdays);
+  if (!target) {
+    throw new Error("Nessuna giornata completata da annullare.");
+  }
+  const nextMatchday = matchdays.find((m) => m.number === target.number + 1) ?? null;
+
+  const players = await getPlayersWithSlots(db, tournament.id);
+  const slotIdsToRevive = players
+    .flatMap((p) => p.slots)
+    .filter((s) => s.eliminated_matchday === target.number)
+    .map((s) => s.id);
+
+  if (slotIdsToRevive.length > 0) {
+    assertNoError(
+      await db
+        .from("slots")
+        .update({ status: "alive", eliminated_matchday: null })
+        .in("id", slotIdsToRevive)
+    );
+  }
+
+  assertNoError(
+    await db.from("matchday_results").delete().eq("matchday_id", target.id)
+  );
+
+  assertNoError(
+    await db.from("matchdays").update({ status: "open" }).eq("id", target.id)
+  );
+
+  // La giornata successiva (se già aperta) è una conseguenza diretta di
+  // quella che stiamo annullando: cade insieme a lei. Le sue picks
+  // cadono da sole (on delete cascade).
+  let picksLost = 0;
+  if (nextMatchday) {
+    const picks = await getPicksForMatchday(db, nextMatchday.id);
+    picksLost = picks.length;
+    assertNoError(await db.from("matchdays").delete().eq("id", nextMatchday.id));
+  }
+
+  if (tournament.status === "finished" && tournament.decisive_matchday === target.number) {
+    assertNoError(
+      await db
+        .from("tournaments")
+        .update({ status: "active", decisive_matchday: null, winners: [] })
+        .eq("id", tournament.id)
+    );
+  }
+
+  return {
+    reopenedMatchday: target.number,
+    revivedSlots: slotIdsToRevive.length,
+    deletedNextMatchday: nextMatchday?.number ?? null,
+    picksLost,
+  };
+}
+
 export async function getResultsForMatchdays(db: DB, matchdayIds: string[]) {
   if (matchdayIds.length === 0) return [] as MatchdayResult[];
   const res = await db

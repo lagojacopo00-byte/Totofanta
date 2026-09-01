@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import { BackLink } from "@/components/back-link";
 import { DeleteTournamentButton } from "./delete-tournament-button";
+import { UndoLastMatchdayButton } from "./undo-last-matchday-button";
 import {
   addPlayerAction,
   addTestPlayersAction,
@@ -44,9 +45,10 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
     notFound();
   }
 
-  const [players, matchdays] = await Promise.all([
+  const [players, matchdays, undoPreview] = await Promise.all([
     queries.getPlayersWithSlots(supabase, tournament.id),
     queries.getMatchdays(supabase, tournament.id),
+    queries.getUndoLastMatchdayPreview(supabase, tournament.id),
   ]);
 
   const winnerNames = players
@@ -321,6 +323,33 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
           </ul>
         </section>
       )}
+
+      {undoPreview ? (
+        <section className={`${cardTight} flex items-center justify-between gap-4 border-dashed`}>
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Annulla ultima giornata
+            </p>
+            <p className="text-xs text-foreground-faint">
+              Hai sbagliato un risultato della giornata {undoPreview.matchdayNumber}?
+              La riapri, correggi e la richiudi.
+              {undoPreview.nextMatchdayNumber
+                ? ` La giornata ${undoPreview.nextMatchdayNumber} è già aperta${
+                    undoPreview.picksAtRisk > 0
+                      ? ` (${undoPreview.picksAtRisk} scelt${undoPreview.picksAtRisk === 1 ? "a" : "e"} già fatt${undoPreview.picksAtRisk === 1 ? "a" : "e"}): verrà cancellata`
+                      : ": verrà cancellata"
+                  }.`
+                : ""}
+            </p>
+          </div>
+          <UndoLastMatchdayButton
+            tournamentId={tournament.id}
+            matchdayNumber={undoPreview.matchdayNumber}
+            nextMatchdayNumber={undoPreview.nextMatchdayNumber}
+            picksAtRisk={undoPreview.picksAtRisk}
+          />
+        </section>
+      ) : null}
 
       <section className={`${cardTight} flex items-center justify-between gap-4 border-dashed`}>
         <div>
