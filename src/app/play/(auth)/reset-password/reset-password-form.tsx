@@ -12,11 +12,15 @@ type Status = "checking" | "ready" | "invalid" | "saved";
  * Componente client di proposito: il link nell'email (template di
  * default di Supabase, l'unico disponibile senza un tuo SMTP — vedi
  * forgot-password/actions.ts) porta qui con la sessione di recupero
- * codificata nel FRAMMENTO dell'URL (#access_token=...), leggibile solo
- * lato browser, mai da un Server Component. Il client Supabase la
- * rileva da solo al primo render (detectSessionInUrl); da lì in poi
- * basta chiamare updateUser direttamente dal browser, niente server
- * action per questa pagina.
+ * codificata nel FRAMMENTO dell'URL (#access_token=...&refresh_token=...),
+ * leggibile solo lato browser, mai da un Server Component.
+ *
+ * Non ci si affida al rilevamento automatico di supabase-js
+ * (`detectSessionInUrl`): il client di `@supabase/ssr` (`createClient`
+ * in src/lib/supabase/client.ts) è pensato per il flusso PKCE con un
+ * `?code=` in query string, non per questo frammento — verificato non
+ * intercettarlo. Si legge quindi l'hash a mano e si chiama
+ * `setSession()` esplicitamente, indipendente da quel comportamento.
  */
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -28,26 +32,36 @@ export function ResetPasswordForm() {
   useEffect(() => {
     let cancelled = false;
 
-    supabase.auth.getSession().then(({ data }) => {
+    async function establishSession() {
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      const accessToken = hash.get("access_token");
+      const refreshToken = hash.get("refresh_token");
+
+      if (!accessToken || !refreshToken) {
+        if (!cancelled) setStatus("invalid");
+        return;
+      }
+
+      const { data, error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
       if (cancelled) return;
-      if (data.session) {
-        setEmail(data.session.user.email ?? null);
-        setStatus("ready");
-      } else {
-        setStatus((s) => (s === "checking" ? "invalid" : s));
-      }
-    });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" && session) {
-        setEmail(session.user.email ?? null);
-        setStatus("ready");
+      if (error || !data.session) {
+        setStatus("invalid");
+        return;
       }
-    });
+      // Ripulisce il frammento dall'URL (contiene i token in chiaro):
+      // non serve più una volta stabilita la sessione.
+      window.history.replaceState(null, "", window.location.pathname);
+      setEmail(data.session.user.email ?? null);
+      setStatus("ready");
+    }
 
+    establishSession();
     return () => {
       cancelled = true;
-      sub.subscription.unsubscribe();
     };
   }, [supabase]);
 
