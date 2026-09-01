@@ -19,10 +19,11 @@ export default async function MatchdayPage(
   const matchday = await queries.getMatchday(supabase, matchdayId);
   if (matchday.tournament_id !== id) notFound();
 
-  const [picks, players, availableTeams] = await Promise.all([
+  const [picks, players, availableTeams, excludedTeamNames] = await Promise.all([
     queries.getPicksForMatchday(supabase, matchday.id),
     queries.getPlayersWithSlots(supabase, id),
     queries.getAvailableTeams(supabase, id, tournament.competition),
+    queries.getExcludedTeamNames(supabase, matchday.number),
   ]);
 
   const allSlotIds = players.flatMap((p) => p.slots.map((s) => s.id));
@@ -182,35 +183,45 @@ export default async function MatchdayPage(
           action={submitResultsAction.bind(null, id, matchday.id)}
           className="flex flex-col gap-3"
         >
-          {teamIds.map((teamId) => (
-            <div key={teamId} className={`${card} flex items-center justify-between gap-4`}>
-              <div>
-                <p className="font-display font-bold">
-                  <TeamLabel name={teamName.get(teamId) ?? teamId} size="md" />
-                </p>
-                <p className="text-xs text-foreground-faint">
-                  {pickersByTeam.get(teamId)?.join(", ")}
-                </p>
+          {teamIds.map((teamId) => {
+            const isExcluded = excludedTeamNames.has(teamName.get(teamId) ?? "");
+            return (
+              <div key={teamId} className={`${card} flex items-center justify-between gap-4`}>
+                <div>
+                  <p className="font-display font-bold">
+                    <TeamLabel name={teamName.get(teamId) ?? teamId} size="md" />
+                  </p>
+                  <p className="text-xs text-foreground-faint">
+                    {pickersByTeam.get(teamId)?.join(", ")}
+                  </p>
+                </div>
+                {isExcluded ? (
+                  <p className="max-w-[10rem] text-right text-xs text-foreground-faint">
+                    Partita esclusa: chi l&apos;ha scelta resta in gara,
+                    nessun risultato da inserire.
+                  </p>
+                ) : (
+                  <div className="flex gap-1 rounded-full border border-line p-1">
+                    {(["win", "draw", "loss"] as const).map((o) => (
+                      <label
+                        key={o}
+                        className="cursor-pointer rounded-full px-3 py-1.5 text-xs font-bold has-[:checked]:bg-accent has-[:checked]:text-accent-ink"
+                      >
+                        <input
+                          type="radio"
+                          name={`outcome_${teamId}`}
+                          value={o}
+                          required
+                          className="sr-only"
+                        />
+                        {outcomeLabel[o]}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex gap-1 rounded-full border border-line p-1">
-                {(["win", "draw", "loss"] as const).map((o) => (
-                  <label
-                    key={o}
-                    className="cursor-pointer rounded-full px-3 py-1.5 text-xs font-bold has-[:checked]:bg-accent has-[:checked]:text-accent-ink"
-                  >
-                    <input
-                      type="radio"
-                      name={`outcome_${teamId}`}
-                      value={o}
-                      required
-                      className="sr-only"
-                    />
-                    {outcomeLabel[o]}
-                  </label>
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
           <button className={`${button} mt-2`} type="submit">
             Applica risultati e passa alla giornata successiva
           </button>
