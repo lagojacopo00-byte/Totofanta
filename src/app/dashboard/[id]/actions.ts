@@ -71,6 +71,14 @@ export async function startTournamentAction(tournamentId: string) {
   revalidatePath(`/dashboard/${tournamentId}`);
 }
 
+/** Cambia il valore del premio per slot dopo la creazione del torneo. */
+export async function updateSlotValueAction(tournamentId: string, formData: FormData) {
+  const { supabase } = await ownedTournament(tournamentId);
+  const slotValue = Math.max(0, Number(formData.get("slot_value") ?? 0) || 0);
+  await queries.updateTournamentSlotValue(supabase, tournamentId, slotValue);
+  revalidatePath(`/dashboard/${tournamentId}`);
+}
+
 /** Cancella del tutto il torneo (giocatori, scelte, risultati inclusi):
  * irreversibile, quindi la UI chiede conferma prima di inviare il form
  * che chiama questa action. */

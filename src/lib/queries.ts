@@ -87,6 +87,23 @@ export async function getTournament(db: DB, tournamentId: string) {
   return assertNoError(res) as Tournament;
 }
 
+/** Cambia il valore per slot (premio) di un torneo già creato: a
+ * differenza del numero di slot per giocatore, questo non tocca la
+ * meccanica di gioco (chi ha già scelto cosa), quindi può cambiare in
+ * qualunque momento, non solo mentre il torneo è "draft". */
+export async function updateTournamentSlotValue(
+  db: DB,
+  tournamentId: string,
+  slotValue: number
+) {
+  assertNoError(
+    await db
+      .from("tournaments")
+      .update({ slot_value: slotValue })
+      .eq("id", tournamentId)
+  );
+}
+
 /** Cancella un torneo e tutto ciò che dipende da lui (giocatori, slot,
  * giornate, scelte, risultati, squadre custom): tutte le foreign key
  * verso `tournaments` sono `on delete cascade`, quindi basta questa. */

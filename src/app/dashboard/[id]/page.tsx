@@ -23,6 +23,7 @@ import {
   removeTeamAction,
   simulateMatchdayAction,
   startTournamentAction,
+  updateSlotValueAction,
 } from "./actions";
 
 const matchdayStatusLabel: Record<string, string> = {
@@ -109,6 +110,31 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
           />
         </section>
       ) : null}
+
+      <section className={cardTight}>
+        <p className="text-xs font-semibold text-foreground-soft">Premio</p>
+        <p className="mt-1 text-xs text-foreground-faint">
+          Valore in € per slot, moltiplicato per il numero totale di slot
+          del torneo dà il premio totale mostrato ai giocatori. 0 = nessun
+          premio mostrato.
+        </p>
+        <form
+          action={updateSlotValueAction.bind(null, tournament.id)}
+          className="mt-2 flex flex-col gap-2 sm:flex-row"
+        >
+          <input
+            className={`${input} sm:w-40`}
+            name="slot_value"
+            type="number"
+            min={0}
+            step="0.01"
+            defaultValue={tournament.slot_value}
+          />
+          <button className={buttonGhost} type="submit">
+            Salva premio
+          </button>
+        </form>
+      </section>
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
@@ -237,7 +263,11 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
                           </button>
                         </form>
                       </div>
-                    ) : null}
+                    ) : (
+                      <p className="text-[11px] text-foreground-faint">
+                        Slot fissi: il torneo è già iniziato
+                      </p>
+                    )}
                   </div>
                 </li>
               );
