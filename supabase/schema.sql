@@ -458,6 +458,18 @@ create policy "players read all players of tournaments they belong to"
   on players for select
   using (public.is_tournament_player(tournament_id));
 
+-- Serve perché possa vedere (e quindi aggiornare, vedi sotto) il proprio
+-- invito ancora orfano: senza, per Postgres quella riga è invisibile a
+-- questo account finché non ha già uno user_id che combaci — un
+-- classico problema dell'uovo e della gallina per le RLS, che bloccava
+-- in silenzio anche l'UPDATE sotto (nessun errore: zero righe toccate).
+create policy "a player can see their own pending invite"
+  on players for select
+  using (
+    user_id is null
+    and email = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+
 -- Il passaggio chiave dell'invito: appena un account autenticato ha la
 -- stessa email di un invito ancora "orfano" (user_id NULL), può
 -- agganciarcisi da solo impostando user_id = se stesso. Non può toccare

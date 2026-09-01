@@ -315,19 +315,17 @@ export default async function PlayerTournamentPage(
 
       {burnedTeams.length > 0 ? (
         <section className={cardTight}>
-          <div className="flex items-center gap-1.5">
-            <p className={eyebrow}>Le squadre già bruciate</p>
-            <details className="group relative leading-none">
-              <summary className="flex cursor-pointer list-none items-center text-foreground-faint hover:text-foreground [&::-webkit-details-marker]:hidden">
-                <InfoIcon className="h-3.5 w-3.5" />
-              </summary>
-              <p className="absolute left-0 top-full z-10 mt-1.5 w-60 rounded-lg border border-line bg-surface-2 p-2.5 text-[11px] leading-relaxed text-foreground-soft shadow-[0_20px_50px_-30px_rgba(0,0,0,0.6)]">
-                Il numero sotto ogni squadra dice su quanti dei tuoi slot
-                ancora vivi non puoi più schierarla: l&apos;hai già usata lì
-                in una giornata precedente.
-              </p>
-            </details>
-          </div>
+          <details>
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden">
+              <p className={eyebrow}>Le squadre già bruciate</p>
+              <InfoIcon className="h-3.5 w-3.5 flex-none text-foreground-faint" />
+            </summary>
+            <p className="mt-2 rounded-lg border border-line bg-surface-2 p-2.5 text-[11px] leading-relaxed text-foreground-soft">
+              Il numero sotto ogni squadra dice su quanti dei tuoi slot
+              ancora vivi non puoi più schierarla: l&apos;hai già usata lì in
+              una giornata precedente.
+            </p>
+          </details>
           <div className="mt-2.5 flex flex-wrap gap-2">
             {burnedTeams.map((t) => {
               const burned = teamAliveBurnCount.get(t.id) ?? 0;
