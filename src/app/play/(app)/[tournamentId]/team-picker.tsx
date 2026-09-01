@@ -249,7 +249,7 @@ export function TeamPicker({
               <span className="truncate text-[10px] text-foreground-faint">{reason}</span>
             ) : !readOnly && remaining > 0 ? (
               <span className="truncate text-[10px] text-foreground-faint">
-                ancora {remaining} assegnabili
+                {remaining} assegnabili
               </span>
             ) : null}
           </span>
