@@ -1,4 +1,5 @@
 import { card, eyebrow, input, label, button } from "@/components/ui";
+import { BackLink } from "@/components/back-link";
 import { requireUser } from "@/lib/supabase/require-user";
 import { getProfileRole } from "@/lib/queries";
 import { createTournamentAction } from "../actions";
@@ -15,6 +16,7 @@ export default async function NewTournamentPage(props: PageProps<"/dashboard/new
 
   return (
     <div className="flex flex-col gap-6">
+      <BackLink href="/dashboard" label="I tuoi tornei" />
       <div>
         <p className={eyebrow}>Nuovo torneo</p>
         <h1 className="mt-1 font-display text-2xl font-extrabold">

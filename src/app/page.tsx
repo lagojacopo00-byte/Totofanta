@@ -4,7 +4,7 @@ import { button, buttonGhost, eyebrow } from "@/components/ui";
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-8 px-6 py-24">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-8 px-7 py-24">
       <Brandbar />
       <div>
         <p className={eyebrow}>Last man standing calcistico tra amici</p>

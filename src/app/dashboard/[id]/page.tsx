@@ -12,6 +12,7 @@ import {
   pillAlive,
   pillOut,
 } from "@/components/ui";
+import { BackLink } from "@/components/back-link";
 import { DeleteTournamentButton } from "./delete-tournament-button";
 import {
   addPlayerAction,
@@ -59,6 +60,7 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
 
   return (
     <div className="flex flex-col gap-8">
+      <BackLink href="/dashboard" label="I tuoi tornei" />
       <div>
         <div className="flex items-center gap-2">
           <p className={eyebrow}>{tournament.competition}</p>

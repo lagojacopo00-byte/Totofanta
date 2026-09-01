@@ -13,7 +13,7 @@ export default async function PlayerSignupPage(
   const loginHref = next ? `/play/login?next=${encodeURIComponent(next)}` : "/play/login";
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 py-16">
       <Brandbar subtitle="Crea il tuo account giocatore" />
 
       {sent ? (

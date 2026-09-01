@@ -7,7 +7,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
   const error = typeof params.error === "string" ? params.error : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 py-16">
       <Brandbar subtitle="Accesso organizzatore" />
 
       <form action={loginAction} className={`${card} flex flex-col gap-3`}>

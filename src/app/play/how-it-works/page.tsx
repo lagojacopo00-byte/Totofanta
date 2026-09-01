@@ -14,7 +14,7 @@ export default async function HowItWorksPage(
   await requirePlayer(`/play/how-it-works?next=${encodeURIComponent(next)}`);
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-5 px-4 py-8 sm:px-6 sm:py-10">
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-5 px-7 py-8 sm:py-10">
       <BackLink href="/play" label="I tuoi tornei" />
       <Brandbar subtitle="Come funziona" />
 

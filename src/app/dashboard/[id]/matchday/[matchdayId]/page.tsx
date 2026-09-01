@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/supabase/require-user";
 import * as queries from "@/lib/queries";
 import { button, buttonGhost, card, cardTight, eyebrow, input, pillAlive, pillOut } from "@/components/ui";
 import { TeamLabel } from "@/components/team-badge";
+import { BackLink } from "@/components/back-link";
 import { organizerClearPickAction, organizerSetPickAction, submitResultsAction } from "./actions";
 
 const outcomeLabel = { win: "Vinta", draw: "Pareggiata", loss: "Persa" } as const;
@@ -74,6 +75,7 @@ export default async function MatchdayPage(
 
   return (
     <div className="flex flex-col gap-6">
+      <BackLink href={`/dashboard/${id}`} label="Torneo" />
       <div>
         <p className={eyebrow}>{tournament.name}</p>
         <h1 className="mt-1 font-display text-2xl font-extrabold">

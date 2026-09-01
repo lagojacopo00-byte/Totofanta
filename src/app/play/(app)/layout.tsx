@@ -26,7 +26,7 @@ export default async function PlayAreaLayout({
     // dentro invece che sul documento, l'header sticky non tocca più
     // quel percorso di Safari.
     <div className="flex h-dvh flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain">
-      <header className="sticky top-0 z-10 border-b border-line bg-background px-6 py-3 sm:px-6 sm:py-4">
+      <header className="sticky top-0 z-10 border-b border-line bg-background px-7 py-3 sm:py-4">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <HamburgerMenu />
@@ -35,7 +35,7 @@ export default async function PlayAreaLayout({
           <UserMenu email={user.email ?? ""} signOutAction={playerSignOutAction} />
         </div>
       </header>
-      <main className="mx-auto w-full max-w-lg flex-1 overflow-x-hidden px-6 py-6 sm:px-6 sm:py-10">
+      <main className="mx-auto w-full max-w-lg flex-1 overflow-x-hidden px-7 py-6 sm:py-10">
         {children}
       </main>
     </div>

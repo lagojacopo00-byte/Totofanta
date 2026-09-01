@@ -54,7 +54,7 @@ export default async function JoinTournamentPage(
   const preview = await queries.getTournamentInvitePreview(supabase, tournamentId);
   if (!preview) {
     return (
-      <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-6 py-16">
+      <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 py-16">
         <Brandbar subtitle="Invito al torneo" />
         <div className={card}>
           <p className="text-sm text-foreground-soft">
@@ -72,7 +72,7 @@ export default async function JoinTournamentPage(
       : "";
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 py-16">
       <Brandbar subtitle="Invito al torneo" />
       <div>
         <p className={eyebrow}>{preview.competition}</p>

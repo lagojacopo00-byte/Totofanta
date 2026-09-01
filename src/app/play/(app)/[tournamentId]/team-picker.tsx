@@ -20,6 +20,11 @@ const kickoffTimeFormat = new Intl.DateTimeFormat("it-IT", {
   minute: "2-digit",
 });
 
+const dayDateFormat = new Intl.DateTimeFormat("it-IT", {
+  day: "numeric",
+  month: "long",
+});
+
 function HomeIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 flex-none" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -303,6 +308,9 @@ export function TeamPicker({
             <div key={group} className="flex min-w-0 flex-col gap-1.5">
               <p className="text-[11px] font-bold uppercase tracking-wide text-foreground-faint">
                 {dayGroupLabel[group]}
+                {fixtures[0]?.kickoffAt
+                  ? ` · ${dayDateFormat.format(new Date(fixtures[0].kickoffAt))}`
+                  : ""}
               </p>
               <div className="flex min-w-0 flex-col gap-2">
                 {fixtures.map((f) => (

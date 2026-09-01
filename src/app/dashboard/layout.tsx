@@ -11,7 +11,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="border-b border-line px-6 py-4">
+      <header className="border-b border-line px-7 py-4">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between">
           <Brandbar subtitle="Dashboard organizzatore" />
           <div className="flex items-center gap-3">
@@ -29,7 +29,7 @@ export default async function DashboardLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-7 py-10">
         {children}
       </main>
     </div>
