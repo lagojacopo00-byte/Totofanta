@@ -268,8 +268,11 @@ richiede prima una decisione di prodotto).
   (`players.user_id` ha `on delete set null`). Ricreato
   `src/lib/supabase/admin.ts` (client service-role, unico modo per
   cancellare il proprio account: Supabase non lo espone lato utente).
-  Richiede due template email da impostare su Supabase (Reset Password,
-  Change Email Address) — istruzioni nel README.
+  Non richiede nessuna configurazione di template email su Supabase (sul
+  piano gratuito, senza un tuo SMTP, l'editor dei template resta bloccato
+  in sola lettura): entrambi i flussi usano il template di default così
+  com'è, leggendo la sessione dal frammento dell'URL lato browser — vedi
+  `reset-password-form.tsx` e la nota nel README.
 
 ## Da fare — semplice
 
@@ -308,3 +311,13 @@ su richiesta esplicita dell'utente questa parte è partita. Dettagli in
   (icona in alto a destra) in ogni schermata dell'area giocatore.
 - Testi più brevi e diretti nell'interfaccia — **continuo**, da applicare
   mano a mano, non un singolo task chiudibile qui.
+- **Fatto — più aria in Regolamento e Come funziona**: titoli dei
+  capitoli diventati `h2` (20px, grassetto, prima erano solo l'eyebrow
+  minuscolo), testo dei paragrafi ingrandito, più spazio tra le sezioni
+  (`gap-3` → `gap-6`), una piccola icona per capitolo (stesso stile SVG
+  del picker: `stroke-only`, tratti arrotondati — nuovo file
+  [rule-icons.tsx](../src/components/rule-icons.tsx)) e un indicatore
+  laterale a puntini che segue lo scroll ed evidenzia il capitolo
+  corrente (nuovo componente riutilizzabile
+  [scroll-dots.tsx](../src/components/scroll-dots.tsx), basato su
+  `IntersectionObserver`).
