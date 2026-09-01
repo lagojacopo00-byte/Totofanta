@@ -3,31 +3,37 @@
 // sfondo), leggibile sul tema scuro dell'app. Usato ovunque compaia un
 // nome squadra nell'interfaccia.
 
-// Colore ufficiale (maglia/identità visiva) delle squadre di Serie A
-// 2026/2027 — deciso con l'utente: solo lo sfondo, non stemmi/loghi reali.
-// Le squadre non in elenco (competizioni diverse, squadre custom di un
-// torneo) restano sul colore derivato dal nome (hash) qui sotto.
-const OFFICIAL_TEAM_COLORS: Record<string, string> = {
-  Atalanta: "#14213D",
-  Bologna: "#A6192E",
-  Cagliari: "#1B3B6F",
-  Como: "#2E86D6",
-  Fiorentina: "#582C83",
-  Frosinone: "#F2C230",
-  Genoa: "#0F3B7A",
-  Inter: "#0B5EA8",
-  Juventus: "#1A1A1A",
-  Lazio: "#6CACE4",
-  Lecce: "#F7D117",
-  Milan: "#E2231A",
-  Monza: "#EE1122",
-  Napoli: "#12A0D7",
-  Parma: "#F3C300",
-  Roma: "#8E1F2F",
-  Sassuolo: "#00A651",
-  Torino: "#8A1538",
-  Udinese: "#3B3B3B",
-  Venezia: "#F76900",
+// Colori ufficiali (maglia/identità visiva, i due colori sociali) delle
+// squadre di Serie A 2026/2027 — deciso con l'utente: solo colori di
+// sfondo, non stemmi/loghi reali. Cercati online (fonti: brand/colori
+// squadra, non un'unica lista ufficiale che copra tutti i club — dove il
+// club non pubblica un hex preciso per un colore, si usa
+// l'approssimazione standard di quel colore nominale, es. "giallo",
+// "granata"). Le squadre non in elenco (competizioni diverse, squadre
+// custom di un torneo) restano sul colore derivato dal nome (hash) qui
+// sotto. Juventus e Udinese sono entrambe storicamente bianconere: non è
+// un errore, è così anche nella realtà — restano identiche di proposito.
+const OFFICIAL_TEAM_COLORS: Record<string, [string, string]> = {
+  Atalanta: ["#0D68B1", "#1E1E1E"], // nerazzurro
+  Bologna: ["#9F1F33", "#1B2838"], // rossoblù
+  Cagliari: ["#AD002A", "#002350"], // rossoblù
+  Como: ["#10416A", "#FFFFFF"], // azzurro
+  Fiorentina: ["#61358B", "#FFFFFF"], // viola
+  Frosinone: ["#FFD100", "#004393"], // gialloazzurro
+  Genoa: ["#AD1919", "#05232F"], // rossoblù
+  Inter: ["#00239C", "#000000"], // nerazzurro
+  Juventus: ["#000000", "#FFFFFF"], // bianconero
+  Lazio: ["#74D1EA", "#FFFFFF"], // biancoceleste
+  Lecce: ["#F7D117", "#C8102E"], // giallorosso
+  Milan: ["#E4002B", "#101820"], // rossonero
+  Monza: ["#DA291C", "#FFFFFF"], // rossobianco
+  Napoli: ["#00ABE7", "#FFFFFF"], // azzurro
+  Parma: ["#F5C400", "#002F6C"], // gialloblù (crociati)
+  Roma: ["#8E1F2F", "#FBB900"], // giallorosso
+  Sassuolo: ["#1EA451", "#000000"], // neroverde
+  Torino: ["#8A1E03", "#FFFFFF"], // granata
+  Udinese: ["#000000", "#FFFFFF"], // bianconero
+  Venezia: ["#F76900", "#1B7340"], // arancioneroverde
 };
 
 const PALETTE = [
@@ -70,8 +76,15 @@ export function teamInitials(name: string): string {
   return (words[0] ?? "").slice(0, 3).toUpperCase();
 }
 
-export function teamColor(name: string): string {
-  return OFFICIAL_TEAM_COLORS[name] ?? PALETTE[hashString(name) % PALETTE.length];
+/** I due colori sociali di una squadra, per il badge diviso in diagonale.
+ * Le squadre senza colore ufficiale (custom, altre competizioni) ne
+ * derivano due dal nome (hash), così restano comunque stabili nel tempo. */
+export function teamColors(name: string): [string, string] {
+  if (OFFICIAL_TEAM_COLORS[name]) return OFFICIAL_TEAM_COLORS[name];
+  const hash = hashString(name);
+  const first = hash % PALETTE.length;
+  const second = (hash + 5) % PALETTE.length;
+  return [PALETTE[first], PALETTE[second === first ? (second + 1) % PALETTE.length : second]];
 }
 
 const badgeSizeClasses = {
@@ -87,11 +100,17 @@ export function TeamBadge({
   name: string;
   size?: keyof typeof badgeSizeClasses;
 }) {
+  const [primary, secondary] = teamColors(name);
   return (
     <span
       title={name}
       className={`inline-flex flex-none items-center justify-center rounded-full font-display font-extrabold tracking-tight text-white ${badgeSizeClasses[size]}`}
-      style={{ backgroundColor: teamColor(name) }}
+      style={{
+        background: `linear-gradient(135deg, ${primary} 50%, ${secondary} 50%)`,
+        // Ombra scura sempre, per restare leggibile sopra ENTRAMBE le
+        // metà: alcune squadre hanno una metà chiara (bianco, giallo).
+        textShadow: "0 0 3px rgba(0,0,0,0.85), 0 0 1px rgba(0,0,0,0.85)",
+      }}
     >
       {teamInitials(name)}
     </span>
