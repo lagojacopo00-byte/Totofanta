@@ -265,6 +265,14 @@ richiede prima una decisione di prodotto).
   [06_Database.md](./06_Database.md), da eventualmente promuovere a
   pagina/sezione a parte se serve anche fuori dal codice.
 
+## Da fare — media
+
+- **Gestione account utente**: password dimenticata (reset via email —
+  Supabase Auth lo supporta già lato backend, manca solo il flusso UI),
+  cambio email, eliminazione account. Il cambio nome pubblico è già
+  fatto (sezione Profilo). Rimandato di proposito dopo la cura della
+  parte grafica, su indicazione esplicita dell'utente.
+
 ## Da fare — complessa
 
 Nessuna al momento.
