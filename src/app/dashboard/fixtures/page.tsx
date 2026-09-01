@@ -2,7 +2,30 @@ import { requireUser } from "@/lib/supabase/require-user";
 import * as queries from "@/lib/queries";
 import { button, buttonGhost, card, cardTight, eyebrow, input, label } from "@/components/ui";
 import { TeamBadge } from "@/components/team-badge";
-import { addFixtureAction, deleteFixtureAction } from "./actions";
+import {
+  addFixtureAction,
+  deleteFixtureAction,
+  setFixtureKickoffAction,
+  toggleFixtureStatusAction,
+} from "./actions";
+
+const dayLabel = new Intl.DateTimeFormat("it-IT", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** Formato accettato da <input type="datetime-local">: ora locale senza
+ * fuso, senza i secondi. */
+function toDatetimeLocalValue(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 export default async function FixturesPage() {
   const { supabase } = await requireUser();
@@ -79,6 +102,17 @@ export default async function FixturesPage() {
             placeholder="Es. Milan"
           />
         </div>
+        <div className="flex flex-col gap-1.5">
+          <label className={label} htmlFor="kickoff_at">
+            Data/ora (opzionale)
+          </label>
+          <input
+            className={`${input} sm:w-56`}
+            id="kickoff_at"
+            name="kickoff_at"
+            type="datetime-local"
+          />
+        </div>
         <datalist id="serie-a-teams">
           {teams.map((t) => (
             <option key={t.id} value={t.name} />
@@ -100,29 +134,78 @@ export default async function FixturesPage() {
           {rounds.map((round) => (
             <section key={round} className={cardTight}>
               <p className="font-display font-bold">Giornata {round}</p>
-              <ul className="mt-2 flex flex-col gap-1.5">
-                {(byRound.get(round) ?? []).map((f) => (
-                  <li
-                    key={f.id}
-                    className="flex items-center justify-between gap-2 text-sm"
-                  >
-                    <span className="flex flex-wrap items-center gap-1.5">
-                      <TeamBadge name={f.home_team} size="xs" />
-                      <span>{f.home_team}</span>
-                      <span className="text-foreground-faint">–</span>
-                      <TeamBadge name={f.away_team} size="xs" />
-                      <span>{f.away_team}</span>
-                    </span>
-                    <form action={deleteFixtureAction.bind(null, f.id)}>
-                      <button
-                        className={`${buttonGhost} px-2 py-1 text-xs border-lose/40 text-lose hover:border-lose hover:text-lose`}
-                        type="submit"
-                      >
-                        Elimina
-                      </button>
-                    </form>
-                  </li>
-                ))}
+              <ul className="mt-2 flex flex-col gap-2">
+                {(byRound.get(round) ?? []).map((f) => {
+                  const isExcluded = f.status === "excluded";
+                  return (
+                    <li
+                      key={f.id}
+                      className={`flex flex-col gap-2 rounded-lg border border-line px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between ${isExcluded ? "opacity-60" : ""}`}
+                    >
+                      <div className="flex flex-col gap-1">
+                        <span className="flex flex-wrap items-center gap-1.5 text-sm">
+                          <TeamBadge name={f.home_team} size="xs" />
+                          <span>{f.home_team}</span>
+                          <span className="text-foreground-faint">–</span>
+                          <TeamBadge name={f.away_team} size="xs" />
+                          <span>{f.away_team}</span>
+                          {isExcluded ? (
+                            <span className="inline-flex items-center rounded-full border border-lose/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-lose">
+                              Esclusa
+                            </span>
+                          ) : null}
+                        </span>
+                        {f.kickoff_at ? (
+                          <span className="text-xs text-foreground-faint">
+                            {dayLabel.format(new Date(f.kickoff_at))}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-foreground-faint">
+                            Data/ora non ancora inserita
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <form
+                          action={setFixtureKickoffAction.bind(null, f.id)}
+                          className="flex items-center gap-1.5"
+                        >
+                          <input
+                            className={`${input} w-auto py-1 text-xs`}
+                            type="datetime-local"
+                            name="kickoff_at"
+                            defaultValue={toDatetimeLocalValue(f.kickoff_at)}
+                          />
+                          <button
+                            className={`${buttonGhost} px-2 py-1 text-xs`}
+                            type="submit"
+                          >
+                            Salva ora
+                          </button>
+                        </form>
+                        <form
+                          action={toggleFixtureStatusAction.bind(null, f.id, f.status)}
+                        >
+                          <button
+                            className={`${buttonGhost} px-2 py-1 text-xs`}
+                            type="submit"
+                            title="Una partita esclusa non conta ai fini del gioco per questa giornata"
+                          >
+                            {isExcluded ? "Includi di nuovo" : "Escludi"}
+                          </button>
+                        </form>
+                        <form action={deleteFixtureAction.bind(null, f.id)}>
+                          <button
+                            className={`${buttonGhost} px-2 py-1 text-xs border-lose/40 text-lose hover:border-lose hover:text-lose`}
+                            type="submit"
+                          >
+                            Elimina
+                          </button>
+                        </form>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ))}
