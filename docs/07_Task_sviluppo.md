@@ -318,25 +318,32 @@ richiede prima una decisione di prodotto).
   niente più squadre custom creabili) il caso che innescava il bug non è
   più raggiungibile dall'app, ma la foreign key resta corretta comunque.
 - **Fix bug — invito per email non si agganciava**: riprodotto end-to-end
-  contro produzione (browser reale, non service-role, per non bypassare
-  le RLS): l'organizzatore aggiunge un giocatore per email
+  contro produzione (browser/sessione reale, non service-role, per non
+  bypassare le RLS): l'organizzatore aggiunge un giocatore per email
   (`addPlayerAction`), quella persona si registra con la STESSA email, ma
   `players.user_id` restava `null` — non veniva agganciata al torneo,
-  restava "Ancora nessun torneo all'attivo" in home. Causa: drift tra
-  `schema.sql` e il database reale (stessa categoria di bug già trovata
-  oggi in `URGENTE_migrazioni_mancanti.sql`) — la policy RLS "a player
-  claims their own pending invite" su `players` (usata da
-  `claimPendingInvites` in queries.ts, chiamata da `requirePlayer` a ogni
-  pagina dell'area giocatore) mancava o non corrispondeva a quella
-  dichiarata in schema.sql sul progetto Supabase collegato: l'update
-  veniva bloccato in silenzio da RLS (PostgREST risponde 200 con zero
-  righe, nessun errore — per questo passava inosservato). Il percorso
-  "link di invito" (`selfJoinTournament`, `is draft tournament`) invece
-  funzionava già correttamente nei test. Corretto ri-applicando (drop +
-  create) entrambe le policy — vedi
+  restava "Ancora nessun torneo all'attivo" in home. Causa reale (trovata
+  con una funzione diagnostica temporanea che ha eseguito la stessa query
+  dell'app dall'interno del database): mancava una policy di SELECT per
+  un invito ancora "orfano" (`user_id is null`). Senza, per Postgres
+  quella riga è invisibile all'account che dovrebbe reclamarla finché non
+  ha già uno `user_id` che combaci — un classico problema dell'uovo e
+  della gallina delle RLS — e questo blocca in silenzio anche l'UPDATE
+  che fa l'aggancio vero e proprio (`claimPendingInvites` in queries.ts,
+  chiamata da `requirePlayer` a ogni pagina dell'area giocatore): nessun
+  errore, PostgREST risponde 200 con zero righe, per questo passava
+  inosservato. (Un primo giro aveva anche verificato/riallineato — non
+  era quella la causa finale — la policy di UPDATE contro schema.sql,
+  utile comunque contro il drift già visto oggi in
+  `URGENTE_migrazioni_mancanti.sql`.) Il percorso "link di invito"
+  (`selfJoinTournament`, solo su tornei ancora "draft") non aveva questo
+  problema (l'INSERT non ha bisogno di vedere una riga preesistente) ed è
+  risultato già funzionante nei test. Corretto aggiungendo la policy di
+  SELECT mancante — vedi
   [supabase/fix_invite_policies.sql](../supabase/fix_invite_policies.sql)
-  (da eseguire nell'SQL Editor di Supabase). Nessuna modifica al codice
-  applicativo: la logica in queries.ts era già corretta.
+  (da eseguire nell'SQL Editor di Supabase) e lo stesso cambio riportato
+  in `schema.sql`. Nessuna modifica al codice applicativo: la logica in
+  queries.ts era già corretta.
 
 ## Da fare — semplice
 
