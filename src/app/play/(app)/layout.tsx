@@ -19,7 +19,7 @@ export default async function PlayAreaLayout({
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="border-b border-line px-5 py-3 sm:px-6 sm:py-4">
+      <header className="sticky top-0 z-10 border-b border-line bg-background px-5 py-3 sm:px-6 sm:py-4">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <HamburgerMenu />
