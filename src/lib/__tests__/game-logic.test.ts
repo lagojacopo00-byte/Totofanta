@@ -47,6 +47,30 @@ test('pick mancato elimina lo slot', () => {
   assert.equal(result.slotOutcomes[0].reason, 'missed_pick')
 })
 
+test('uno slot esente resta vivo a prescindere dall\'esito (partita esclusa)', () => {
+  // Slot esentato perché la squadra scelta gioca una partita segnata
+  // "esclusa" (rinvio fuori finestra, tavolino non ancora deciso, ecc.):
+  // deve sopravvivere anche se c'è (o non c'è) un esito per quella squadra.
+  const withOutcome = applyMatchdayResults({
+    aliveSlotsBefore: [{ slotId: 's1', playerId: 'p1' }],
+    picks: [{ slotId: 's1', teamId: 'lazio' }],
+    outcomesByTeam: { lazio: 'loss' },
+    exemptSlotIds: ['s1'],
+  })
+  assert.equal(withOutcome.slotOutcomes[0].survived, true)
+  assert.equal(withOutcome.slotOutcomes[0].reason, 'exempt')
+  assert.deepEqual(withOutcome.aliveSlotsAfter, [{ slotId: 's1', playerId: 'p1' }])
+
+  const withoutOutcome = applyMatchdayResults({
+    aliveSlotsBefore: [{ slotId: 's1', playerId: 'p1' }],
+    picks: [{ slotId: 's1', teamId: 'lazio' }],
+    outcomesByTeam: {},
+    exemptSlotIds: ['s1'],
+  })
+  assert.equal(withoutOutcome.slotOutcomes[0].survived, true)
+  assert.equal(withoutOutcome.slotOutcomes[0].reason, 'exempt')
+})
+
 test('gli slot dello stesso giocatore sono indipendenti', () => {
   // Napoli con tutti e 3 gli slot (esempio dal regolamento): vince, tutti
   // e 3 gli slot restano vivi.
