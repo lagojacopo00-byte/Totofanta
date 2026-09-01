@@ -115,32 +115,27 @@ richiede prima una decisione di prodotto).
   (`TeamPicker` accetta una prop `readOnly`): i controlli di scelta si
   disabilitano, spariscono i bottoni di conferma, ma le partite
   raggruppate per giorno con gli orari restano.
-
-## Bug critico aperto (trovato 2026-09-01)
-
-- **Pagina torneo del giocatore va in errore in produzione**: il database
-  Supabase collegato al sito Vercel non ha mai ricevuto le migrazioni
+- **Bug critico risolto (trovato e chiuso 2026-09-01)**: la pagina torneo
+  del giocatore andava in errore in produzione perché il database
+  Supabase collegato a Vercel non aveva ricevuto le migrazioni
   `add_creator_role.sql`, `add_tournament_is_test.sql` e
-  `add_fixture_schedule.sql` (verificato in sola lettura via REST API con
-  la chiave pubblica: le colonne `profiles.role`, `tournaments.is_test`,
-  `serie_a_fixtures.kickoff_at`/`status` non esistono sul DB reale). La
-  query di `getExcludedTeamNames` in `src/lib/queries.ts` seleziona
-  esplicitamente `kickoff_at, status`: Postgres risponde con errore
-  "column does not exist", non intercettato da nessun try/catch, e
-  Next.js mostra l'errore generico. Scatta per qualunque torneo con una
-  giornata aperta, cioè il caso normale.
-  **Stesso problema, impatto più ampio**: `getProfileRole` (usata da
-  `/dashboard/new` per decidere se mostrare la checkbox "torneo di test")
-  seleziona `profiles.role`, colonna anch'essa mancante — quindi molto
-  probabilmente **l'organizzatore non riesce ad aprire la pagina "nuovo
-  torneo"**, non solo il giocatore ad aprire un torneo. Stessa causa,
-  stessa fix.
-  **Fix pronta**: incollare ed eseguire
+  `add_fixture_schedule.sql` (colonne `profiles.role`, `tournaments.is_test`,
+  `serie_a_fixtures.kickoff_at`/`status` mancanti sul DB reale, causa lo
+  stesso problema anche su `/dashboard/new` per l'organizzatore). Risolto
+  eseguendo
   [`supabase/URGENTE_migrazioni_mancanti.sql`](../supabase/URGENTE_migrazioni_mancanti.sql)
-  nell'SQL Editor di Supabase (idempotente, non tocca dati esistenti).
-  Non eseguita in autonomia perché modifica lo schema del database di
-  produzione — richiede l'azione manuale dell'utente nel pannello
-  Supabase, come tutte le altre migrazioni di questo progetto.
+  nell'SQL Editor di Supabase.
+- Migrazione `add_slot_value.sql` (colonna `tournaments.slot_value` per la
+  feature Premio) eseguita in produzione: la feature è ora live, non solo
+  nel codice.
+- File morto `src/lib/supabase/admin.ts` (mai importato altrove) rimosso.
+- **Bug scroll orizzontale su iOS Safari risolto**: l'header
+  `position: sticky` dell'area giocatore faceva scorrere l'intera pagina
+  oltre il bordo destro (bug noto di Safari iOS, non contenuto che sfora —
+  `overflow-x: hidden` su `html`/`body` da solo non basta contro questo
+  bug). Aggiunto `touch-action: pan-y` su `html`/`body` in
+  [globals.css](../src/app/globals.css) per bloccare il gesto orizzontale
+  invece di dipendere dal calcolo di overflow di Safari.
 
 ## Da fare — semplice
 
