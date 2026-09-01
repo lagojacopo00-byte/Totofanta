@@ -14,7 +14,7 @@ richiede prima una decisione di prodotto).
    PLAYER/ADMIN resta da chiarire (vedi sotto)
 3. Database — solido, mancano solo i pezzi elencati sotto (stato partita,
    eventuale ruolo)
-4. Gestione tornei — a posto lato organizzatore; mancano i tornei di test
+4. Gestione tornei — a posto lato organizzatore, inclusi i tornei di test
 5. Flussi principali — a posto (invito, scelta, risultati, regolamento)
 6. Solo dopo: direzione visiva/UX — vedi
    [08_Direzione_visiva_UX.md](./08_Direzione_visiva_UX.md), tenuta
@@ -41,6 +41,12 @@ richiede prima una decisione di prodotto).
   restrizioni su chi può crearne uno. Dettagli in
   [06_Database.md](./06_Database.md). Login/redirect non toccati in
   questo passaggio — vedi sotto cosa resta aperto.
+- Tornei di test per il Creator: chi è già "creator" vede un checkbox
+  "torneo di test" in `/dashboard/new`; un torneo di test ha una
+  sezione in più nella sua pagina per aggiungere giocatori finti in
+  blocco e simulare intere giornate all'istante (scelte e risultati
+  casuali), per bilanciare slot/durata senza aspettare il calendario
+  reale. Dettagli in [06_Database.md](./06_Database.md).
 
 ## Da fare — semplice
 
@@ -72,11 +78,6 @@ richiede prima una decisione di prodotto).
   cambiamento più visibile del documento di brainstorming. Richiede
   data/ora sulle fixture (assente oggi) per raggruppare "per giorno", più
   un redesign del componente di scelta squadra.
-- **Tornei di test per il Creator**: giocatori finti + simulazione
-  istantanea di giornate intere, per bilanciare numero di slot/durata
-  senza aspettare il calendario reale. Ora può appoggiarsi al ruolo
-  `profiles.role = 'creator'` appena introdotto per decidere chi vede
-  l'opzione "crea torneo di test".
 - **Unificare login e redirect in base al ruolo**: oggi `/login` →
   `/dashboard` e `/play/login` → `/play` (o alla pagina richiesta)
   restano due porte separate, invariate dall'introduzione del ruolo
