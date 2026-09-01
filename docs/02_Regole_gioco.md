@@ -30,36 +30,45 @@ Fonte di verità: `src/lib/game-logic.ts` (logica pura, testata in
   togliere la scelta di qualsiasi slot in qualsiasi momento (anche fuori
   dalla finestra lunedì-giovedì), dalla pagina di gestione giornata
   (`organizerSetPickAction` / `organizerClearPickAction`).
+- **Finestra ufficiale delle partite** (venerdì-sabato-domenica-lunedì,
+  vedi `src/lib/match-window.ts`) **e stato partita (valida/esclusa)**:
+  ogni partita del calendario (`serie_a_fixtures`) ha ora una data/ora
+  opzionale (`kickoff_at`) e uno stato (`status`, `'scheduled'` o
+  `'excluded'`). Una partita è considerata esclusa ai fini del gioco per
+  la sua giornata se l'organizzatore la marca a mano `'excluded'`
+  (tavolino ancora da decidere, casi particolari) oppure se ha una
+  data/ora nota ma fuori dalla finestra ven-lun (rinviata a un'altra
+  settimana) — vedi `getExcludedTeamNames` in `src/lib/queries.ts`. Una
+  partita senza data/ora ancora inserita NON è considerata esclusa solo
+  per quello (l'organizzatore può semplicemente non averla ancora
+  aggiornata). Effetti concreti:
+  - le squadre di una partita esclusa non sono selezionabili nella
+    schermata di scelta (oscurate, vedi `docs/07_Task_sviluppo.md`);
+  - chi l'aveva già scelta prima che venisse esclusa resta vivo senza che
+    conti né come vittoria né come sconfitta (slot "esente", vedi
+    `exemptSlotIds` in `src/lib/game-logic.ts`), e la squadra torna
+    disponibile per quello slot (il pick viene cancellato da
+    `submitMatchdayResults`, non si considera usata).
+  - **Tavolino**: una vittoria a tavolino, quando decisa in tempo per la
+    giornata in corso, si inserisce come una vittoria normale
+    dall'organizzatore — nessun trattamento speciale necessario.
 
-## Descritte a parole, non ancora modellate nel database
+## Decisioni prese su casi particolari
 
-Queste regole sono già nella pagina Regolamento (spiegate ai giocatori)
-ma **non hanno un vincolo tecnico** che le faccia rispettare da sole:
-oggi dipendono dal buonsenso dell'organizzatore quando inserisce i
-risultati a mano.
+Domande che erano aperte, risolte insieme all'utente introducendo lo
+stato partita:
 
-- **Finestra ufficiale delle partite** (circa giovedì-lunedì): solo le
-  partite giocate in quella finestra contano. Rinvii/recuperi fuori
-  finestra non contano (né vittoria né sconfitta): lo slot resta vivo e
-  la squadra non si considera usata. Oggi questo lo decide l'organizzatore
-  a mente, semplicemente non inserendo un risultato per quella squadra
-  quella giornata (che equivale a "non giocata" solo se lo slot non aveva
-  scelto quella squadra — se l'aveva scelta, il pick resta "in sospeso"
-  senza risultato, il che potrebbe confondere).
-- **Tavolino**: una vittoria a tavolino conta come una vittoria normale,
-  decisione manuale dell'organizzatore.
-- **Stato partita (valida/esclusa)**: l'idea proposta nel documento di
-  brainstorming (vedi task #14 in
-  [07_Task_sviluppo.md](./07_Task_sviluppo.md)) è di dare a ogni partita
-  del calendario uno stato esplicito, così le partite problematiche non
-  compaiono nemmeno come selezionabili, invece di lasciare che sia
-  l'organizzatore a "sistemare a mano" dopo. Non ancora implementato.
-
-## Domande aperte (da chiarire con l'utente prima di codificarle)
-
-- Se una partita rientra nella finestra ufficiale ma viene decisa a
-  tavolino con settimane di ritardo (oltre la giornata successiva), cosa
-  succede agli slot che nel frattempo hanno continuato a scegliere?
-- Il calcolo risultati "entro lunedì 23:59" citato nel documento di
-  brainstorming è un vincolo reale da far rispettare al sistema, o resta
-  (come oggi) a discrezione dell'organizzatore?
+- **Tavolino/rinvio deciso con settimane di ritardo** (oltre la giornata
+  successiva, quando la giornata originale è già stata chiusa): il
+  sistema **non ricalcola retroattivamente** quella giornata né quelle
+  successive — sarebbe un ricalcolo a cascata rischioso. Se serve
+  correggere un caso così raro, si usano a mano gli strumenti già
+  esistenti dell'organizzatore (schierare/cambiare/togliere pick, e se
+  serve un nuovo inserimento risultati). Lo stato "esclusa" serve a
+  evitare il problema alla radice, marcando la partita PRIMA di chiudere
+  la giornata.
+- **Calcolo "entro lunedì 23:59"**: resta a discrezione dell'organizzatore
+  come oggi (`results_mode` ha un solo valore, `'manual'`) — nessun
+  automatismo che blocchi o forzi l'inserimento risultati a un orario
+  preciso. Coerente con l'import automatico dei risultati, esplicitamente
+  rimandato a bassa priorità (vedi `07_Task_sviluppo.md`).
