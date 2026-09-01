@@ -169,6 +169,19 @@ richiede prima una decisione di prodotto).
   dashboard organizzatore per cambiare `slot_value` in qualunque momento
   (non solo alla creazione) — non tocca la meccanica di gioco, quindi non
   serve restare in "draft" come per il numero di slot.
+- **Trasparenza nella scelta squadra** (deciso con l'utente: prima si
+  scopriva a tentativi cosa fosse ancora possibile): nuova
+  `maxAssignableForTeam` in
+  [`src/lib/slot-assignment.ts`](../src/lib/slot-assignment.ts) (ricerca
+  binaria su `solveSlotAssignment`, la fattibilità è monotona nel
+  conteggio — se n slot sono assegnabili, n-1 lo sono sempre) calcola in
+  anticipo il massimo assegnabile a ciascuna squadra tenendo fisse le
+  scelte già fatte sulle altre. Nel picker (`team-picker.tsx`) questo
+  numero si vede subito come "ancora N assegnabili" invece di scoprirlo
+  cliccando finché il bottone non si blocca. La card "Le squadre che hai
+  già giocato" ora riporta anche su quanti degli slot vivi attuali
+  ciascuna squadra non è più disponibile (N/M), non solo che è stata
+  giocata da qualche parte in passato.
 - **L'admin può modificare gli slot di un giocatore in qualunque momento**:
   "Aggiorna slot" prima spariva appena il torneo usciva da "draft", senza
   modo di correggere slot mal configurati dopo (causa concreta di un bug
