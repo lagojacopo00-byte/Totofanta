@@ -3,18 +3,22 @@
 /* Totofanta — stessa direzione visiva del concept "Totofanta UI":
    base scura, verde come accento primario, tipografia Sora + Manrope,
    JetBrains Mono per numeri e dati. Tema scuro fisso (scelta di stile,
-   non un default dimenticato: rispecchia il genere "fantatool"). */
+   non un default dimenticato: rispecchia il genere "fantatool").
+   Deciso con l'utente (docs/08_Direzione_visiva_UX.md): lo sfondo va
+   spostato su tonalità verdi, non lasciato nero/grigio neutro con solo
+   l'accento verde — qui il verde è marcato anche su sfondo/bordi/testo
+   secondario, non un'ombra quasi impercettibile. */
 :root {
-  --background: #0b120e;
-  --surface: #121b15;
-  --surface-2: #1a251e;
-  --foreground: #ecf5ee;
-  --foreground-soft: #98ac9e;
-  --foreground-faint: #5e7267;
+  --background: #081712;
+  --surface: #0f231b;
+  --surface-2: #173326;
+  --foreground: #eaf5ee;
+  --foreground-soft: #9fc2ab;
+  --foreground-faint: #5f8570;
   --accent: #3ed17e;
   --accent-deep: #1b8f55;
   --accent-ink: #072612;
-  --line: #223228;
+  --line: #24422f;
   --lose: #ff6e5e;
   --lose-bg: rgba(255, 110, 94, 0.12);
   --win-bg: rgba(62, 209, 126, 0.14);
