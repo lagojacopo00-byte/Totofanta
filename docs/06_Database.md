@@ -17,7 +17,7 @@ esistente — ogni file indica quali eseguire prima).
 | `matchdays` | una giornata di un torneo (numero, stato aperta/bloccata/conclusa) |
 | `picks` | la scelta di uno slot per una giornata |
 | `matchday_results` | il risultato (vinta/pareggio/persa) di una squadra in una giornata |
-| `serie_a_fixtures` | il calendario Serie A condiviso (round, casa, trasferta) — usato solo per mostrare l'avversario, non ha ancora data/ora |
+| `serie_a_fixtures` | il calendario Serie A condiviso (round, casa, trasferta, data/ora opzionale, stato valida/esclusa) |
 
 ## Mapping coi nomi del documento di brainstorming
 
@@ -36,14 +36,6 @@ per questo gioco specifico:
 
 Questo mapping è anche la base del "Glossario" richiesto in un
 brain-dump precedente, se si vuole un vocabolario ufficiale univoco.
-
-## Cosa manca per le proposte più recenti
-
-- **Stato partita (valida/esclusa)**: richiede una colonna di stato (e
-  probabilmente un `id` proprio) su `serie_a_fixtures`, oggi assente.
-- **Data/ora delle partite**: richiesta per raggruppare la schermata di
-  scelta "per giorno" — oggi `serie_a_fixtures` ha solo il numero di
-  giornata, non una data.
 
 ## Ruolo globale `profiles.role`
 
@@ -84,3 +76,32 @@ viceversa). Due funzioni in `src/lib/queries.ts` la usano:
 Nessuna delle due controlla `is_test` al proprio interno: è il chiamante
 (le Server Action in `src/app/dashboard/[id]/actions.ts`) a verificarlo,
 per non rischiare mai di usarle per sbaglio su un torneo vero.
+
+## Stato partita (`serie_a_fixtures.kickoff_at` / `.status`)
+
+Due colonne nuove su `serie_a_fixtures`, entrambe gestite
+dall'organizzatore da `/dashboard/fixtures`:
+
+- `kickoff_at` (timestamptz, nullabile): data/ora reale del calcio
+  d'inizio. Null finché non ancora inserita.
+- `status` (`'scheduled'` di default, o `'excluded'`): una partita
+  esclusa non conta ai fini del gioco per la sua giornata.
+
+`getExcludedTeamNames` in `src/lib/queries.ts` calcola l'insieme di nomi
+squadra "esclusi" per una giornata combinando le due cose: sempre chi è
+segnato `'excluded'` a mano, più chi ha una `kickoff_at` nota ma fuori
+dalla finestra ufficiale venerdì-sabato-domenica-lunedì (vedi
+`src/lib/match-window.ts`) — una partita senza data non è esclusa solo
+per quello. Questo insieme è usato in due punti:
+
+- `submitMatchdayResults`: le squadre escluse diventano `exemptSlotIds`
+  per `applyMatchdayResults` (`src/lib/game-logic.ts`) — lo slot resta
+  vivo senza contare né vittoria né sconfitta — e il loro pick viene
+  cancellato subito dopo, così la squadra torna disponibile (non si
+  considera usata).
+- la pagina di gestione giornata (`/dashboard/[id]/matchday/[matchdayId]`)
+  nasconde il selettore vinta/pareggio/persa per le squadre escluse:
+  l'organizzatore non deve inserire nessun risultato per loro.
+
+Dettagli sulle regole e sui casi limite (tavolino, rinvii tardivi) in
+[02_Regole_gioco.md](./02_Regole_gioco.md).
