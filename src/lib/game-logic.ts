@@ -31,7 +31,7 @@ export interface MatchdayPick {
   teamId: string
 }
 
-export type SlotOutcomeReason = 'won' | 'drew' | 'lost' | 'missed_pick'
+export type SlotOutcomeReason = 'won' | 'drew' | 'lost' | 'missed_pick' | 'exempt'
 
 export interface SlotOutcome {
   slotId: string
@@ -49,6 +49,13 @@ export interface ApplyMatchdayInput {
   picks: MatchdayPick[]
   /** Risultato di ogni squadra coinvolta in questa giornata. */
   outcomesByTeam: Record<string, Outcome>
+  /** Slot il cui pick riguarda una partita segnata "esclusa" (vedi
+   * `serie_a_fixtures.status` e `docs/02_Regole_gioco.md`): restano vivi a
+   * prescindere dall'esito, senza contare né come vittoria né come
+   * sconfitta. Chi chiama (vedi `submitMatchdayResults` in
+   * `src/lib/queries.ts`) si occupa poi di liberare di nuovo la squadra
+   * cancellando il pick, perché "non si considera usata". */
+  exemptSlotIds?: string[]
 }
 
 export interface ApplyMatchdayResult {
@@ -71,9 +78,20 @@ export function applyMatchdayResults(
   input: ApplyMatchdayInput
 ): ApplyMatchdayResult {
   const pickBySlot = new Map(input.picks.map((p) => [p.slotId, p.teamId]))
+  const exempt = new Set(input.exemptSlotIds ?? [])
 
   const slotOutcomes: SlotOutcome[] = input.aliveSlotsBefore.map((slot) => {
     const teamId = pickBySlot.get(slot.slotId)
+
+    if (exempt.has(slot.slotId)) {
+      return {
+        slotId: slot.slotId,
+        playerId: slot.playerId,
+        survived: true,
+        reason: 'exempt',
+        teamId,
+      }
+    }
 
     if (!teamId) {
       return {
