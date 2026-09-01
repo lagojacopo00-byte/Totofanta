@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { TeamBadge } from "@/components/team-badge";
 import { button, buttonGhost, card, eyebrow } from "@/components/ui";
-import { solveSlotAssignment, type SlotOption } from "@/lib/slot-assignment";
+import { maxAssignableForTeam, solveSlotAssignment, type SlotOption } from "@/lib/slot-assignment";
 import type { MatchDayGroup } from "@/lib/match-window";
 import { submitPicksAction } from "./actions";
 
@@ -154,15 +154,31 @@ export function TeamPicker({
     return set;
   }, [slots]);
 
-  function canIncrement(teamId: string): boolean {
-    return solveSlotAssignment(slotOptions, desiredCountsWith({ [teamId]: (counts[teamId] ?? 0) + 1 })) !== null;
-  }
+  // Per ogni squadra, il massimo che si potrebbe ancora assegnarle a
+  // parità delle scelte già fatte sulle altre: mostrato subito nella UI
+  // invece di lasciarlo scoprire a tentativi cliccando finché non si
+  // blocca (vedi maxAssignableForTeam).
+  const maxima = useMemo(() => {
+    const base = desiredCountsWith({});
+    const result: Record<string, number> = {};
+    for (const teamId of orderedTeamIds) {
+      result[teamId] = maxAssignableForTeam(slotOptions, base, teamId);
+    }
+    return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotOptions, counts, orderedTeamIds]);
 
   function disabledReason(teamName: string, teamId: string | undefined): string | null {
     if (!teamId) return "non in questo torneo";
     if (excludedSet.has(teamName)) return "non disponibile questa giornata";
     if (!eligibleAnywhere.has(teamId)) return "già usata su tutti i tuoi slot";
-    if (!canIncrement(teamId)) return "nessuno slot libero per questa scelta";
+    const max = maxima[teamId] ?? 0;
+    const count = counts[teamId] ?? 0;
+    if (count >= max) {
+      return count > 0
+        ? `hai raggiunto il massimo per questa squadra (${max})`
+        : "nessuno slot libero per questa scelta";
+    }
     return null;
   }
 
@@ -204,6 +220,7 @@ export function TeamPicker({
     const count = teamId ? (counts[teamId] ?? 0) : 0;
     const reason = disabledReason(name, teamId);
     const disabled = reason !== null || isPending || readOnly;
+    const remaining = teamId ? Math.max(0, (maxima[teamId] ?? 0) - count) : 0;
     return (
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
         <button
@@ -221,6 +238,10 @@ export function TeamPicker({
             <span className="truncate font-semibold text-foreground">{name}</span>
             {reason ? (
               <span className="truncate text-[10px] text-foreground-faint">{reason}</span>
+            ) : !readOnly && remaining > 0 ? (
+              <span className="truncate text-[10px] text-foreground-faint">
+                ancora {remaining} assegnabili
+              </span>
             ) : null}
           </span>
           {count > 0 ? (

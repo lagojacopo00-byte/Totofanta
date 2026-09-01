@@ -97,14 +97,32 @@ export default async function PlayerTournamentPage(
   const tiedWithMe = withRank.filter((s) => s.rank === myRank).length - 1;
 
   // Tutte le squadre già giocate da questo giocatore (su qualunque suo
-  // slot), per il piccolo "album" delle squadre bruciate finora.
-  const playedTeamNames = Array.from(
-    new Set(
+  // slot), per il piccolo "album" delle squadre bruciate finora — con,
+  // per ciascuna, su quanti dei suoi slot ANCORA VIVI non è più
+  // disponibile: è l'informazione che serve davvero mentre si sceglie,
+  // non solo "l'hai già giocata da qualche parte".
+  const playedTeams = Array.from(new Set(allPicks.map((p) => p.team_id)))
+    .map((id) => ({ id, name: teamById.get(id) }))
+    .filter((t): t is { id: string; name: string } => Boolean(t.name))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const myAliveSlotsList = slots.filter((s) => s.status === "alive");
+
+  const teamAliveBurnCount = new Map<string, number>();
+  for (const slot of myAliveSlotsList) {
+    const usedTeamIds = new Set(
       allPicks
-        .map((p) => teamById.get(p.team_id))
-        .filter((name): name is string => Boolean(name))
-    )
-  ).sort((a, b) => a.localeCompare(b));
+        .filter(
+          (p) =>
+            p.slot_id === slot.id &&
+            (!openMatchday || p.matchday_id !== openMatchday.id)
+        )
+        .map((p) => p.team_id)
+    );
+    for (const teamId of usedTeamIds) {
+      teamAliveBurnCount.set(teamId, (teamAliveBurnCount.get(teamId) ?? 0) + 1);
+    }
+  }
 
   let winnerNames: string[] = [];
   if (tournament.status === "finished" && tournament.winners.length > 0) {
@@ -115,8 +133,6 @@ export default async function PlayerTournamentPage(
   }
   const isWinner = tournament.winners.includes(player.id);
   const pickingOpen = isPickingWindowOpen();
-
-  const myAliveSlotsList = slots.filter((s) => s.status === "alive");
 
   // Per il picker unico: le squadre che OGNI slot può ancora scegliere per
   // la giornata aperta (tutte le disponibili nel torneo, tranne quelle
@@ -277,13 +293,35 @@ export default async function PlayerTournamentPage(
         </div>
       </div>
 
-      {playedTeamNames.length > 0 ? (
+      {playedTeams.length > 0 ? (
         <section className={cardTight}>
           <p className={eyebrow}>Le squadre che hai già giocato</p>
           <div className="mt-2.5 flex flex-wrap gap-2">
-            {playedTeamNames.map((name) => (
-              <TeamBadge key={name} name={name} size="md" />
-            ))}
+            {playedTeams.map((t) => {
+              const burned = teamAliveBurnCount.get(t.id) ?? 0;
+              return (
+                <span
+                  key={t.id}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 py-1 pl-1 pr-2.5"
+                >
+                  <TeamBadge name={t.name} size="sm" />
+                  <span className="text-[11px] text-foreground-faint">
+                    {t.name}
+                    {burned > 0 ? (
+                      <>
+                        {" · "}
+                        <span className="font-mono text-foreground">
+                          {burned}/{myAliveSlotsList.length}
+                        </span>{" "}
+                        slot vivi
+                      </>
+                    ) : (
+                      " · non blocca più nessun slot vivo"
+                    )}
+                  </span>
+                </span>
+              );
+            })}
           </div>
         </section>
       ) : null}

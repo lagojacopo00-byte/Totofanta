@@ -74,3 +74,36 @@ export function solveSlotAssignment(
   }
   return result;
 }
+
+/**
+ * Il massimo conteggio assegnabile a `teamId`, tenendo fissi i conteggi
+ * desiderati di tutte le altre squadre in `desiredCounts` (il conteggio
+ * attuale di `teamId` lì dentro viene ignorato). Serve a mostrare in
+ * anticipo "fino a quanti slot posso mettere questa squadra" invece di
+ * lasciar scoprire il limite a tentativi cliccando finché non si blocca.
+ *
+ * La fattibilità è monotona in n (se n slot sono assegnabili, n-1 lo sono
+ * sempre: basta liberarne uno), quindi si può cercare il massimo con una
+ * ricerca binaria invece di provare un conteggio alla volta.
+ */
+export function maxAssignableForTeam(
+  slots: SlotOption[],
+  desiredCounts: Record<string, number>,
+  teamId: string
+): number {
+  const otherCounts: Record<string, number> = {};
+  for (const [id, n] of Object.entries(desiredCounts)) {
+    if (id !== teamId) otherCounts[id] = n;
+  }
+
+  const upperBound = slots.filter((s) => s.eligibleTeamIds.includes(teamId)).length;
+  let lo = 0;
+  let hi = upperBound;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    const feasible = solveSlotAssignment(slots, { ...otherCounts, [teamId]: mid }) !== null;
+    if (feasible) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo;
+}

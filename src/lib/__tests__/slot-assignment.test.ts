@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { solveSlotAssignment } from '../slot-assignment'
+import { solveSlotAssignment, maxAssignableForTeam } from '../slot-assignment'
 
 test('assegna più slot alla stessa squadra se tutti la possono giocare', () => {
   const slots = [
@@ -67,4 +67,38 @@ test('non assegna mai uno slot a una squadra fuori dal suo elenco idoneo', () =>
   ]
   const result = solveSlotAssignment(slots, { atalanta: 1, bologna: 1 })
   assert.deepEqual(result, { s1: 'atalanta', s2: 'bologna' })
+})
+
+test('maxAssignableForTeam: senza altre richieste, il massimo è quanti slot la possono giocare', () => {
+  const slots = [
+    { slotId: 's1', eligibleTeamIds: ['atalanta'] },
+    { slotId: 's2', eligibleTeamIds: ['atalanta'] },
+    { slotId: 's3', eligibleTeamIds: ['atalanta'] },
+  ]
+  assert.equal(maxAssignableForTeam(slots, {}, 'atalanta'), 3)
+})
+
+test('maxAssignableForTeam: squadra senza nessuno slot idoneo -> 0', () => {
+  const slots = [{ slotId: 's1', eligibleTeamIds: ['bologna'] }]
+  assert.equal(maxAssignableForTeam(slots, {}, 'atalanta'), 0)
+})
+
+test('maxAssignableForTeam: tiene conto delle richieste già impegnate su altre squadre', () => {
+  // atalanta può giocare su tutti e 3, bologna SOLO su s3: se bologna
+  // vuole 1 slot, quello slot le va riservato, e ad atalanta ne restano 2.
+  const slots = [
+    { slotId: 's1', eligibleTeamIds: ['atalanta'] },
+    { slotId: 's2', eligibleTeamIds: ['atalanta'] },
+    { slotId: 's3', eligibleTeamIds: ['atalanta', 'bologna'] },
+  ]
+  assert.equal(maxAssignableForTeam(slots, { bologna: 1 }, 'atalanta'), 2)
+})
+
+test('maxAssignableForTeam: ignora il conteggio attuale della squadra stessa in desiredCounts', () => {
+  const slots = [
+    { slotId: 's1', eligibleTeamIds: ['atalanta'] },
+    { slotId: 's2', eligibleTeamIds: ['atalanta'] },
+  ]
+  // Il "5" per atalanta qui dentro deve essere ignorato, non sommato.
+  assert.equal(maxAssignableForTeam(slots, { atalanta: 5 }, 'atalanta'), 2)
 })
