@@ -206,6 +206,15 @@ richiede prima una decisione di prodotto).
   sugli slot standard dove non confermato da più fonti). Le giornate
   2-25 restano senza orario finché non le si popola allo stesso modo o
   a mano da `/dashboard/fixtures`.
+- **Rimossa la sezione "Squadre" dalla dashboard organizzatore**:
+  richiesta esplicita dell'utente, non voleva vederle né aggiungerne da
+  lì. **Attenzione**: era il modo per aggiungere squadre custom a un
+  torneo con competizione diversa da Serie A (vedi bug "10 slot senza
+  possibilità di scegliere squadre diverse" più sopra in questo file) —
+  `addTeamAction`/`removeTeamAction` restano nel codice ma non sono più
+  raggiungibili da nessuna UI. Se in futuro serve di nuovo un torneo con
+  competizione custom, questa funzione andrà reintrodotta (magari solo
+  quando `tournament.competition !== "Serie A"`).
 
 ## Da fare — semplice
 
