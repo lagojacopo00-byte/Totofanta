@@ -20,6 +20,23 @@ const kickoffTimeFormat = new Intl.DateTimeFormat("it-IT", {
   minute: "2-digit",
 });
 
+function HomeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 flex-none" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 11.5 12 4l8 7.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function AwayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 flex-none" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export interface TeamOption {
   id: string;
   name: string;
@@ -123,6 +140,7 @@ export function TeamPicker({
 
   const totalSlots = slots.length;
   const assignedCount = Object.values(counts).reduce((sum, n) => sum + n, 0);
+  const remainingSlots = totalSlots - assignedCount;
 
   const eligibleAnywhere = useMemo(() => {
     const set = new Set<string>();
@@ -181,7 +199,7 @@ export function TeamPicker({
     const reason = disabledReason(name, teamId);
     const disabled = reason !== null || isPending;
     return (
-      <div className="flex min-w-0 items-center gap-1.5">
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
         <button
           type="button"
           disabled={disabled}
@@ -221,78 +239,103 @@ export function TeamPicker({
   }
 
   return (
-    <section className={`${card} flex flex-col gap-4`}>
-      <div className="flex items-center justify-between gap-2">
+    <>
+      {/* Sempre il primo numero visibile mentre si gioca: quanti slot
+          restano da assegnare, aggiornato a ogni click prima ancora di
+          confermare. */}
+      <section className={`${card} border-accent/30`}>
+        <p className={eyebrow}>Slot ancora disponibili</p>
+        <div className="mt-2 flex items-end justify-between gap-4">
+          <p className="font-display text-4xl font-extrabold leading-none text-foreground">
+            {remainingSlots}
+            <span className="ml-1 text-base font-bold text-foreground-faint">
+              /{totalSlots}
+            </span>
+          </p>
+          {!saved ? (
+            <span className="text-xs text-foreground-faint">Modifiche non salvate</span>
+          ) : null}
+        </div>
+      </section>
+
+      <section className={`${card} flex min-w-0 flex-col gap-4`}>
         <p className={eyebrow}>Giornata {matchdayNumber} · scegli le squadre</p>
-        <span className="flex-none font-mono text-xs text-foreground-faint">
-          {assignedCount}/{totalSlots} slot assegnati
-        </span>
-      </div>
 
-      <div className="flex flex-col gap-3">
-        {dayGroups.map(({ group, fixtures }) => (
-          <div key={group} className="flex flex-col gap-1.5">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-foreground-faint">
-              {dayGroupLabel[group]}
-            </p>
-            <div className="flex flex-col gap-2">
-              {fixtures.map((f) => (
-                <div key={f.id} className="rounded-lg border border-line p-2">
-                  {f.kickoffAt ? (
-                    <p className="mb-1.5 text-[10px] text-foreground-faint">
-                      {kickoffTimeFormat.format(new Date(f.kickoffAt))}
-                    </p>
-                  ) : null}
-                  <div className="flex items-center gap-2">
-                    <TeamControl name={f.homeTeam} teamId={teamByName.get(f.homeTeam)?.id} />
-                    <span className="flex-none font-mono text-[10px] text-foreground-faint">vs</span>
-                    <TeamControl name={f.awayTeam} teamId={teamByName.get(f.awayTeam)?.id} />
+        <div className="flex min-w-0 flex-col gap-3">
+          {dayGroups.map(({ group, fixtures }) => (
+            <div key={group} className="flex min-w-0 flex-col gap-1.5">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-foreground-faint">
+                {dayGroupLabel[group]}
+              </p>
+              <div className="flex min-w-0 flex-col gap-2">
+                {fixtures.map((f) => (
+                  <div key={f.id} className="min-w-0 rounded-lg border border-line p-3">
+                    {f.kickoffAt ? (
+                      <p className="mb-1.5 text-[10px] text-foreground-faint">
+                        {kickoffTimeFormat.format(new Date(f.kickoffAt))}
+                      </p>
+                    ) : null}
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-foreground-faint">
+                          <HomeIcon /> Casa
+                        </span>
+                        <TeamControl name={f.homeTeam} teamId={teamByName.get(f.homeTeam)?.id} />
+                      </div>
+                      <span className="flex-none font-mono text-[10px] text-foreground-faint">vs</span>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-foreground-faint">
+                          <AwayIcon /> Trasferta
+                        </span>
+                        <TeamControl name={f.awayTeam} teamId={teamByName.get(f.awayTeam)?.id} />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {otherTeams.length > 0 ? (
-          <div className="flex flex-col gap-1.5">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-foreground-faint">
-              Altre squadre disponibili
-            </p>
-            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-              {otherTeams.map((t) => (
-                <TeamControl key={t.id} name={t.name} teamId={t.id} />
-              ))}
+          {otherTeams.length > 0 ? (
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-foreground-faint">
+                Altre squadre disponibili
+              </p>
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                {otherTeams.map((t) => (
+                  <TeamControl key={t.id} name={t.name} teamId={t.id} />
+                ))}
+              </div>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
 
-      {error ? <p className="text-sm text-lose">{error}</p> : null}
+        {error ? <p className="text-sm text-lose">{error}</p> : null}
 
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          className={`${button} flex-1`}
-          disabled={isPending || saved || !assignment}
-          onClick={handleConfirm}
-        >
-          {isPending ? "Salvo…" : saved ? "Scelte salvate" : "Conferma le scelte"}
-        </button>
-        {!saved && !isPending ? (
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            className={buttonGhost}
-            onClick={() => {
-              setCounts(initialCounts(slots));
-              setError(null);
-              setSaved(true);
-            }}
+            className={`${button} flex-1`}
+            disabled={isPending || saved || !assignment}
+            onClick={handleConfirm}
           >
-            Annulla
+            {isPending ? "Salvo…" : saved ? "Scelte salvate" : "Conferma le scelte"}
           </button>
-        ) : null}
-      </div>
-    </section>
+          {!saved && !isPending ? (
+            <button
+              type="button"
+              className={buttonGhost}
+              onClick={() => {
+                setCounts(initialCounts(slots));
+                setError(null);
+                setSaved(true);
+              }}
+            >
+              Annulla
+            </button>
+          ) : null}
+        </div>
+      </section>
+    </>
   );
 }

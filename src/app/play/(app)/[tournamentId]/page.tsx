@@ -195,32 +195,6 @@ export default async function PlayerTournamentPage(
         </p>
       ) : null}
 
-      {/* La tua posizione: il primo numero che deve saltare all'occhio
-          entrando nel torneo. */}
-      <section className={`${card} border-accent/30`}>
-        <p className={eyebrow}>La tua posizione</p>
-        <div className="mt-2 flex items-end justify-between gap-4">
-          <p className="font-display text-4xl font-extrabold leading-none text-foreground">
-            {myRank}
-            <span className="ml-1 text-base font-bold text-foreground-faint">
-              /{totalPlayers}
-            </span>
-          </p>
-          <span className={myAliveSlots > 0 ? pillAlive : pillOut}>
-            {myAliveSlots}/{slots.length} tuoi slot vivi
-          </span>
-        </div>
-        {totalPlayers > 1 ? (
-          <p className="mt-2 text-xs text-foreground-faint">
-            {tiedWithMe > 0
-              ? `A pari merito con altri ${tiedWithMe} ${tiedWithMe === 1 ? "giocatore" : "giocatori"}.`
-              : myRank === 1
-                ? "Sei al comando."
-                : "Continua così per risalire la classifica."}
-          </p>
-        ) : null}
-      </section>
-
       {/* Scelta squadra: un'unica lista di partite per tutta la giornata,
           non una copia per ogni slot — si assegnano più slot alla stessa
           squadra cliccandola più volte (vedi team-picker.tsx). */}
@@ -367,6 +341,34 @@ export default async function PlayerTournamentPage(
           </div>
         </section>
       ) : null}
+
+      {/* La tua posizione: spostata più in basso di proposito — mentre si
+          gioca conta di più quanti slot restano da assegnare (vedi il
+          picker sopra), la posizione in classifica è un'informazione di
+          contorno. */}
+      <section className={`${card} border-accent/30`}>
+        <p className={eyebrow}>La tua posizione</p>
+        <div className="mt-2 flex items-end justify-between gap-4">
+          <p className="font-display text-4xl font-extrabold leading-none text-foreground">
+            {myRank}
+            <span className="ml-1 text-base font-bold text-foreground-faint">
+              /{totalPlayers}
+            </span>
+          </p>
+          <span className={myAliveSlots > 0 ? pillAlive : pillOut}>
+            {myAliveSlots}/{slots.length} tuoi slot vivi
+          </span>
+        </div>
+        {totalPlayers > 1 ? (
+          <p className="mt-2 text-xs text-foreground-faint">
+            {tiedWithMe > 0
+              ? `A pari merito con altri ${tiedWithMe} ${tiedWithMe === 1 ? "giocatore" : "giocatori"}.`
+              : myRank === 1
+                ? "Sei al comando."
+                : "Continua così per risalire la classifica."}
+          </p>
+        ) : null}
+      </section>
 
       {withRank.length > 1 ? (
         <section className={cardTight}>
