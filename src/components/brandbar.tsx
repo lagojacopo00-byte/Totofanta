@@ -1,8 +1,14 @@
 import Link from "next/link";
 
-export function Brandbar({ subtitle }: { subtitle?: string }) {
+export function Brandbar({
+  subtitle,
+  href = "/",
+}: {
+  subtitle?: string;
+  href?: string;
+}) {
   return (
-    <Link href="/" className="flex items-center gap-3">
+    <Link href={href} className="flex items-center gap-3">
       <div className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent-deep shadow-[0_6px_20px_-6px_rgba(62,209,126,0.4)]">
         <svg
           viewBox="0 0 24 24"
