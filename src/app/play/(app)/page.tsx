@@ -77,7 +77,7 @@ export default async function PlayHomePage() {
                         m.tournaments.status === "finished" ? pillOut : pillAlive
                       }
                     >
-                      {alive}/{total} slot vivi
+                      {alive}/{total}
                     </span>
                     <span className="text-[11px] text-foreground-faint">
                       {statusLabel[m.tournaments.status]}

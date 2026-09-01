@@ -19,8 +19,15 @@ export async function requestPasswordResetAction(formData: FormData) {
   // chiunque quali email sono registrate): si mostra sempre lo stesso
   // messaggio di conferma, sia che l'invio riesca sia che l'email non
   // corrisponda a nessun account.
+  //
+  // redirectTo punta diretto alla pagina (non a /auth/confirm): sul
+  // piano gratuito Supabase, senza un tuo SMTP configurato, non si può
+  // personalizzare il corpo dell'email per usare il formato
+  // token_hash/type che /auth/confirm si aspetta — resta il template di
+  // default, che manda la sessione come frammento nell'URL (#access_
+  // token=...), leggibile solo lato browser. Vedi reset-password-form.tsx.
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/confirm?type=recovery&next=${encodeURIComponent("/play/reset-password")}`,
+    redirectTo: `${origin}/play/reset-password`,
   });
 
   redirect("/play/forgot-password?sent=1");

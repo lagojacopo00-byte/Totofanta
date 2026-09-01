@@ -179,7 +179,7 @@ export function TeamPicker({
 
   function disabledReason(teamName: string, teamId: string | undefined): string | null {
     if (!teamId) return "non in questo torneo";
-    if (excludedSet.has(teamName)) return "non disponibile questa giornata";
+    if (excludedSet.has(teamName)) return "non disponibile";
     if (!eligibleAnywhere.has(teamId)) return "già bruciata su tutti i tuoi slot";
     const max = maxima[teamId] ?? 0;
     const count = counts[teamId] ?? 0;

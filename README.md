@@ -76,25 +76,26 @@ Se in futuro vuoi email personalizzate (branding, promemoria, ecc.)
 puoi comunque collegare un provider SMTP tuo da **Authentication → SMTP
 Settings** — ma per giocare con gli amici non serve.
 
-### Eccezione: il recupero password DEVE mandare un'email
+### Eccezione: recupero password e cambio email MANDANO un'email
 
 A differenza della conferma di registrazione (disattivabile), non c'è
-un modo sicuro per far scegliere a qualcuno una password nuova senza
-provare che possiede quell'email — quindi questo unico flusso usa
-l'invio email di base che Supabase offre gratis anche senza un tuo SMTP
-(limitato a poche email all'ora, ma va benissimo per un uso reale ma
-sporadico come "un amico ha dimenticato la password").
+un modo sicuro per far scegliere a qualcuno una password nuova (o
+confermare un cambio email) senza provare che possiede quell'email —
+questi due flussi usano quindi l'invio email di base che Supabase offre
+gratis anche senza un tuo SMTP (limitato a poche email all'ora, ma va
+benissimo per un uso reale ma sporadico).
 
-Perché il link nell'email porti al posto giusto nell'app, vai su
-**Authentication → Email Templates → Reset Password** e imposta il
-corpo del link su:
-
-```
-{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/play/reset-password
-```
-
-(stesso meccanismo pensato per la conferma via magic link — vedi
-`src/app/auth/confirm/route.ts` — solo con `type=recovery`.)
+**Non serve configurare nessun template**: sul piano gratuito, senza un
+tuo SMTP, Supabase non permette comunque di personalizzare il corpo dei
+template email (l'editor resta bloccato in sola lettura, si vede
+scritto anche nella pagina "Emails" di Authentication) — quindi
+`/play/forgot-password` e il cambio email in `/play/profile` sono
+scritti apposta per funzionare con il template di default così com'è:
+mandano l'utente sulla pagina giusta dell'app con la sessione di
+recupero incorporata nell'URL, letta lato browser (vedi
+`reset-password-form.tsx`). Se in futuro colleghi un tuo SMTP e vuoi
+personalizzare i template, non serve cambiare nulla qui: continuano a
+funzionare lo stesso.
 
 Stesso discorso per il **cambio email** da `/play/profile`: vai su
 **Authentication → Email Templates → Change Email Address** e imposta:

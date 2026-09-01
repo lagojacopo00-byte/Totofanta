@@ -38,11 +38,14 @@ export async function updatePasswordAction(formData: FormData) {
 
 /** Cambia l'email dell'account. Non è immediato: Supabase manda un'email
  * di conferma al nuovo indirizzo (e di norma anche una notifica al
- * vecchio) prima che il cambio sia effettivo — vedi README, sezione sul
- * template email "Change Email Address". Le righe già in `players` con
- * questa email restano collegate come prima (il collegamento vero è
- * `user_id`, non l'email salvata lì, che resta solo lo storico di quale
- * email è stata usata per l'invito). */
+ * vecchio) prima che il cambio sia effettivo. redirectTo punta diretto
+ * qui (non a /auth/confirm): sul piano gratuito, senza un tuo SMTP, non
+ * si può personalizzare il template per il formato token_hash/type che
+ * quella rotta si aspetta — vedi la stessa nota in
+ * forgot-password/actions.ts. Le righe già in `players` con questa email
+ * restano collegate come prima (il collegamento vero è `user_id`, non
+ * l'email salvata lì, che resta solo lo storico di quale email è stata
+ * usata per l'invito). */
 export async function updateEmailAction(formData: FormData) {
   const { supabase } = await requirePlayer();
   const email = String(formData.get("email") ?? "").trim();
@@ -51,7 +54,7 @@ export async function updateEmailAction(formData: FormData) {
   const origin = (await headers()).get("origin");
   const { error } = await supabase.auth.updateUser(
     { email },
-    { emailRedirectTo: `${origin}/auth/confirm?type=email_change&next=/play/profile` }
+    { emailRedirectTo: `${origin}/play/profile` }
   );
   if (error) {
     redirect("/play/profile?error=" + encodeURIComponent(error.message));

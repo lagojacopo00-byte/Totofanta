@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import { Brandbar } from "@/components/brandbar";
 import { BackLink } from "@/components/back-link";
-import { button, card, cardTight, eyebrow } from "@/components/ui";
+import { button, buttonGhost, card, cardTight, eyebrow } from "@/components/ui";
 import { markTutorialSeenAction } from "./actions";
 
 export default async function HowItWorksPage(
@@ -135,9 +135,14 @@ export default async function HowItWorksPage(
           Questa pagina resta sempre a un click da Come funziona, nella
           tua area giocatore.
         </p>
-        <button className={button} type="submit">
-          Si gioca
-        </button>
+        <div className="flex flex-wrap justify-center gap-3">
+          <button className={button} type="submit">
+            Si gioca
+          </button>
+          <Link href="/play/regolamento" className={buttonGhost}>
+            Vedi regolamento
+          </Link>
+        </div>
       </form>
     </main>
   );
