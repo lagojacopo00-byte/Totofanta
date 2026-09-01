@@ -165,11 +165,12 @@ richiede prima una decisione di prodotto).
   documento. Aumentato anche il margine orizzontale dai bordi (da
   `px-5`/20px a `px-6`/24px) su richiesta esplicita dell'utente.
 
-## Da fare — semplice
+- **Modifica del premio dopo la creazione**: nuova sezione "Premio" nella
+  dashboard organizzatore per cambiare `slot_value` in qualunque momento
+  (non solo alla creazione) — non tocca la meccanica di gioco, quindi non
+  serve restare in "draft" come per il numero di slot.
 
-- Modificare il valore del premio (`slot_value`) dopo la creazione del
-  torneo — oggi si imposta solo alla creazione. Utile per non dover
-  ricreare un torneo di test solo per vedere la card "Premio in palio".
+## Da fare — semplice
 
 - ~~Contatore "pronostici disponibili" nella UI slot~~ — già coperto
   dall'indicatore esistente "N/M tuoi slot vivi" nella card "La tua
