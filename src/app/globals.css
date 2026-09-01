@@ -44,6 +44,12 @@
    pagina e "tagliare" cose fuori dallo schermo. */
 html {
   overflow-x: hidden;
+  /* Bug noto di Safari iOS: un header `position: sticky` (l'header fisso
+     dell'area giocatore) fa scorrere la pagina in orizzontale oltre il
+     bordo anche con overflow-x: hidden sopra. touch-action blocca il gesto
+     orizzontale invece di fare affidamento sul layout, che Safari ignora
+     in questo caso. */
+  touch-action: pan-y;
 }
 
 body {
@@ -52,4 +58,5 @@ body {
   font-family: var(--font-sans);
   overflow-x: hidden;
   overflow-wrap: break-word;
+  touch-action: pan-y;
 }
