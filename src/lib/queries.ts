@@ -732,9 +732,11 @@ export async function markTutorialSeen(db: DB, userId: string) {
 export type ProfileRole = "player" | "creator";
 
 /** Il ruolo globale dell'account, non legato a un singolo torneo (a
- * differenza di "organizzatore", che è chi possiede un torneo specifico
- * via `tournaments.owner_id`). Tutti partono "player"; si diventa
- * "creator" automaticamente creando un torneo, vedi promoteToCreator. */
+ * differenza di "organizzatore"/"admin di lega", che è chi possiede un
+ * torneo specifico via `tournaments.owner_id` — quello sì, chiunque crei
+ * un torneo lo diventa per quel torneo). "creator" è invece un ruolo a sé,
+ * riservato all'account che gestisce l'app stessa: non si ottiene
+ * creando un torneo, va assegnato a mano sul DB. */
 export async function getProfileRole(db: DB, userId: string): Promise<ProfileRole> {
   const res = await db
     .from("profiles")
@@ -743,20 +745,6 @@ export async function getProfileRole(db: DB, userId: string): Promise<ProfileRol
     .maybeSingle();
   const row = assertNoError(res) as { role: ProfileRole } | null;
   return row?.role ?? "player";
-}
-
-/** Promuove l'account a "creator" se non lo è già (nessun effetto se lo
- * è già). Va chiamata ogni volta che l'account crea un torneo, così il
- * ruolo riflette sempre la realtà senza bisogno di un pannello a parte
- * per assegnarlo a mano. */
-export async function promoteToCreator(db: DB, userId: string) {
-  assertNoError(
-    await db
-      .from("profiles")
-      .update({ role: "creator" })
-      .eq("id", userId)
-      .eq("role", "player")
-  );
 }
 
 /**

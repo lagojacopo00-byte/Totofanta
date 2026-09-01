@@ -26,18 +26,21 @@ questo non è un obiettivo a breve termine — vedi
 
 ## Ruoli (terminologia)
 
-- **Organizzatore**: chi crea un torneo (`tournaments.owner_id`). Gestisce
-  giocatori, squadre, giornate e risultati del proprio torneo dalla
-  dashboard (`/dashboard`). Oggi è un ruolo *per torneo*, non un ruolo
-  globale sulla piattaforma.
+- **Organizzatore / "admin di lega"**: chi crea un torneo
+  (`tournaments.owner_id`). Gestisce giocatori, squadre, giornate e
+  risultati del proprio torneo dalla dashboard (`/dashboard`). Ruolo *per
+  torneo*, non globale: resta self-service, chiunque può crearne uno (da
+  `/dashboard/new`, raggiungibile anche con un tap da `/play` tramite
+  "Crea torneo").
 - **Giocatore**: chi partecipa a un torneo (una riga in `players`, con
   uno o più `slots`). Gioca dall'area `/play`.
 - **Creator**: ruolo unico a livello di piattaforma (`profiles.role`),
-  distinto dall'organizzatore di un singolo torneo — pensato per
-  funzioni future valide su tutta l'app (es. tornei di test). Deciso con
-  l'utente: si diventa "creator" automaticamente la prima volta che si
-  crea un torneo, senza nessun pannello di assegnazione a mano e senza
-  restringere chi può creare un torneo (resta come oggi, self-service).
+  riservato a chi gestisce l'app stessa (oggi: un solo account). Non si
+  ottiene più creando un torneo (lo si otteneva così inizialmente, ma con
+  "Crea torneo" ora aperto a ogni giocatore avrebbe reso "creator"
+  chiunque organizzi — non è quello che vogliamo): va assegnato a mano
+  sul database, vedi
+  [`supabase/restrict_creator_role.sql`](../supabase/restrict_creator_role.sql).
   Dettagli tecnici in [06_Database.md](./06_Database.md) e nel task
   chiuso in [07_Task_sviluppo.md](./07_Task_sviluppo.md).
 

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/supabase/require-user";
-import { createTournament, getProfileRole, promoteToCreator } from "@/lib/queries";
+import { createTournament, getProfileRole } from "@/lib/queries";
 
 export async function signOutAction() {
   const supabase = await createClient();
@@ -41,10 +41,10 @@ export async function createTournamentAction(formData: FormData) {
     is_test: isTest,
     slot_value: slotValue,
   });
-  // Creare un torneo è ciò che rende "creator" un account a livello di
-  // piattaforma (ruolo globale, distinto dall'essere organizzatore di
-  // questo singolo torneo): vedi docs/01_Visione_progetto.md.
-  await promoteToCreator(supabase, user.id);
+  // Chi crea un torneo ne è l'organizzatore/"admin di lega" (owner_id,
+  // per quel torneo soltanto) — questo resta self-service per chiunque,
+  // come sempre. "creator" è un ruolo diverso e non si ottiene più
+  // creando un torneo: vedi docs/01_Visione_progetto.md.
 
   revalidatePath("/dashboard");
   redirect(`/dashboard/${tournament.id}`);

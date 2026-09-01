@@ -141,8 +141,35 @@ richiede prima una decisione di prodotto).
   esplicita perché irreversibile — giocatori, scelte e risultati sono
   persi). Nessuna migrazione necessaria: le foreign key verso
   `tournaments` sono già tutte `on delete cascade`.
+- **"Crea torneo" raggiungibile da `/play`**: un giocatore può diventare
+  organizzatore/"admin di lega" di un nuovo torneo con un tap, senza
+  dover conoscere l'URL della dashboard — stessa sessione, nessun login
+  separato (vedi sotto: `/login` e `/play/login` restano due pagine solo
+  per chi non ha ancora una sessione).
+- **Ruolo "creator" ristretto**: deciso con l'utente — "creator" (un
+  ruolo a sé, riservato a chi gestisce l'app, oggi un solo account) non
+  si ottiene più automaticamente creando un torneo. Creare un torneo
+  continua a rendere quell'account organizzatore/"admin di lega" per
+  quel torneo soltanto (self-service, invariato). Rimossa
+  `promoteToCreator`; migrazione manuale
+  [`supabase/restrict_creator_role.sql`](../supabase/restrict_creator_role.sql)
+  per riportare tutti a "player" tranne l'account che gestisce l'app.
+- **Bug scroll orizzontale, parte 2**: il fix precedente (`touch-action:
+  pan-y`) non bastava su Safari iOS reale — si poteva ancora scorrere
+  lateralmente da fermi (senza zoomare) perdendo contenuto ai bordi.
+  Causa più profonda: l'header `position: sticky` dell'area giocatore
+  dipendeva dallo scroll del documento (`html`/`body`), ed è proprio lì
+  che Safari ha il bug. Fix: l'area giocatore (`play/(app)/layout.tsx`)
+  ora ha il proprio contenitore di scroll esplicito (`h-dvh`,
+  `overflow-y: auto`), così l'header sticky non tocca più lo scroll del
+  documento. Aumentato anche il margine orizzontale dai bordi (da
+  `px-5`/20px a `px-6`/24px) su richiesta esplicita dell'utente.
 
 ## Da fare — semplice
+
+- Modificare il valore del premio (`slot_value`) dopo la creazione del
+  torneo — oggi si imposta solo alla creazione. Utile per non dover
+  ricreare un torneo di test solo per vedere la card "Premio in palio".
 
 - ~~Contatore "pronostici disponibili" nella UI slot~~ — già coperto
   dall'indicatore esistente "N/M tuoi slot vivi" nella card "La tua
