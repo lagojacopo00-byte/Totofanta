@@ -756,15 +756,19 @@ export async function markTutorialSeen(db: DB, userId: string) {
 }
 
 /** Nome pubblico scelto dall'utente (profiles.display_name), o null se
- * non l'ha ancora impostato — in quel caso resta valido il nome che
- * l'organizzatore ha messo per ogni singolo torneo. */
+ * non l'ha ancora impostato (o se la migrazione add_profile_display_name.sql
+ * non è ancora stata eseguita — chiamata dalla home, che esisteva già
+ * prima di questa colonna: non deve rompersi per un arricchimento
+ * facoltativo). In quel caso resta valido il nome che l'organizzatore ha
+ * messo per ogni singolo torneo. */
 export async function getProfileDisplayName(db: DB, userId: string): Promise<string | null> {
   const res = await db
     .from("profiles")
     .select("display_name")
     .eq("id", userId)
     .maybeSingle();
-  const row = assertNoError(res) as { display_name: string | null } | null;
+  if (res.error) return null;
+  const row = res.data as { display_name: string | null } | null;
   return row?.display_name ?? null;
 }
 
@@ -780,7 +784,15 @@ export async function updateProfileDisplayName(db: DB, userId: string, displayNa
 /** Nomi pubblici scelti dagli utenti per gli account passati (solo quelli
  * che l'hanno impostato). Usata per sovrascrivere, ovunque si mostrano i
  * giocatori di un torneo, il players.display_name che l'organizzatore ha
- * messo per quel torneo — stessa persona, stesso nome in ogni torneo. */
+ * messo per quel torneo — stessa persona, stesso nome in ogni torneo.
+ *
+ * Difensiva di proposito (a differenza delle altre funzioni qui, che
+ * usano assertNoError e quindi propagano l'errore): questa viene
+ * chiamata da getPlayersWithSlots e getTournamentStandings, già in uso
+ * su pagine esistenti — se la migrazione add_profile_display_name.sql
+ * non è ancora stata eseguita sul DB di produzione (profiles.display_name
+ * non esiste), quelle pagine non devono rompersi solo perché manca un
+ * arricchimento facoltativo: si ripiega sui nomi già in players. */
 async function getProfileDisplayNames(
   db: DB,
   userIds: (string | null)[]
@@ -792,7 +804,8 @@ async function getProfileDisplayNames(
     .select("id, display_name")
     .in("id", ids)
     .not("display_name", "is", null);
-  const rows = assertNoError(res) as { id: string; display_name: string }[];
+  if (res.error) return new Map();
+  const rows = res.data as { id: string; display_name: string }[];
   return new Map(rows.map((r) => [r.id, r.display_name]));
 }
 
