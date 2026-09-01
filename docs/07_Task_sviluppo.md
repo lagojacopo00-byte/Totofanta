@@ -67,6 +67,35 @@ richiede prima una decisione di prodotto).
   sezione a parte "Altre squadre disponibili" — la funzione esistente per
   aggiungere/rimuovere squadre custom di un torneo (dashboard
   organizzatore, sezione "Squadre") non è stata toccata.
+- Onboarding per chi arriva da un link di invito e non ha ancora un
+  account: `/play/join/[tournamentId]` non rimanda più subito a un login
+  anonimo per chi non ha una sessione attiva, ma mostra prima una
+  schermata di benvenuto (`invite-welcome.tsx`) con un minimo di contesto
+  su cosa sia Totofanta e perché gli è arrivato un invito, poi porta a
+  creare l'account o accedere. Il tutorial "Come funziona" esistente non
+  è stato toccato: resta identico e si vede comunque subito dopo la
+  registrazione, come prima — questa schermata è solo un passo in più
+  prima, non un sostituto.
+
+## Bug critico aperto (trovato 2026-09-01)
+
+- **Pagina torneo del giocatore va in errore in produzione**: il database
+  Supabase collegato al sito Vercel non ha mai ricevuto le migrazioni
+  `add_creator_role.sql`, `add_tournament_is_test.sql` e
+  `add_fixture_schedule.sql` (verificato in sola lettura via REST API con
+  la chiave pubblica: le colonne `profiles.role`, `tournaments.is_test`,
+  `serie_a_fixtures.kickoff_at`/`status` non esistono sul DB reale). La
+  query di `getExcludedTeamNames` in `src/lib/queries.ts` seleziona
+  esplicitamente `kickoff_at, status`: Postgres risponde con errore
+  "column does not exist", non intercettato da nessun try/catch, e
+  Next.js mostra l'errore generico. Scatta per qualunque torneo con una
+  giornata aperta, cioè il caso normale.
+  **Fix pronta**: incollare ed eseguire
+  [`supabase/URGENTE_migrazioni_mancanti.sql`](../supabase/URGENTE_migrazioni_mancanti.sql)
+  nell'SQL Editor di Supabase (idempotente, non tocca dati esistenti).
+  Non eseguita in autonomia perché modifica lo schema del database di
+  produzione — richiede l'azione manuale dell'utente nel pannello
+  Supabase, come tutte le altre migrazioni di questo progetto.
 
 ## Da fare — semplice
 
@@ -85,10 +114,6 @@ richiede prima una decisione di prodotto).
   sfondo ufficiale, iniziali invariate, niente stemmi/loghi reali (niente
   questioni di licenza). Rimandato di proposito alla fase visual/UX, vedi
   [08_Direzione_visiva_UX.md](./08_Direzione_visiva_UX.md).
-- Onboarding a schermate per chi arriva da un link di invito e non è
-  ancora registrato (si affianca al tutorial esistente, non lo
-  sostituisce).
-
 ## Da fare — complessa
 
 - **Unificare login e redirect in base al ruolo**: oggi `/login` →

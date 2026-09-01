@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { Brandbar } from "@/components/brandbar";
-import { requirePlayer } from "@/lib/supabase/require-player";
+import { createClient } from "@/lib/supabase/server";
 import * as queries from "@/lib/queries";
 import { button, card, eyebrow, input, label } from "@/components/ui";
 import { joinTournamentAction } from "./actions";
+import { InviteWelcome } from "./invite-welcome";
 
 const joinPath = (tournamentId: string) => `/play/join/${tournamentId}`;
 
@@ -14,7 +15,22 @@ export default async function JoinTournamentPage(
   const params = await props.searchParams;
   const error = typeof params.error === "string" ? params.error : null;
 
-  const { supabase, user } = await requirePlayer(joinPath(tournamentId));
+  // A differenza delle altre pagine dell'area giocatore, qui non si passa
+  // subito da requirePlayer: chi arriva da un link di invito senza ancora
+  // avere una sessione vede prima una schermata di benvenuto (vedi
+  // invite-welcome.tsx) invece di essere rimbalzato a un login anonimo.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return <InviteWelcome tournamentId={tournamentId} />;
+  }
+
+  if (user.email) {
+    await queries.claimPendingInvites(supabase, user.id, user.email);
+  }
 
   // Prima volta in assoluto che questo account entra nell'area
   // giocatore? Mostra il tutorial prima di qualsiasi altra cosa, e torna
