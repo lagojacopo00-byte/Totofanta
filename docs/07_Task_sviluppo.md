@@ -341,9 +341,9 @@ richiede prima una decisione di prodotto).
   risultato già funzionante nei test. Corretto aggiungendo la policy di
   SELECT mancante — vedi
   [supabase/fix_invite_policies.sql](../supabase/fix_invite_policies.sql)
-  (da eseguire nell'SQL Editor di Supabase) e lo stesso cambio riportato
-  in `schema.sql`. Nessuna modifica al codice applicativo: la logica in
-  queries.ts era già corretta.
+  — **eseguita**, confermato in produzione il 2026-09-01 — e lo stesso
+  cambio riportato in `schema.sql`. Nessuna modifica al codice
+  applicativo: la logica in queries.ts era già corretta.
 - **Audit sistematico schema.sql vs database reale (2026-09-01)**: dopo i
   due bug sopra (stessa causa: drift tra `schema.sql` e il progetto
   Supabase collegato), confronto completo colonne + check constraint +
