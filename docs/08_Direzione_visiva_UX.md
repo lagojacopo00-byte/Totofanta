@@ -1,20 +1,21 @@
-# Direzione visiva e UX (proposta, non ancora implementata)
+# Direzione visiva e UX
 
 Dal terzo documento di brainstorming dell'utente ("Direzione visiva, UX e
-identità dell'app"). Nessuna di queste voci è ancora stata implementata:
-sono annotate qui perché, per esplicita indicazione dell'utente, vengono
-**dopo** le fondamenta tecniche — vedi l'ordine di priorità in
-[07_Task_sviluppo.md](./07_Task_sviluppo.md).
+identità dell'app"). Erano annotate qui perché, per esplicita indicazione
+dell'utente, sarebbero venute **dopo** le fondamenta tecniche — vedi
+l'ordine di priorità in [07_Task_sviluppo.md](./07_Task_sviluppo.md).
+Le fondamenta sono a un punto fermo e l'utente ha chiesto esplicitamente
+di partire con questa parte: lo stato di ogni voce è segnato qui sotto.
 
 ## Identità e stile
 
 - L'app deve comunicare tecnologia, sport, calcio, competizione,
   freschezza, semplicità — non deve sembrare un'app finanziaria/seria, né
   un gioco poco curato.
-- Base scura ma su tonalità **verdi** (non nero puro), contrasto testo
-  sempre alto. Oggi la palette (`src/components/ui.ts` e le variabili di
-  tema) è scura neutra con accento verde sui pulsanti/pill: da rivedere
-  per spostare anche lo sfondo verso il verde, non solo l'accento.
+- **Fatto**: base scura su tonalità **verdi** (non nero puro), contrasto
+  testo alto. Le variabili di tema in
+  [globals.css](../src/app/globals.css) ora hanno sfondo/bordi/testo
+  secondario chiaramente verdi, non solo l'accento sui pulsanti/pill.
 - Interfaccia pulita, poche schermate, flusso costante: evitare di
   disperdere l'utente in tante sezioni. Oggi l'app è già abbastanza
   compatta (home, torneo, dashboard, regolamento, how-it-works) — da
@@ -27,37 +28,40 @@ sono annotate qui perché, per esplicita indicazione dell'utente, vengono
   già seguito in gran parte (vedi `docs/03_User_experience.md`), da
   applicare con più disciplina mano a mano che si aggiungono schermate.
 
-## Navigazione proposta
+## Navigazione — Fatto
 
 Struttura a 3 sezioni: **Home** → **Scelta torneo** (con nome, stato,
 eventuale montepremi) → **Profilo** (dati account, nome pubblico,
-gestione account). Oggi l'area giocatore ha già Home e pagina torneo;
-manca una sezione Profilo dedicata.
+gestione account). "Profilo" è raggiungibile dal menu account (icona in
+alto a destra) in ogni schermata dell'area giocatore — non una barra di
+navigazione persistente a 3 tab, ma soddisfa lo stesso bisogno con
+un'aggiunta minima, coerente con l'interfaccia compatta già seguita.
 
-## Identità pubblica vs dati privati
+## Identità pubblica vs dati privati — Fatto
 
-Punto concreto e ben definito: separare il **nome visibile agli altri**
-(classifiche, tornei) dai dati privati dell'account (email). Oggi
-`players.display_name` è già quello che compare in classifica — ma è
-l'organizzatore a impostarlo quando invita, non l'utente stesso, e
-l'email resta visibile all'organizzatore (mai ai giocatori, già così).
-Manca: una sezione Profilo dove l'utente possa scegliere/cambiare il
-proprio nome pubblico.
+Separato il **nome visibile agli altri** (classifiche, tornei) dai dati
+privati dell'account (email). Deciso con l'utente: un solo nome per
+account (`profiles.display_name`, nuova colonna), valido su tutti i
+tornei — quando impostato da `/play/profile`, sovrascrive ovunque il
+`players.display_name` che l'organizzatore ha messo per il singolo
+torneo (vedi `resolveDisplayName` in
+[queries.ts](../src/lib/queries.ts)). L'email resta visibile solo
+all'organizzatore, mai agli altri giocatori, come già prima.
 
-## Mobile-first
+## Mobile-first — Fatto
 
-Nessuno scroll orizzontale, niente contenuti tagliati, navigazione
-verticale, look "nativo". Già la direzione seguita (Tailwind mobile-first,
-card a larghezza piena) — da tenere d'occhio quando arrivano schermate più
-dense (es. lista partite).
+Nessuno scroll orizzontale (bug di Safari iOS risolto, vedi
+[07_Task_sviluppo.md](./07_Task_sviluppo.md)), niente contenuti tagliati,
+navigazione verticale, look "nativo". Margine laterale aumentato
+ovunque (px-7/28px) per non restare appiccicati ai bordi su schermi
+stretti.
 
 ## Nota sull'ordine
 
-L'utente ha indicato esplicitamente questo ordine di sviluppo: 1) logiche
-di gioco, 2) gestione utenti, 3) database, 4) gestione tornei, 5) flussi
-principali, 6) solo dopo, la parte visiva/UX. Le voci di questo file
-restano quindi proposte da riprendere quando i task "complessi" di
-[07_Task_sviluppo.md](./07_Task_sviluppo.md) (ruoli, stato partita, tornei
-di test) saranno a un punto fermo — non perché siano meno importanti, ma
-perché costruire la grafica sopra fondamenta che cambiano ancora
-significherebbe rifarla.
+L'utente aveva indicato questo ordine di sviluppo: 1) logiche di gioco,
+2) gestione utenti, 3) database, 4) gestione tornei, 5) flussi
+principali, 6) solo dopo, la parte visiva/UX. I punti 1-5 sono a un
+punto fermo e l'utente ha chiesto esplicitamente di procedere con
+questa parte — le voci sopra segnate "Fatto" sono state implementate;
+restano aperti solo il tono dei testi (continuo, non un singolo task) e
+eventuali rifiniture ulteriori.

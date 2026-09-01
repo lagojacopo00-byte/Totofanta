@@ -223,6 +223,12 @@ richiede prima una decisione di prodotto).
   raggiungibili da nessuna UI. Se in futuro serve di nuovo un torneo con
   competizione custom, questa funzione andrà reintrodotta (magari solo
   quando `tournament.competition !== "Serie A"`).
+- **Data nel picker, tasto indietro dashboard, più margine dai bordi**:
+  ogni gruppo giorno nel picker mostra anche la data (non solo "Sabato",
+  anche "22 agosto"); aggiunto `BackLink` (mancava) a tutte le pagine
+  della dashboard organizzatore (torneo, nuovo torneo, calendario,
+  pagina giornata); margine laterale aumentato ovunque (px-6/24px ->
+  px-7/28px, uniformato dove era più stretto).
 
 ## Da fare — semplice
 
@@ -254,17 +260,21 @@ richiede prima una decisione di prodotto).
 - Import automatico dei risultati Serie A (CSV/scraping) al posto
   dell'inserimento manuale.
 
-## Direzione visiva / UX (dopo le fondamenta, per esplicita indicazione dell'utente)
+## Direzione visiva / UX
 
-Dettagli in [08_Direzione_visiva_UX.md](./08_Direzione_visiva_UX.md).
+Le fondamenta (punti 1-5 dell'ordine di sviluppo) sono a un punto fermo:
+su richiesta esplicita dell'utente questa parte è partita. Dettagli in
+[08_Direzione_visiva_UX.md](./08_Direzione_visiva_UX.md).
 
-- Tema scuro spostato su tonalità verdi (non nero puro), contrasto testi
-  alto — **media**, tocca variabili di stile diffuse in tutta l'app.
-- Sezione Profilo (nome pubblico modificabile dall'utente, separato dai
-  dati privati dell'account) — **media**, nuova pagina + colonna
-  "display name personale" da aggiungere (oggi il nome lo imposta
-  l'organizzatore all'invito).
-- Navigazione a 3 sezioni Home/Scelta torneo/Profilo — **semplice una
-  volta pronta la pagina Profilo**, è solo aggiungere un link.
+- **Fatto — tema scuro spostato su tonalità verdi**: sfondo, bordi e
+  testo secondario in [globals.css](../src/app/globals.css) ora hanno
+  una tonalità verde chiaramente percepibile (prima il verde c'era solo
+  nei numeri hex, troppo debole per essere visto).
+- **Fatto — sezione Profilo**: nome pubblico modificabile dall'utente,
+  un solo nome per account su tutti i tornei, separato dall'email
+  (dato privato). Dettagli sopra in "Fatto" e in
+  [06_Database.md](./06_Database.md).
+- **Fatto — navigazione**: "Profilo" raggiungibile dal menu account
+  (icona in alto a destra) in ogni schermata dell'area giocatore.
 - Testi più brevi e diretti nell'interfaccia — **continuo**, da applicare
-  mano a mano, non un singolo task.
+  mano a mano, non un singolo task chiudibile qui.
