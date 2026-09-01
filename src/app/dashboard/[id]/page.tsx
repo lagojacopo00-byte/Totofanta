@@ -77,7 +77,7 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
 
       {tournament.status === "finished" ? (
         <div className={`${card} border-accent/40`}>
-          <p className={eyebrow}>Torneo concluso</p>
+          <p className={eyebrow}>Game over</p>
           <p className="mt-2 font-display text-xl font-bold text-accent">
             {winnerNames.length > 1
               ? `Vincono ex aequo: ${winnerNames.join(", ")}`
@@ -97,9 +97,9 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
             Link di invito
           </p>
           <p className="mt-1 text-xs text-foreground-faint">
-            Mandalo ai tuoi amici: chi lo apre (registrandosi, se non ha
-            ancora un account) si iscrive da solo al torneo, senza che tu
-            debba aggiungerlo a mano.
+            Mandalo ai tuoi amici: chi lo apre — registrandosi al volo se
+            non ha ancora un account — entra da solo nel torneo. Zero
+            lavoro manuale per te.
           </p>
           <input
             className={`${input} mt-2 text-xs`}
@@ -112,9 +112,8 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
       <section className={cardTight}>
         <p className="text-xs font-semibold text-foreground-soft">Premio</p>
         <p className="mt-1 text-xs text-foreground-faint">
-          Valore in € per slot, moltiplicato per il numero totale di slot
-          del torneo dà il premio totale mostrato ai giocatori. 0 = nessun
-          premio mostrato.
+          Valore in € per slot × numero totale di slot del torneo =
+          montepremi mostrato ai giocatori. 0 = nessun premio visibile.
         </p>
         <form
           action={updateSlotValueAction.bind(null, tournament.id)}
@@ -138,7 +137,7 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
         <p className={eyebrow}>Giocatori</p>
         {players.length === 0 ? (
           <p className="text-sm text-foreground-soft">
-            Nessun giocatore ancora. Aggiungine almeno due per iniziare.
+            Ancora nessun giocatore. Portane almeno due prima di partire.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
@@ -238,8 +237,9 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
           </button>
         </form>
         <p className="text-xs text-foreground-faint">
-          Chi inviti deve registrarsi (o accedere, se ha già un account) su
-          Totofanta con questa stessa email: si aggancia da solo al torneo.
+          Chi inviti si registra (o accede, se ha già un account) su
+          Totofanta con questa stessa email: entra da solo nel torneo,
+          senza altri passaggi.
         </p>
       </section>
 
@@ -248,10 +248,10 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
           <div>
             <p className={eyebrow}>Strumenti torneo di test</p>
             <p className="mt-1 text-xs text-foreground-soft">
-              Solo su questo torneo: aggiungi giocatori finti e simula
-              giornate intere all&apos;istante (scelte e risultati casuali),
-              per provare quanti slot/quanto dura senza aspettare il
-              calendario reale.
+              Solo qui: aggiungi giocatori finti e simula giornate intere
+              all&apos;istante (scelte e risultati casuali), per capire
+              subito quanti slot servono e quanto dura, senza aspettare il
+              calendario vero.
             </p>
           </div>
 
@@ -275,7 +275,7 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
 
           {tournament.status === "finished" ? (
             <p className="text-xs text-foreground-faint">
-              Torneo finito: non c&apos;è più nessuna giornata da simulare.
+              Torneo finito: niente più giornate da simulare.
             </p>
           ) : (
             <form action={simulateMatchdayAction.bind(null, tournament.id)}>
@@ -294,7 +294,7 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
       {tournament.status === "draft" ? (
         <form action={startTournamentAction.bind(null, tournament.id)}>
           <button className={button} type="submit" disabled={players.length < 1}>
-            Inizia il torneo (crea la giornata 1)
+            Si parte (crea la giornata 1)
           </button>
         </form>
       ) : (
@@ -326,8 +326,8 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
         <div>
           <p className="text-sm font-semibold text-foreground">Cancella torneo</p>
           <p className="text-xs text-foreground-faint">
-            Rimuove il torneo e tutto ciò che contiene: giocatori, scelte,
-            risultati. Non si può annullare.
+            Cancella il torneo e tutto quello che contiene — giocatori,
+            scelte, risultati. Non si torna indietro.
           </p>
         </div>
         <DeleteTournamentButton tournamentId={tournament.id} tournamentName={tournament.name} />

@@ -19,7 +19,7 @@ export function DeleteTournamentButton({
       onSubmit={(e) => {
         if (
           !confirm(
-            `Cancellare definitivamente "${tournamentName}"? Giocatori, scelte e risultati andranno persi per sempre. Questa azione non si può annullare.`
+            `Cancellare per sempre "${tournamentName}"? Giocatori, scelte e risultati spariscono per sempre. Non si torna indietro.`
           )
         ) {
           e.preventDefault();

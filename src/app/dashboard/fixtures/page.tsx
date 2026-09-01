@@ -61,12 +61,12 @@ export default async function FixturesPage() {
           Accoppiamenti per giornata
         </h1>
         <p className="mt-2 max-w-lg text-sm text-foreground-soft">
-          La giornata N di un torneo corrisponde alla giornata N del vero
-          campionato: qui puoi tenere aggiornato chi gioca contro chi, così
-          i tuoi giocatori lo vedono quando scelgono la squadra. Le
-          giornate 1–25 sono già precompilate (fonte: ricerca web, quindi
-          ricontrolla soprattutto le giornate più lontane e correggi se una
-          partita è stata spostata dalle tv); le altre le aggiungi tu.
+          La giornata N di un torneo corrisponde alla giornata N del
+          campionato vero: qui tieni aggiornato chi gioca contro chi, così
+          i tuoi giocatori lo vedono al momento della scelta. Le giornate
+          1–25 sono già precompilate (fonte: ricerca web — ricontrolla
+          soprattutto quelle più lontane e correggi se una partita è stata
+          spostata dalle tv); le altre le aggiungi tu.
         </p>
       </div>
 

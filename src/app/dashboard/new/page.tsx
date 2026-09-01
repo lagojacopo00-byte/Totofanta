@@ -20,11 +20,11 @@ export default async function NewTournamentPage(props: PageProps<"/dashboard/new
       <div>
         <p className={eyebrow}>Nuovo torneo</p>
         <h1 className="mt-1 font-display text-2xl font-extrabold">
-          Imposta le regole
+          Detta le regole
         </h1>
         <p className="mt-2 max-w-md text-sm text-foreground-soft">
-          Puoi cambiare questi valori anche più avanti, prima che il torneo
-          inizi davvero.
+          Puoi ancora cambiare idea: questi valori si modificano finché il
+          torneo non parte davvero.
         </p>
       </div>
 
@@ -61,8 +61,8 @@ export default async function NewTournamentPage(props: PageProps<"/dashboard/new
             <option value="Champions League" />
           </datalist>
           <p className="text-xs text-foreground-faint">
-            Le squadre di Serie A sono già precaricate. Con un&apos;altra
-            competizione potrai aggiungere le squadre a mano.
+            Serie A già pronta all&apos;uso. Un&apos;altra competizione?
+            Aggiungi le squadre a mano.
           </p>
         </div>
 
@@ -80,9 +80,8 @@ export default async function NewTournamentPage(props: PageProps<"/dashboard/new
             defaultValue={1}
           />
           <p className="text-xs text-foreground-faint">
-            Solo un valore di partenza per il modulo &quot;aggiungi
-            giocatore&quot;: deciderai il numero di slot di ognuno
-            individualmente, in base a quanti ne ha comprati.
+            Solo un valore di partenza: deciderai tu, giocatore per
+            giocatore, quanti slot dare in base a quanti ne ha comprati.
           </p>
         </div>
 
@@ -100,10 +99,9 @@ export default async function NewTournamentPage(props: PageProps<"/dashboard/new
             defaultValue={0}
           />
           <p className="text-xs text-foreground-faint">
-            Facoltativo: se lo lasci a 0 il torneo resta senza premio. Se
-            metti un valore, ai giocatori si mostra il premio totale (valore
-            × numero di slot del torneo) e la loro quota man mano che
-            giocano.
+            Facoltativo: a 0 il torneo resta senza premio. Con un valore, i
+            giocatori vedono il montepremi totale (valore × slot del
+            torneo) e la propria quota, giornata dopo giornata.
           </p>
         </div>
 
@@ -114,15 +112,15 @@ export default async function NewTournamentPage(props: PageProps<"/dashboard/new
               <span className="font-semibold text-foreground">
                 Torneo di test
               </span>{" "}
-              — potrai aggiungere giocatori finti e simulare intere
-              giornate all&apos;istante, per provare quanti slot/quanto
-              dura, senza aspettare il calendario reale.
+              — aggiungi giocatori finti e simula intere giornate
+              all&apos;istante: capisci subito quanti slot servono e
+              quanto dura, senza aspettare il calendario vero.
             </span>
           </label>
         ) : null}
 
         <button className={`${button} mt-2`} type="submit">
-          Crea torneo
+          Crea il torneo
         </button>
       </form>
     </div>

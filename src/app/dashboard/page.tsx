@@ -30,8 +30,7 @@ export default async function DashboardPage() {
       {tournaments.length === 0 ? (
         <div className={card}>
           <p className="text-sm text-foreground-soft">
-            Non hai ancora nessun torneo. Creane uno per iniziare a invitare
-            i tuoi amici.
+            Nessun torneo ancora. Creane uno e chiama a raccolta gli amici.
           </p>
         </div>
       ) : (

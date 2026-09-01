@@ -88,9 +88,8 @@ export default async function MatchdayPage(
           <div>
             <p className={eyebrow}>Gestisci le scelte</p>
             <p className="mt-1 text-xs text-foreground-soft">
-              Puoi schierare, cambiare o togliere la scelta di ogni
-              giocatore quando vuoi — anche oltre la scadenza di giovedì
-              che vale per loro.
+              Schiera, cambia o togli la scelta di ogni giocatore quando
+              vuoi — anche oltre la scadenza di giovedì che vale per loro.
             </p>
           </div>
           {managedRows.length === 0 ? (
@@ -225,7 +224,7 @@ export default async function MatchdayPage(
             );
           })}
           <button className={`${button} mt-2`} type="submit">
-            Applica risultati e passa alla giornata successiva
+            Applica i risultati e via alla prossima giornata
           </button>
         </form>
       ) : (
