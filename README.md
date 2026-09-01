@@ -36,8 +36,8 @@ gratis.
   competizione diversa da Serie A (per ora vanno inserite a mano in
   Supabase, tabella `teams`).
 - Notifiche/promemoria prima della scadenza di ogni giornata.
-- Recupero password per i giocatori (per ora solo email + password,
-  nessun flusso di reset).
+- Cambio email e cancellazione account (per ora si può già cambiare nome
+  pubblico e password da `/play/profile`).
 - Recupero automatico dei risultati da un servizio dati calcio (per ora
   è tutto manuale, come da regolamento).
 
@@ -77,6 +77,26 @@ funzionare senza mandare NESSUNA email di autenticazione:
 Se in futuro vuoi email personalizzate (branding, promemoria, ecc.)
 puoi comunque collegare un provider SMTP tuo da **Authentication → SMTP
 Settings** — ma per giocare con gli amici non serve.
+
+### Eccezione: il recupero password DEVE mandare un'email
+
+A differenza della conferma di registrazione (disattivabile), non c'è
+un modo sicuro per far scegliere a qualcuno una password nuova senza
+provare che possiede quell'email — quindi questo unico flusso usa
+l'invio email di base che Supabase offre gratis anche senza un tuo SMTP
+(limitato a poche email all'ora, ma va benissimo per un uso reale ma
+sporadico come "un amico ha dimenticato la password").
+
+Perché il link nell'email porti al posto giusto nell'app, vai su
+**Authentication → Email Templates → Reset Password** e imposta il
+corpo del link su:
+
+```
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/play/reset-password
+```
+
+(stesso meccanismo pensato per la conferma via magic link — vedi
+`src/app/auth/confirm/route.ts` — solo con `type=recovery`.)
 
 ## 3. Configura il progetto in locale
 
@@ -147,7 +167,7 @@ supabase/schema.sql        Schema del database + policy di sicurezza + seed Seri
 src/lib/game-logic.ts      Regole del gioco, pure e testate (node:test)
 src/lib/queries.ts         Tutte le query/scritture verso Supabase
 src/lib/supabase/          Client Supabase (browser, server, service-role)
-src/app/login              Login organizzatore (email + password)
+src/app/login              Redirect a /play/login (accesso unico per tutti)
 src/app/dashboard          Area organizzatore: tornei, giocatori, giornate, risultati
-src/app/play               Area giocatore: registrazione/accesso (email+password), scelte
+src/app/play               Area giocatore + accesso unico (login/signup/recupero password)
 ```

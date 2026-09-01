@@ -192,21 +192,21 @@ export default async function PlayerTournamentPage(
 
       {tournament.status === "finished" ? (
         <div className={`${card} ${isWinner ? "border-accent/50" : ""}`}>
-          <p className={eyebrow}>Torneo concluso</p>
+          <p className={eyebrow}>Game over</p>
           <p className="mt-2 font-display text-lg font-bold">
             {isWinner
               ? winnerNames.length > 1
-                ? "Avete vinto ex aequo!"
-                : "Hai vinto tu!"
+                ? "Ex aequo: avete vinto insieme!"
+                : "Hai vinto tu. Sei l'ultimo rimasto in piedi."
               : winnerNames.length > 0
                 ? `Ha vinto ${winnerNames.join(", ")}`
-                : "Il torneo è concluso."}
+                : "Torneo chiuso. Si ricomincia alla prossima."}
           </p>
         </div>
       ) : tournament.status === "draft" ? (
         <p className="text-sm text-foreground-soft">
-          Il torneo non è ancora iniziato: l&apos;organizzatore aprirà la
-          prima giornata a breve.
+          Non si parte ancora: l&apos;organizzatore apre la giornata 1 a
+          breve. Scaldati.
         </p>
       ) : null}
 
@@ -219,7 +219,7 @@ export default async function PlayerTournamentPage(
           percentuale è la fetta di premio che spetterebbe a lui. */}
       {tournament.slot_value > 0 && totalSlots > 0 ? (
         <section className={`${card} border-accent/30`}>
-          <p className={eyebrow}>Premio in palio</p>
+          <p className={eyebrow}>Premio</p>
           <div className="mt-2 flex items-end justify-between gap-4">
             <p className="font-display text-3xl font-extrabold leading-none text-foreground">
               {prizeFormat.format(tournament.slot_value * totalSlots)}
@@ -263,7 +263,7 @@ export default async function PlayerTournamentPage(
         />
       ) : tournament.status === "active" && myAliveSlotsList.length > 0 ? (
         <p className="text-sm text-foreground-faint">
-          Nessuna giornata aperta al momento.
+          Nessuna giornata aperta. Per ora riposa.
         </p>
       ) : null}
 
@@ -296,7 +296,7 @@ export default async function PlayerTournamentPage(
 
       {playedTeams.length > 0 ? (
         <section className={cardTight}>
-          <p className={eyebrow}>Le squadre che hai già giocato</p>
+          <p className={eyebrow}>Le squadre già bruciate</p>
           <div className="mt-2.5 flex flex-wrap gap-2">
             {playedTeams.map((t) => {
               const burned = teamAliveBurnCount.get(t.id) ?? 0;
@@ -349,8 +349,8 @@ export default async function PlayerTournamentPage(
             {tiedWithMe > 0
               ? `A pari merito con altri ${tiedWithMe} ${tiedWithMe === 1 ? "giocatore" : "giocatori"}.`
               : myRank === 1
-                ? "Sei al comando."
-                : "Continua così per risalire la classifica."}
+                ? "Comandi tu la classifica."
+                : "Continua a spingere: la vetta è lì."}
           </p>
         ) : null}
       </section>

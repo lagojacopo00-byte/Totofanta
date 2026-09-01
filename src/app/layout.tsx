@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Totofanta",
   description:
-    "Il last man standing del calcio tra amici: una squadra a giornata, chi sbaglia esce.",
+    "Scegli la squadra vincente. Sbagli, sei fuori. Il last man standing di Serie A tra amici.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

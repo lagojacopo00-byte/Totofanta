@@ -55,11 +55,11 @@ export default async function JoinTournamentPage(
   if (!preview) {
     return (
       <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 py-16">
-        <Brandbar subtitle="Invito al torneo" />
+        <Brandbar subtitle="Il tuo posto ti aspetta" />
         <div className={card}>
           <p className="text-sm text-foreground-soft">
-            Questo link non è valido, oppure il torneo a cui punta è già
-            iniziato e non accetta più nuove iscrizioni.
+            Link scaduto o torneo già partito: qui non entrano più nuovi
+            giocatori.
           </p>
         </div>
       </main>
@@ -88,7 +88,7 @@ export default async function JoinTournamentPage(
         {error ? <p className="text-sm text-lose">{error}</p> : null}
 
         <label className={label} htmlFor="display_name">
-          Come vuoi essere chiamato in questo torneo
+          Come vuoi farti chiamare in questo torneo
         </label>
         <input
           className={input}
@@ -99,12 +99,12 @@ export default async function JoinTournamentPage(
           placeholder="Il tuo nome"
         />
         <p className="text-xs text-foreground-faint">
-          Ti verranno assegnati {preview.default_num_slots} slot (le
-          &quot;vite&quot; con cui giochi in questo torneo).
+          Parti con {preview.default_num_slots} slot: sono le tue vite in
+          questo torneo. Usale bene.
         </p>
 
         <button className={`${button} mt-2`} type="submit">
-          Partecipa
+          Sono dentro
         </button>
       </form>
     </main>

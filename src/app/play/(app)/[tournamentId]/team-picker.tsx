@@ -180,7 +180,7 @@ export function TeamPicker({
   function disabledReason(teamName: string, teamId: string | undefined): string | null {
     if (!teamId) return "non in questo torneo";
     if (excludedSet.has(teamName)) return "non disponibile questa giornata";
-    if (!eligibleAnywhere.has(teamId)) return "già usata su tutti i tuoi slot";
+    if (!eligibleAnywhere.has(teamId)) return "già bruciata su tutti i tuoi slot";
     const max = maxima[teamId] ?? 0;
     const count = counts[teamId] ?? 0;
     if (count >= max) {
@@ -211,7 +211,7 @@ export function TeamPicker({
 
   function handleConfirm() {
     if (!assignment) {
-      setError("Le scelte attuali non sono realizzabili: prova a togliere e rimettere qualche slot.");
+      setError("Con queste scelte non si può schierare: togli e rimetti qualche slot e riprova.");
       return;
     }
     const assignments = Object.entries(assignment).map(([slotId, teamId]) => ({ slotId, teamId }));
@@ -220,7 +220,7 @@ export function TeamPicker({
         await submitPicksAction(tournamentId, matchdayId, assignments);
         setSaved(true);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Errore nel salvare le scelte.");
+        setError(e instanceof Error ? e.message : "Salvataggio fallito. Riprova.");
       }
     });
   }
@@ -297,12 +297,12 @@ export function TeamPicker({
       <section className={`${card} flex min-w-0 flex-col gap-4`}>
         <div>
           <p className={eyebrow}>
-            Giornata {matchdayNumber} · {readOnly ? "calendario" : "scegli le squadre"}
+            Giornata {matchdayNumber} · {readOnly ? "calendario" : "scendi in campo"}
           </p>
           {readOnly ? (
             <p className="mt-1 text-xs text-foreground-faint">
-              Le scelte sono chiuse: si schiera solo da lunedì a giovedì.
-              Qui sotto vedi comunque quando gioca ogni squadra.
+              Mercato chiuso: si schiera solo da lunedì a giovedì. Qui
+              sotto trovi comunque il programma di ogni squadra.
             </p>
           ) : null}
         </div>
@@ -376,7 +376,7 @@ export function TeamPicker({
               disabled={isPending || saved || !assignment}
               onClick={handleConfirm}
             >
-              {isPending ? "Salvo…" : saved ? "Scelte salvate" : "Conferma le scelte"}
+              {isPending ? "Salvo…" : saved ? "Squadre schierate" : "Schiera e conferma"}
             </button>
             {!saved && !isPending ? (
               <button

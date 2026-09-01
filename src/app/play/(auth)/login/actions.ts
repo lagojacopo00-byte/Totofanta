@@ -17,7 +17,7 @@ export async function loginAction(formData: FormData) {
 
   if (!email || !password) {
     redirect(
-      "/play/login?error=" + encodeURIComponent("Inserisci email e password")
+      "/play/login?error=" + encodeURIComponent("Servono email e password")
     );
   }
 
@@ -27,7 +27,7 @@ export async function loginAction(formData: FormData) {
   if (error) {
     redirect(
       "/play/login?error=" +
-        encodeURIComponent("Email o password non corrette")
+        encodeURIComponent("Email o password sbagliate. Riprova.")
     );
   }
 

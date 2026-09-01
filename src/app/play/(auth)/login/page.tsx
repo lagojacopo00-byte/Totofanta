@@ -29,9 +29,14 @@ export default async function PlayerLoginPage(props: PageProps<"/play/login">) {
           placeholder="tu@esempio.it"
         />
 
-        <label className={label} htmlFor="password">
-          Password
-        </label>
+        <div className="flex items-center justify-between">
+          <label className={label} htmlFor="password">
+            Password
+          </label>
+          <Link href="/play/forgot-password" className="text-xs text-accent underline">
+            Password dimenticata?
+          </Link>
+        </div>
         <input
           className={input}
           id="password"
@@ -42,13 +47,13 @@ export default async function PlayerLoginPage(props: PageProps<"/play/login">) {
         />
 
         <button className={`${button} mt-2`} type="submit">
-          Accedi
+          Entra
         </button>
 
         <p className="text-center text-xs text-foreground-faint">
-          Prima volta qui?{" "}
+          Prima volta su Totofanta?{" "}
           <Link href={signupHref} className="text-accent underline">
-            Crea un account
+            Registrati
           </Link>
         </p>
       </form>

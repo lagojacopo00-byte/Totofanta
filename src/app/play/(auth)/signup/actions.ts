@@ -19,13 +19,13 @@ export async function signUpAction(formData: FormData) {
 
   if (!email || !password) {
     redirect(
-      "/play/signup?error=" + encodeURIComponent("Email e password sono obbligatorie")
+      "/play/signup?error=" + encodeURIComponent("Servono email e password")
     );
   }
   if (password.length < 8) {
     redirect(
       "/play/signup?error=" +
-        encodeURIComponent("La password deve avere almeno 8 caratteri")
+        encodeURIComponent("La password ci vuole più lunga: almeno 8 caratteri.")
     );
   }
 

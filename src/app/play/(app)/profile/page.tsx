@@ -2,11 +2,14 @@ import { requirePlayer } from "@/lib/supabase/require-player";
 import { getProfileDisplayName } from "@/lib/queries";
 import { card, cardTight, eyebrow, input, label, button } from "@/components/ui";
 import { BackLink } from "@/components/back-link";
-import { updateDisplayNameAction } from "./actions";
+import { updateDisplayNameAction, updatePasswordAction } from "./actions";
 
-export default async function ProfilePage() {
+export default async function ProfilePage(props: PageProps<"/play/profile">) {
   const { supabase, user } = await requirePlayer();
   const displayName = await getProfileDisplayName(supabase, user.id);
+  const params = await props.searchParams;
+  const error = typeof params.error === "string" ? params.error : null;
+  const saved = params.saved === "1";
 
   return (
     <div className="flex flex-col gap-6">
@@ -24,8 +27,8 @@ export default async function ProfilePage() {
           Nome pubblico
         </label>
         <p className="text-xs text-foreground-faint">
-          Quello che vedono gli altri giocatori in classifica, in ogni
-          torneo — se lo cambi qui, vale ovunque, non solo in uno.
+          Il nome che vedono tutti in classifica, in ogni torneo. Lo cambi
+          qui, cambia ovunque — non solo in uno.
         </p>
         <form action={updateDisplayNameAction} className="mt-2 flex flex-col gap-2 sm:flex-row">
           <input
@@ -48,8 +51,32 @@ export default async function ProfilePage() {
         </p>
         <p className="text-sm text-foreground">{user.email}</p>
         <p className="text-xs text-foreground-faint">
-          La tua email non è mai visibile agli altri giocatori.
+          La tua email resta solo tua: nessun altro giocatore la vede.
         </p>
+      </section>
+
+      <section className={`${card} flex flex-col gap-2`}>
+        <label className={label} htmlFor="password">
+          Cambia password
+        </label>
+        {error ? <p className="text-sm text-lose">{error}</p> : null}
+        {saved ? (
+          <p className="text-sm text-accent">Password aggiornata.</p>
+        ) : null}
+        <form action={updatePasswordAction} className="mt-1 flex flex-col gap-2 sm:flex-row">
+          <input
+            className={input}
+            id="password"
+            name="password"
+            type="password"
+            minLength={8}
+            placeholder="Nuova password, almeno 8 caratteri"
+            required
+          />
+          <button className={button} type="submit">
+            Salva
+          </button>
+        </form>
       </section>
     </div>
   );

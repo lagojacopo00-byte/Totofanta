@@ -18,35 +18,36 @@ export function InviteWelcome({ tournamentId }: { tournamentId: string }) {
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 py-16">
-      <Brandbar subtitle="Invito al torneo" />
+      <Brandbar subtitle="Ti hanno sfidato" />
 
       <div>
-        <p className={eyebrow}>Sei stato invitato</p>
+        <p className={eyebrow}>Ricevuto: una sfida</p>
         <h1 className="mt-1 font-display text-2xl font-extrabold leading-tight">
-          Qualcuno ti aspetta in un torneo di Totofanta
+          Un torneo ti aspetta. Tu ci stai o no?
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-foreground-soft">
-          Ogni giornata scegli una squadra di Serie A. Vince davvero? Resti
-          in corsa. Pareggia o perde? Sei fuori. Chi resiste più a lungo
-          vince il torneo.
+          Ogni giornata scegli una squadra di Serie A. Vince? Resti in
+          gara. Pareggia o perde? Fuori, senza sconti. Chi sopravvive più
+          a lungo si porta a casa tutto.
         </p>
       </div>
 
       <section className={`${cardTight}`}>
-        <p className={eyebrow}>Prossimo passo</p>
+        <p className={eyebrow}>Ultimo passo</p>
         <p className="mt-1.5 text-sm text-foreground-soft">
-          Crea un account con la <strong className="text-foreground">stessa email</strong>{" "}
-          a cui è arrivato l&apos;invito: ti agganciamo subito al torneo,
-          pronto per scegliere la tua prima squadra.
+          Crea l&apos;account con la{" "}
+          <strong className="text-foreground">stessa email</strong> a cui
+          è arrivato l&apos;invito: sei dentro al torneo all&apos;istante,
+          pronto a schierare la prima squadra.
         </p>
       </section>
 
       <div className={`${card} flex flex-col gap-3`}>
         <Link href={signupHref} className={button}>
-          Crea il tuo account
+          Accetta la sfida
         </Link>
         <Link href={loginHref} className={buttonGhost}>
-          Ho già un account
+          Ho già un account, entro
         </Link>
       </div>
     </main>

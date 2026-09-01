@@ -35,7 +35,7 @@ export default async function PlayHomePage() {
       <div className="min-w-0">
         <p className={eyebrow}>I tuoi tornei</p>
         <h1 className="mt-1 truncate font-display text-3xl font-extrabold">
-          Ciao, {displayName}
+          Ehi, {displayName}
         </h1>
         {hasActiveTournament ? (
           <div className="mt-1.5">
@@ -47,8 +47,8 @@ export default async function PlayHomePage() {
       {memberships.length === 0 ? (
         <div className={card}>
           <p className="text-sm text-foreground-soft">
-            Non fai ancora parte di nessun torneo. Chiedi all&apos;amico
-            che organizza di invitarti con questa email:{" "}
+            Ancora nessun torneo all&apos;attivo. Fatti invitare da chi
+            organizza, con questa email:{" "}
             <strong className="text-foreground">{user.email}</strong>
           </p>
         </div>
@@ -94,7 +94,7 @@ export default async function PlayHomePage() {
           parte. Va alla dashboard organizzatore, dove si diventa "admin di
           lega" per quel torneo creandolo. */}
       <Link href="/dashboard/new" className={`${buttonGhost} self-start`}>
-        + Crea torneo
+        + Nuovo torneo
       </Link>
     </div>
   );

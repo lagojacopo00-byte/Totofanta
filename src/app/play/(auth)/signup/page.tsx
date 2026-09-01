@@ -19,9 +19,9 @@ export default async function PlayerSignupPage(
       {sent ? (
         <div className={card}>
           <p className="text-sm">
-            Controlla la tua email per confermare l&apos;account. Dopo la
-            conferma potrai accedere ed entrerai automaticamente nei tornei
-            per cui sei stato invitato con questa email.
+            Controlla la posta e conferma l&apos;account. Fatto questo,
+            accedi e sei già dentro ai tornei per cui ti hanno invitato
+            con questa email.
           </p>
         </div>
       ) : (
@@ -52,8 +52,8 @@ export default async function PlayerSignupPage(
             placeholder="tu@esempio.it"
           />
           <p className="text-xs text-foreground-faint">
-            Se sei stato invitato a un torneo, usa la stessa email con cui
-            l&apos;organizzatore ti ha invitato: ti aggancia da solo lì.
+            Sei stato invitato? Usa la stessa email dell&apos;invito: ti
+            sgancia dritto nel torneo, senza passaggi in più.
           </p>
 
           <label className={label} htmlFor="password">
@@ -70,13 +70,13 @@ export default async function PlayerSignupPage(
           />
 
           <button className={`${button} mt-2`} type="submit">
-            Crea account
+            Voglio giocare
           </button>
 
           <p className="text-center text-xs text-foreground-faint">
             Hai già un account?{" "}
             <Link href={loginHref} className="text-accent underline">
-              Accedi
+              Entra
             </Link>
           </p>
         </form>

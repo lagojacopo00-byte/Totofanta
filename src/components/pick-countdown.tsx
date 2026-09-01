@@ -51,8 +51,8 @@ export function PickCountdown() {
         ●
       </span>
       {phase === "picking"
-        ? `Schiera entro giovedì · mancano ${remaining}`
-        : `Risultati lunedì a mezzanotte · mancano ${remaining}`}
+        ? `Schiera entro: ${remaining}`
+        : `Risultati ufficiali: ${remaining}`}
     </p>
   );
 }
