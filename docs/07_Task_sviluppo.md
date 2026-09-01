@@ -254,6 +254,22 @@ richiede prima una decisione di prodotto).
   della dashboard organizzatore (torneo, nuovo torneo, calendario,
   pagina giornata); margine laterale aumentato ovunque (px-6/24px ->
   px-7/28px, uniformato dove era più stretto).
+- **Gestione account utente** (in `/play/profile`): recupero password
+  via email (nuove pagine `/play/forgot-password` e
+  `/play/reset-password`, riusa `/auth/confirm` con `type=recovery`),
+  cambio password da loggati (non serve la vecchia), cambio email
+  (richiede conferma via email, non immediato), cancellazione account.
+  La cancellazione è bloccata se l'account possiede ancora dei tornei
+  (`tournaments.owner_id` ha `on delete cascade`: cancellarlo
+  cancellerebbe anche quelli, con i dati di tutti gli altri giocatori —
+  vedi `deleteAccountAction` in
+  [profile/actions.ts](../src/app/play/(app)/profile/actions.ts)); i
+  tornei altrui a cui partecipa restano invece intatti, solo scollegati
+  (`players.user_id` ha `on delete set null`). Ricreato
+  `src/lib/supabase/admin.ts` (client service-role, unico modo per
+  cancellare il proprio account: Supabase non lo espone lato utente).
+  Richiede due template email da impostare su Supabase (Reset Password,
+  Change Email Address) — istruzioni nel README.
 
 ## Da fare — semplice
 
@@ -264,14 +280,6 @@ richiede prima una decisione di prodotto).
   vedi già la tabella di mapping in
   [06_Database.md](./06_Database.md), da eventualmente promuovere a
   pagina/sezione a parte se serve anche fuori dal codice.
-
-## Da fare — media
-
-- **Gestione account utente**: password dimenticata (reset via email —
-  Supabase Auth lo supporta già lato backend, manca solo il flusso UI),
-  cambio email, eliminazione account. Il cambio nome pubblico è già
-  fatto (sezione Profilo). Rimandato di proposito dopo la cura della
-  parte grafica, su indicazione esplicita dell'utente.
 
 ## Da fare — complessa
 

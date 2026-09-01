@@ -36,8 +36,6 @@ gratis.
   competizione diversa da Serie A (per ora vanno inserite a mano in
   Supabase, tabella `teams`).
 - Notifiche/promemoria prima della scadenza di ogni giornata.
-- Cambio email e cancellazione account (per ora si può già cambiare nome
-  pubblico e password da `/play/profile`).
 - Recupero automatico dei risultati da un servizio dati calcio (per ora
   è tutto manuale, come da regolamento).
 
@@ -97,6 +95,13 @@ corpo del link su:
 
 (stesso meccanismo pensato per la conferma via magic link — vedi
 `src/app/auth/confirm/route.ts` — solo con `type=recovery`.)
+
+Stesso discorso per il **cambio email** da `/play/profile`: vai su
+**Authentication → Email Templates → Change Email Address** e imposta:
+
+```
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change&next=/play/profile
+```
 
 ## 3. Configura il progetto in locale
 

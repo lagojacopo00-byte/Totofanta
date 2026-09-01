@@ -1,15 +1,20 @@
 import { requirePlayer } from "@/lib/supabase/require-player";
-import { getProfileDisplayName } from "@/lib/queries";
+import { getOrganizerTournaments, getProfileDisplayName } from "@/lib/queries";
 import { card, cardTight, eyebrow, input, label, button } from "@/components/ui";
 import { BackLink } from "@/components/back-link";
-import { updateDisplayNameAction, updatePasswordAction } from "./actions";
+import { DeleteAccountButton } from "./delete-account-button";
+import { updateDisplayNameAction, updateEmailAction, updatePasswordAction } from "./actions";
 
 export default async function ProfilePage(props: PageProps<"/play/profile">) {
   const { supabase, user } = await requirePlayer();
-  const displayName = await getProfileDisplayName(supabase, user.id);
+  const [displayName, ownedTournaments] = await Promise.all([
+    getProfileDisplayName(supabase, user.id),
+    getOrganizerTournaments(supabase, user.id),
+  ]);
   const params = await props.searchParams;
   const error = typeof params.error === "string" ? params.error : null;
   const saved = params.saved === "1";
+  const emailChangeRequested = params.emailChangeRequested === "1";
 
   return (
     <div className="flex flex-col gap-6">
@@ -45,14 +50,33 @@ export default async function ProfilePage(props: PageProps<"/play/profile">) {
         </form>
       </section>
 
-      <section className={`${cardTight} flex flex-col gap-1`}>
-        <p className="text-xs font-semibold text-foreground-soft">
-          Dati privati dell&apos;account
-        </p>
-        <p className="text-sm text-foreground">{user.email}</p>
+      <section className={`${card} flex flex-col gap-2`}>
+        <label className={label} htmlFor="email">
+          Email (dato privato)
+        </label>
         <p className="text-xs text-foreground-faint">
-          La tua email resta solo tua: nessun altro giocatore la vede.
+          Resta solo tua: nessun altro giocatore la vede. Cambiarla richiede
+          una conferma via email prima di diventare effettiva.
         </p>
+        {emailChangeRequested ? (
+          <p className="text-sm text-accent">
+            Controlla la posta (anche quella nuova) per confermare il
+            cambio email.
+          </p>
+        ) : null}
+        <form action={updateEmailAction} className="mt-1 flex flex-col gap-2 sm:flex-row">
+          <input
+            className={input}
+            id="email"
+            name="email"
+            type="email"
+            defaultValue={user.email}
+            required
+          />
+          <button className={button} type="submit">
+            Salva
+          </button>
+        </form>
       </section>
 
       <section className={`${card} flex flex-col gap-2`}>
@@ -77,6 +101,32 @@ export default async function ProfilePage(props: PageProps<"/play/profile">) {
             Salva
           </button>
         </form>
+      </section>
+
+      <section className={`${cardTight} flex flex-col gap-2 border-dashed`}>
+        <p className="text-sm font-semibold text-foreground">
+          Cancella account
+        </p>
+        {ownedTournaments.length > 0 ? (
+          <p className="text-xs text-foreground-faint">
+            Organizzi ancora {ownedTournaments.length}{" "}
+            {ownedTournaments.length === 1 ? "torneo" : "tornei"} (
+            {ownedTournaments.map((t) => t.name).join(", ")}): cancellali o
+            portali a termine prima di poter cancellare l&apos;account —
+            cancellare l&apos;account cancellerebbe anche quelli, con i
+            dati di tutti gli altri giocatori che ci giocano.
+          </p>
+        ) : (
+          <>
+            <p className="text-xs text-foreground-faint">
+              Rimuove il tuo account e l&apos;accesso a tutti i tornei a cui
+              partecipi. Non si può annullare.
+            </p>
+            <div>
+              <DeleteAccountButton />
+            </div>
+          </>
+        )}
       </section>
     </div>
   );
