@@ -28,21 +28,18 @@ export async function addPlayerAction(tournamentId: string, formData: FormData) 
   revalidatePath(`/dashboard/${tournamentId}`);
 }
 
-/** Cambia quanti slot ha un giocatore GIÀ invitato. Consentito solo mentre
- * il torneo non è ancora iniziato (nessuna giornata è mai stata aperta):
- * dopo, il numero di slot di ognuno resta fisso per non rimescolare le
- * carte a metà partita. */
+/** Cambia quanti slot ha un giocatore GIÀ invitato — in qualunque momento
+ * del torneo, non solo prima che inizi: potere esplicito dell'admin del
+ * torneo per correggere slot mal configurati anche a giornate già aperte.
+ * Riducendo il numero, updatePlayerNumSlots toglie per prima gli slot già
+ * eliminati per non intaccare storico ancora vivo quando basta pulire
+ * quello perso. */
 export async function editPlayerSlotsAction(
   tournamentId: string,
   playerId: string,
   formData: FormData
 ) {
-  const { supabase, tournament } = await ownedTournament(tournamentId);
-  if (tournament.status !== "draft") {
-    throw new Error(
-      "Il numero di slot si può cambiare solo prima che il torneo inizi"
-    );
-  }
+  const { supabase } = await ownedTournament(tournamentId);
 
   const numSlots = Math.max(1, Math.min(100, Number(formData.get("num_slots") ?? 0) || 0));
   if (numSlots < 1) return;

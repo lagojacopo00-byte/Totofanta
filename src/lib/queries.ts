@@ -248,10 +248,14 @@ export async function removePlayer(db: DB, playerId: string) {
 
 /**
  * Cambia il numero di slot di un giocatore GIÀ creato, aggiungendo o
- * togliendo righe in `slots` per farlo combaciare col nuovo totale. Da
- * chiamare solo mentre il torneo è ancora "draft" (nessuna giornata è mai
- * stata aperta): è il chiamante (vedi le Server Actions) a doverlo
- * verificare, qui sotto si assume già valido.
+ * togliendo righe in `slots` per farlo combaciare col nuovo totale.
+ * Consentita in qualunque momento del torneo (decisione esplicita
+ * dell'utente: prima era ristretta a "draft", ma un torneo di test può
+ * scoprire slot mal configurati solo a torneo già iniziato). Quando si
+ * riduce il numero, si tolgono per prima le righe già "eliminated"
+ * (nessuna perdita per il giocatore) e solo se non bastano si toccano
+ * anche quelle "alive" (dall'etichetta più alta), per non cancellare per
+ * sbaglio storico vivo quando basterebbe pulire slot già persi.
  */
 export async function updatePlayerNumSlots(
   db: DB,
@@ -262,23 +266,23 @@ export async function updatePlayerNumSlots(
     await db.from("slots").select("*").eq("player_id", playerId)
   ) as Slot[];
 
-  const targetLabels = new Set(slotLabels(newNumSlots));
-  const currentLabels = new Set(currentSlots.map((s) => s.label));
-
-  const labelsToAdd = [...targetLabels].filter((l) => !currentLabels.has(l));
-  const idsToRemove = currentSlots
-    .filter((s) => !targetLabels.has(s.label))
-    .map((s) => s.id);
-
-  if (idsToRemove.length > 0) {
-    assertNoError(await db.from("slots").delete().in("id", idsToRemove));
-  }
-  if (labelsToAdd.length > 0) {
+  if (newNumSlots > currentSlots.length) {
+    const currentLabels = new Set(currentSlots.map((s) => s.label));
+    const newLabels = slotLabels(newNumSlots).filter((l) => !currentLabels.has(l));
     assertNoError(
       await db
         .from("slots")
-        .insert(labelsToAdd.map((label) => ({ player_id: playerId, label })))
+        .insert(newLabels.map((label) => ({ player_id: playerId, label })))
     );
+  } else if (newNumSlots < currentSlots.length) {
+    const eliminated = currentSlots.filter((s) => s.status === "eliminated");
+    const alive = currentSlots
+      .filter((s) => s.status === "alive")
+      .sort((a, b) => Number(b.label) - Number(a.label));
+    const idsToRemove = [...eliminated, ...alive]
+      .slice(0, currentSlots.length - newNumSlots)
+      .map((s) => s.id);
+    assertNoError(await db.from("slots").delete().in("id", idsToRemove));
   }
 
   assertNoError(
