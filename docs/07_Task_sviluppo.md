@@ -136,6 +136,11 @@ richiede prima una decisione di prodotto).
   bug). Aggiunto `touch-action: pan-y` su `html`/`body` in
   [globals.css](../src/app/globals.css) per bloccare il gesto orizzontale
   invece di dipendere dal calcolo di overflow di Safari.
+- **Cancellazione torneo**: l'organizzatore può cancellare del tutto un
+  torneo esistente (pulsante in fondo alla pagina torneo, con conferma
+  esplicita perché irreversibile — giocatori, scelte e risultati sono
+  persi). Nessuna migrazione necessaria: le foreign key verso
+  `tournaments` sono già tutte `on delete cascade`.
 
 ## Da fare — semplice
 
