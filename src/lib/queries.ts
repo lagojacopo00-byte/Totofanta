@@ -7,8 +7,10 @@ import {
   type MatchdayPick,
   type Outcome as GameOutcome,
 } from "./game-logic";
+import { isWithinMatchWindow } from "./match-window";
 import type {
   Fixture,
+  FixtureStatus,
   Matchday,
   MatchdayResult,
   Pick,
@@ -363,10 +365,28 @@ export async function submitMatchdayResults(
     teamId: p.team_id,
   }));
 
+  // Partite segnate "escluse" per questa giornata (rinvio fuori finestra,
+  // tavolino non ancora deciso, ecc.): chi le aveva scelte resta vivo senza
+  // che conti né come vittoria né come sconfitta — vedi
+  // docs/02_Regole_gioco.md ("Stato partita valida/esclusa").
+  const excludedNames = await getExcludedTeamNames(db, matchday.number);
+  let exemptSlotIds: string[] = [];
+  if (excludedNames.size > 0) {
+    const pickedTeamIds = Array.from(new Set(picks.map((p) => p.team_id)));
+    const pickedTeams = await getTeamsByIds(db, pickedTeamIds);
+    const excludedTeamIds = new Set(
+      pickedTeams.filter((t) => excludedNames.has(t.name)).map((t) => t.id)
+    );
+    exemptSlotIds = picks
+      .filter((p) => excludedTeamIds.has(p.team_id))
+      .map((p) => p.slot_id);
+  }
+
   const result = applyMatchdayResults({
     aliveSlotsBefore,
     picks: picksForLogic,
     outcomesByTeam,
+    exemptSlotIds,
   });
 
   // Salva i risultati per squadra (per audit / storico).
@@ -393,6 +413,14 @@ export async function submitMatchdayResults(
         .from("slots")
         .update({ status: "eliminated", eliminated_matchday: matchday.number })
         .in("id", eliminatedSlotIds)
+    );
+  }
+
+  // Libera di nuovo le squadre degli slot esentati: la partita esclusa non
+  // conta, quindi "non si considera usata" (vedi regolamento).
+  if (exemptSlotIds.length > 0) {
+    await Promise.all(
+      exemptSlotIds.map((slotId) => deletePick(db, slotId, matchday.id))
     );
   }
 
@@ -583,12 +611,23 @@ export async function getAllFixtures(db: DB) {
 
 export async function upsertFixture(
   db: DB,
-  input: { round: number; homeTeam: string; awayTeam: string }
+  input: {
+    round: number;
+    homeTeam: string;
+    awayTeam: string;
+    /** undefined = non toccare il campo (default in inserimento: null). */
+    kickoffAt?: string | null;
+  }
 ) {
   const res = await db
     .from("serie_a_fixtures")
     .upsert(
-      { round: input.round, home_team: input.homeTeam, away_team: input.awayTeam },
+      {
+        round: input.round,
+        home_team: input.homeTeam,
+        away_team: input.awayTeam,
+        ...(input.kickoffAt !== undefined ? { kickoff_at: input.kickoffAt } : {}),
+      },
       { onConflict: "round,home_team" }
     )
     .select("*")
@@ -598,6 +637,65 @@ export async function upsertFixture(
 
 export async function deleteFixture(db: DB, fixtureId: string) {
   assertNoError(await db.from("serie_a_fixtures").delete().eq("id", fixtureId));
+}
+
+/** Aggiorna solo la data/ora di calcio d'inizio di una partita già
+ * esistente (a differenza di `upsertFixture`, che serve per crearne/
+ * aggiornarne una per round+squadra in casa). `null` per svuotarla. */
+export async function updateFixtureKickoff(
+  db: DB,
+  fixtureId: string,
+  kickoffAt: string | null
+) {
+  assertNoError(
+    await db
+      .from("serie_a_fixtures")
+      .update({ kickoff_at: kickoffAt })
+      .eq("id", fixtureId)
+  );
+}
+
+/** Segna/toglie lo stato "esclusa" di una partita (vedi
+ * `serie_a_fixtures.status` in supabase/schema.sql): una partita esclusa
+ * non conta ai fini del gioco per la sua giornata, vedi
+ * `submitMatchdayResults` più sotto. */
+export async function setFixtureStatus(
+  db: DB,
+  fixtureId: string,
+  status: FixtureStatus
+) {
+  assertNoError(
+    await db.from("serie_a_fixtures").update({ status }).eq("id", fixtureId)
+  );
+}
+
+/** Nomi delle squadre "escluse" ai fini del gioco per una giornata
+ * (round): sia quelle segnate a mano `status = 'excluded'` (tavolino
+ * ancora da decidere, ecc.) sia quelle la cui partita ha un orario noto ma
+ * fuori dalla finestra ufficiale ven-sab-dom-lun (rinviata a un'altra
+ * settimana) — vedi `isWithinMatchWindow` e docs/02_Regole_gioco.md,
+ * "Finestra ufficiale delle partite". Una partita senza data/ora ancora
+ * inserita NON è considerata esclusa solo per questo. Usato sia da
+ * `submitMatchdayResults` (per esentare gli slot) sia dalla schermata di
+ * scelta (per oscurare le squadre non disponibili). */
+export async function getExcludedTeamNames(db: DB, round: number) {
+  const res = await db
+    .from("serie_a_fixtures")
+    .select("home_team, away_team, kickoff_at, status")
+    .eq("round", round);
+  const rows = assertNoError(res) as {
+    home_team: string;
+    away_team: string;
+    kickoff_at: string | null;
+    status: FixtureStatus;
+  }[];
+  const excluded = rows.filter((f) => {
+    if (f.status === "excluded") return true;
+    if (!f.kickoff_at) return false;
+    const date = new Date(f.kickoff_at);
+    return !Number.isNaN(date.getTime()) && !isWithinMatchWindow(date);
+  });
+  return new Set(excluded.flatMap((f) => [f.home_team, f.away_team]));
 }
 
 /** true se questo account ha già visto il tutorial "come funziona" almeno
