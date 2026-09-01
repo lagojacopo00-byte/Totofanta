@@ -32,7 +32,13 @@ create table profiles (
   -- Serve per future funzioni valide su tutta la piattaforma (es. tornei
   -- di test), distinte dall'essere organizzatore di un torneo specifico
   -- (tournaments.owner_id), che resta un concetto per-torneo a sé.
-  role text not null default 'player' check (role in ('player', 'creator'))
+  role text not null default 'player' check (role in ('player', 'creator')),
+  -- Nome pubblico modificabile dall'utente, un solo nome per account su
+  -- tutti i tornei: quando impostato, sovrascrive ovunque il
+  -- players.display_name che l'organizzatore ha messo per quel singolo
+  -- torneo (vedi resolveDisplayName in src/lib/queries.ts). null = non
+  -- ancora scelto, si usa players.display_name come prima.
+  display_name text
 );
 
 alter table profiles enable row level security;
@@ -245,6 +251,10 @@ create table serie_a_fixtures (
   -- vittoria né come sconfitta (vedi exemptSlotIds in
   -- src/lib/game-logic.ts e submitMatchdayResults in src/lib/queries.ts).
   status text not null default 'scheduled' check (status in ('scheduled', 'excluded')),
+  -- Esito reale caricato dal creator da /dashboard/fixtures (1/X/2): da
+  -- qui si derivano vittoria/pareggio/sconfitta di entrambe le squadre
+  -- coinvolte. null finché la partita non è stata giocata/inserita.
+  result text check (result in ('home_win', 'draw', 'away_win')),
   created_at timestamptz not null default now(),
   unique (round, home_team),
   unique (round, away_team)
