@@ -1,46 +1,9 @@
-import { Brandbar } from "@/components/brandbar";
-import { button, card, input, label } from "@/components/ui";
-import { loginAction } from "./actions";
+import { redirect } from "next/navigation";
 
-export default async function LoginPage(props: PageProps<"/login">) {
-  const params = await props.searchParams;
-  const error = typeof params.error === "string" ? params.error : null;
-
-  return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 py-16">
-      <Brandbar subtitle="Accesso organizzatore" />
-
-      <form action={loginAction} className={`${card} flex flex-col gap-3`}>
-        {error ? <p className="text-sm text-lose">{error}</p> : null}
-
-        <label className={label} htmlFor="email">
-          Email
-        </label>
-        <input
-          className={input}
-          id="email"
-          name="email"
-          type="email"
-          required
-          placeholder="tu@esempio.it"
-        />
-
-        <label className={label} htmlFor="password">
-          Password
-        </label>
-        <input
-          className={input}
-          id="password"
-          name="password"
-          type="password"
-          required
-          placeholder="La tua password"
-        />
-
-        <button className={`${button} mt-2`} type="submit">
-          Accedi
-        </button>
-      </form>
-    </main>
-  );
+/** Un solo accesso per l'intera app (deciso con l'utente): questa pagina
+ * esisteva come "porta separata" per l'organizzatore, distinta da
+ * /play/login per il giocatore, anche se la sessione era già la stessa.
+ * Resta solo come redirect per non rompere link/segnalibri vecchi. */
+export default function LoginRedirectPage() {
+  redirect("/play/login");
 }

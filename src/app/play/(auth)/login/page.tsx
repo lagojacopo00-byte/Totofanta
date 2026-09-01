@@ -11,7 +11,7 @@ export default async function PlayerLoginPage(props: PageProps<"/play/login">) {
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 py-16">
-      <Brandbar subtitle="Accesso giocatore" />
+      <Brandbar subtitle="Accedi" />
 
       <form action={loginAction} className={`${card} flex flex-col gap-3`}>
         {error ? <p className="text-sm text-lose">{error}</p> : null}

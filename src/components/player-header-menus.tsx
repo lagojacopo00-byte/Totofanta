@@ -56,6 +56,14 @@ export function HamburgerMenu() {
           <Link href="/play/regolamento" className={dropdownLink} onClick={() => setOpen(false)}>
             Regolamento
           </Link>
+          <div className="my-1 border-t border-line" />
+          <Link
+            href="/dashboard"
+            className={`${dropdownLink} font-semibold text-accent hover:text-accent`}
+            onClick={() => setOpen(false)}
+          >
+            Modalità admin
+          </Link>
         </div>
       ) : null}
     </div>

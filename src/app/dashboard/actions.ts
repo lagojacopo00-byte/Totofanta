@@ -9,7 +9,7 @@ import { createTournament, getProfileRole } from "@/lib/queries";
 export async function signOutAction() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/login");
+  redirect("/play/login");
 }
 
 export async function createTournamentAction(formData: FormData) {

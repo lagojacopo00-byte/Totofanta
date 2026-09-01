@@ -18,23 +18,17 @@ export default function Home() {
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
-        <Link href="/login" className={button}>
-          Accedi come organizzatore
+        <Link href="/play/signup" className={button}>
+          Crea il tuo account
         </Link>
-        <Link href="/dashboard/new" className={buttonGhost}>
-          Crea un torneo
+        <Link href="/play/login" className={buttonGhost}>
+          Accedi
         </Link>
       </div>
       <p className="text-xs text-foreground-faint">
-        Sei stato invitato a giocare?{" "}
-        <Link href="/play/signup" className="text-accent underline">
-          Crea il tuo account
-        </Link>{" "}
-        (o{" "}
-        <Link href="/play/login" className="text-accent underline">
-          accedi
-        </Link>{" "}
-        se ne hai già uno) con la stessa email a cui sei stato invitato.
+        Un solo account per tutto: gioca nei tornei a cui sei invitato e, se
+        vuoi, crea e organizza il tuo. Se sei stato invitato, usa la stessa
+        email con cui ti hanno invitato — ti aggancia da solo al torneo.
       </p>
     </main>
   );

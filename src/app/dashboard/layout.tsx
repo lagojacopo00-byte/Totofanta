@@ -15,7 +15,10 @@ export default async function DashboardLayout({
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between">
           <Brandbar subtitle="Dashboard organizzatore" />
           <div className="flex items-center gap-3">
-            <Link href="/dashboard/fixtures" className={buttonGhost}>
+            <Link href="/play" className={`${buttonGhost} font-semibold text-accent`}>
+              Modalità giocatore
+            </Link>
+            <Link href="/dashboard/fixtures" className={`${buttonGhost} hidden sm:inline-flex`}>
               Calendario Serie A
             </Link>
             <span className="hidden text-xs text-foreground-faint sm:inline">

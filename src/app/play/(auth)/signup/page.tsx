@@ -14,7 +14,7 @@ export default async function PlayerSignupPage(
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 py-16">
-      <Brandbar subtitle="Crea il tuo account giocatore" />
+      <Brandbar subtitle="Crea il tuo account" />
 
       {sent ? (
         <div className={card}>
@@ -52,8 +52,8 @@ export default async function PlayerSignupPage(
             placeholder="tu@esempio.it"
           />
           <p className="text-xs text-foreground-faint">
-            Usa la stessa email con cui l&apos;organizzatore ti ha
-            invitato: è così che ti riconosciamo nel torneo.
+            Se sei stato invitato a un torneo, usa la stessa email con cui
+            l&apos;organizzatore ti ha invitato: ti aggancia da solo lì.
           </p>
 
           <label className={label} htmlFor="password">
