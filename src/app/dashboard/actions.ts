@@ -21,6 +21,7 @@ export async function createTournamentAction(formData: FormData) {
     1,
     Math.min(100, Number(formData.get("default_num_slots") ?? 1) || 1)
   );
+  const slotValue = Math.max(0, Number(formData.get("slot_value") ?? 0) || 0);
 
   if (!name) {
     redirect("/dashboard/new?error=" + encodeURIComponent("Dai un nome al torneo"));
@@ -38,6 +39,7 @@ export async function createTournamentAction(formData: FormData) {
     competition,
     default_num_slots: defaultNumSlots,
     is_test: isTest,
+    slot_value: slotValue,
   });
   // Creare un torneo è ciò che rende "creator" un account a livello di
   // piattaforma (ruolo globale, distinto dall'essere organizzatore di

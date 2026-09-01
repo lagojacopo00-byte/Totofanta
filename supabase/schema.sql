@@ -91,6 +91,11 @@ create table tournaments (
   -- calendario reale. Non cambia nessuna regola di gioco, solo chi/come
   -- vengono generati i giocatori e i risultati.
   is_test boolean not null default false,
+  -- Valore in euro di OGNI slot: moltiplicato per il numero totale di slot
+  -- del torneo dà il premio complessivo in palio, mostrato ai giocatori
+  -- nell'area di gioco. 0 (default) = nessun premio, il torneo resta
+  -- "gratuito" come prima di questa colonna.
+  slot_value numeric(10, 2) not null default 0 check (slot_value >= 0),
   -- Valorizzata quando il torneo finisce: la giornata in cui si è deciso
   -- il vincitore (per vittoria "normale" o per spareggio ex aequo).
   decisive_matchday integer,

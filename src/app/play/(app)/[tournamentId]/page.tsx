@@ -2,14 +2,18 @@ import { notFound } from "next/navigation";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
 import { card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
-import { TeamBadge, TeamLabel } from "@/components/team-badge";
+import { TeamBadge } from "@/components/team-badge";
 import { PickCountdown } from "@/components/pick-countdown";
 import { isPickingWindowOpen } from "@/lib/pick-window";
 import { groupFixturesByDay } from "@/lib/match-window";
 import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
 import { BackLink } from "@/components/back-link";
 
-const outcomeLabel = { win: "Vinta", draw: "Pareggio", loss: "Persa" } as const;
+const prizeFormat = new Intl.NumberFormat("it-IT", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 2,
+});
 
 export default async function PlayerTournamentPage(
   props: PageProps<"/play/[tournamentId]">
@@ -45,10 +49,6 @@ export default async function PlayerTournamentPage(
   ]);
 
   const openMatchday = matchdays.find((m) => m.status === "open");
-  const results = await queries.getResultsForMatchdays(
-    supabase,
-    matchdays.map((m) => m.id)
-  );
 
   // Accoppiamenti reali di Serie A per la giornata aperta (giornata N del
   // torneo = giornata reale N) — vedi src/app/dashboard/fixtures.
@@ -63,11 +63,6 @@ export default async function PlayerTournamentPage(
     openFixtures.flatMap((f) => [f.home_team, f.away_team])
   );
   const teamById = new Map(availableTeams.map((t) => [t.id, t.name]));
-  const resultKey = (matchdayId: string, teamId: string) => `${matchdayId}:${teamId}`;
-  const resultByKey = new Map(
-    results.map((r) => [resultKey(r.matchday_id, r.team_id), r.outcome])
-  );
-  const matchdayByNumber = new Map(matchdays.map((m) => [m.id, m.number]));
 
   // Classifica ordinata per slot vivi (decrescente), con posizione in
   // classifica calcolata gestendo i pari merito: chi ha lo stesso numero
@@ -198,114 +193,62 @@ export default async function PlayerTournamentPage(
         </p>
       ) : null}
 
+      {/* Premio: il dato più importante insieme agli slot ancora da
+          schierare, per questo in cima. Nascosto se l'organizzatore non ha
+          impostato un valore per slot (torneo "gratuito"). La percentuale è
+          la quota di questo giocatore sul totale slot del torneo: se TUTTI
+          gli slot in gara (di ogni giocatore) uscissero insieme sulla stessa
+          giornata, lo spareggio ex aequo li farebbe vincere tutti, e questa
+          percentuale è la fetta di premio che spetterebbe a lui. */}
+      {tournament.slot_value > 0 && totalSlots > 0 ? (
+        <section className={`${card} border-accent/30`}>
+          <p className={eyebrow}>Premio in palio</p>
+          <div className="mt-2 flex items-end justify-between gap-4">
+            <p className="font-display text-3xl font-extrabold leading-none text-foreground">
+              {prizeFormat.format(tournament.slot_value * totalSlots)}
+            </p>
+            <span className="text-right">
+              <span className="block font-mono text-lg font-bold text-accent">
+                {((myAliveSlots / totalSlots) * 100).toLocaleString("it-IT", {
+                  maximumFractionDigits: 1,
+                })}
+                %
+              </span>
+              <span className="block text-[10px] text-foreground-faint">
+                tua quota attuale
+              </span>
+            </span>
+          </div>
+          <p className="mt-1.5 text-xs text-foreground-faint">
+            {myAliveSlots}/{totalSlots} slot del torneo ancora vivi sono
+            tuoi ({prizeFormat.format(tournament.slot_value)} a slot).
+          </p>
+        </section>
+      ) : null}
+
       {/* Scelta squadra: un'unica lista di partite per tutta la giornata,
           non una copia per ogni slot — si assegnano più slot alla stessa
-          squadra cliccandola più volte (vedi team-picker.tsx). */}
+          squadra cliccandola più volte (vedi team-picker.tsx). Il
+          calendario resta visibile anche a scelte chiuse (readOnly): è
+          proprio nel weekend, mentre non si può più cambiare idea, che
+          serve sapere quando giocano le squadre scelte. */}
       {openMatchday && myAliveSlotsList.length > 0 ? (
-        pickingOpen ? (
-          <TeamPicker
-            tournamentId={tournament.id}
-            matchdayId={openMatchday.id}
-            matchdayNumber={openMatchday.number}
-            slots={pickerSlots}
-            dayGroups={pickerDayGroups}
-            otherTeams={otherTeams}
-            excludedTeamNames={Array.from(excludedTeamNames)}
-            teams={teamOptions}
-          />
-        ) : (
-          <section className={card}>
-            <p className={eyebrow}>Giornata {openMatchday.number}</p>
-            <p className="mt-2 text-sm text-foreground-faint">
-              Le scelte per questa giornata sono chiuse: si schiera solo da
-              lunedì a giovedì. Aspetta i risultati di lunedì.
-            </p>
-          </section>
-        )
+        <TeamPicker
+          tournamentId={tournament.id}
+          matchdayId={openMatchday.id}
+          matchdayNumber={openMatchday.number}
+          slots={pickerSlots}
+          dayGroups={pickerDayGroups}
+          otherTeams={otherTeams}
+          excludedTeamNames={Array.from(excludedTeamNames)}
+          teams={teamOptions}
+          readOnly={!pickingOpen}
+        />
       ) : tournament.status === "active" && myAliveSlotsList.length > 0 ? (
         <p className="text-sm text-foreground-faint">
           Nessuna giornata aperta al momento.
         </p>
       ) : null}
-
-      {/* I tuoi slot: stato ed esiti di ognuno, indipendentemente da come
-          sono stati assegnati sopra. */}
-      <section className="flex flex-col gap-3">
-        {slots.map((slot) => {
-          const slotPicks = allPicks
-            .filter((p) => p.slot_id === slot.id)
-            .sort(
-              (a, b) =>
-                (matchdayByNumber.get(a.matchday_id) ?? 0) -
-                (matchdayByNumber.get(b.matchday_id) ?? 0)
-            );
-          const pickForOpenMatchday = openMatchday
-            ? slotPicks.find((p) => p.matchday_id === openMatchday.id)
-            : undefined;
-
-          return (
-            <div key={slot.id} className={`${cardTight} min-w-0`}>
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-display text-sm font-bold">
-                  Slot {slot.label}
-                </p>
-                <span className={slot.status === "alive" ? pillAlive : pillOut}>
-                  {slot.status === "alive"
-                    ? "In gara"
-                    : `Eliminato · G${slot.eliminated_matchday}`}
-                </span>
-              </div>
-
-              {pickForOpenMatchday ? (
-                <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-foreground-soft">
-                  <span>Giornata {openMatchday!.number}:</span>
-                  <TeamLabel
-                    name={teamById.get(pickForOpenMatchday.team_id) ?? "—"}
-                    size="xs"
-                  />
-                  <span>in attesa del risultato.</span>
-                </p>
-              ) : null}
-
-              {slotPicks.length > 0 ? (
-                <ul className="mt-2.5 flex flex-col gap-1.5 border-t border-line pt-2.5">
-                  {slotPicks.map((p) => {
-                    const number = matchdayByNumber.get(p.matchday_id);
-                    const outcome = resultByKey.get(
-                      resultKey(p.matchday_id, p.team_id)
-                    );
-                    return (
-                      <li
-                        key={p.id}
-                        className="flex items-center justify-between gap-2 text-xs"
-                      >
-                        <span className="flex items-center gap-1.5 text-foreground-faint">
-                          <span>G{number}</span>
-                          <TeamLabel
-                            name={teamById.get(p.team_id) ?? "—"}
-                            size="xs"
-                          />
-                        </span>
-                        <span
-                          className={
-                            outcome === "win"
-                              ? "text-accent"
-                              : outcome
-                                ? "text-lose"
-                                : "text-foreground-faint"
-                          }
-                        >
-                          {outcome ? outcomeLabel[outcome] : "in corso"}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : null}
-            </div>
-          );
-        })}
-      </section>
 
       <div className="grid grid-cols-3 gap-2.5">
         <div className={`${cardTight} text-center`}>

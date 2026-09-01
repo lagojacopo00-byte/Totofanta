@@ -84,6 +84,27 @@ export default async function NewTournamentPage(props: PageProps<"/dashboard/new
           </p>
         </div>
 
+        <div className="flex flex-col gap-1.5">
+          <label className={label} htmlFor="slot_value">
+            Valore per slot (€)
+          </label>
+          <input
+            className={input}
+            id="slot_value"
+            name="slot_value"
+            type="number"
+            min={0}
+            step="0.01"
+            defaultValue={0}
+          />
+          <p className="text-xs text-foreground-faint">
+            Facoltativo: se lo lasci a 0 il torneo resta senza premio. Se
+            metti un valore, ai giocatori si mostra il premio totale (valore
+            × numero di slot del torneo) e la loro quota man mano che
+            giocano.
+          </p>
+        </div>
+
         {isCreator ? (
           <label className="flex items-start gap-2.5 rounded-lg border border-line bg-surface-2 px-3 py-2.5 text-sm text-foreground-soft">
             <input type="checkbox" name="is_test" className="mt-0.5" />

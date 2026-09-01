@@ -15,6 +15,9 @@ export interface Tournament {
   // Torneo "di prova" per il Creator: giocatori finti, giornate simulate.
   // Vedi addTestPlayers/simulateMatchday in src/lib/queries.ts.
   is_test: boolean;
+  // Valore in euro di ogni slot: moltiplicato per il numero totale di slot
+  // del torneo dà il premio in palio. 0 = nessun premio.
+  slot_value: number;
   decisive_matchday: number | null;
   winners: string[];
   created_at: string;

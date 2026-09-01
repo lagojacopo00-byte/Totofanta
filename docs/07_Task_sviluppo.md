@@ -91,6 +91,30 @@ richiede prima una decisione di prodotto).
   è stato toccato: resta identico e si vede comunque subito dopo la
   registrazione, come prima — questa schermata è solo un passo in più
   prima, non un sostituto.
+- Rifiniture alla schermata torneo del giocatore, in ordine di richiesta:
+  header dell'area giocatore fisso in alto durante lo scroll; freccia
+  "torna indietro" su pagina torneo, tutorial e regolamento (prima
+  l'unico modo era il menu ☰); rimossa la lista finale "I tuoi slot"
+  (stato/storico per singolo slot) che appesantiva la pagina senza
+  aggiungere informazioni non già coperte altrove.
+- **Premio** (`tournaments.slot_value`): l'organizzatore imposta un
+  valore in € per slot alla creazione del torneo (0 = nessun premio,
+  compatibile con tutti i tornei esistenti). In `/play/[tournamentId]`,
+  in cima e vicino agli "slot ancora disponibili", si vede il premio
+  totale (valore × slot totali del torneo) e la quota attuale del
+  giocatore (suoi slot vivi / slot totali del torneo) — la percentuale
+  che gli spetterebbe se scattasse uno spareggio ex aequo con tutti gli
+  slot in gara. Lo split effettivo del premio non è ancora implementato,
+  per ora è solo un'informazione mostrata. Dettagli in
+  [06_Database.md](./06_Database.md).
+- **Calendario sempre visibile anche a scelte chiuse**: il picker (con
+  gli orari delle partite) spariva del tutto quando la finestra di
+  scelta lunedì-giovedì era chiusa — cioè proprio nel weekend, quando
+  si gioca davvero e serve sapere quando scendono in campo le squadre
+  scelte. Ora il calendario resta sempre visibile in sola lettura
+  (`TeamPicker` accetta una prop `readOnly`): i controlli di scelta si
+  disabilitano, spariscono i bottoni di conferma, ma le partite
+  raggruppate per giorno con gli orari restano.
 
 ## Bug critico aperto (trovato 2026-09-01)
 

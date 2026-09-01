@@ -60,6 +60,7 @@ export async function createTournament(
     competition: string;
     default_num_slots: number;
     is_test?: boolean;
+    slot_value?: number;
   }
 ) {
   const res = await db
@@ -70,6 +71,7 @@ export async function createTournament(
       competition: input.competition,
       default_num_slots: input.default_num_slots,
       is_test: input.is_test ?? false,
+      slot_value: input.slot_value ?? 0,
     })
     .select("*")
     .single();

@@ -81,6 +81,11 @@ interface TeamPickerProps {
   /** Tutte le squadre disponibili nel torneo, per risalire dal nome (delle
    * partite) alla squadra (id) — le partite riportano il nome, non l'id. */
   teams: TeamOption[];
+  /** true quando la finestra di scelta (lunedì-giovedì) è chiusa: il
+   * calendario resta visibile (serve proprio nel weekend, mentre si
+   * gioca), ma i controlli diventano tutti disabilitati e spariscono i
+   * bottoni di conferma. */
+  readOnly?: boolean;
 }
 
 function initialCounts(slots: PickerSlot[]): Record<string, number> {
@@ -101,6 +106,7 @@ export function TeamPicker({
   otherTeams,
   excludedTeamNames,
   teams,
+  readOnly = false,
 }: TeamPickerProps) {
   const [counts, setCounts] = useState<Record<string, number>>(() => initialCounts(slots));
   const [error, setError] = useState<string | null>(null);
@@ -197,7 +203,7 @@ export function TeamPicker({
   function TeamControl({ name, teamId }: { name: string; teamId: string | undefined }) {
     const count = teamId ? (counts[teamId] ?? 0) : 0;
     const reason = disabledReason(name, teamId);
-    const disabled = reason !== null || isPending;
+    const disabled = reason !== null || isPending || readOnly;
     return (
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
         <button
@@ -223,7 +229,7 @@ export function TeamPicker({
             </span>
           ) : null}
         </button>
-        {count > 0 ? (
+        {count > 0 && !readOnly ? (
           <button
             type="button"
             disabled={isPending}
@@ -259,7 +265,17 @@ export function TeamPicker({
       </section>
 
       <section className={`${card} flex min-w-0 flex-col gap-4`}>
-        <p className={eyebrow}>Giornata {matchdayNumber} · scegli le squadre</p>
+        <div>
+          <p className={eyebrow}>
+            Giornata {matchdayNumber} · {readOnly ? "calendario" : "scegli le squadre"}
+          </p>
+          {readOnly ? (
+            <p className="mt-1 text-xs text-foreground-faint">
+              Le scelte sono chiuse: si schiera solo da lunedì a giovedì.
+              Qui sotto vedi comunque quando gioca ogni squadra.
+            </p>
+          ) : null}
+        </div>
 
         <div className="flex min-w-0 flex-col gap-3">
           {dayGroups.map(({ group, fixtures }) => (
@@ -312,29 +328,31 @@ export function TeamPicker({
 
         {error ? <p className="text-sm text-lose">{error}</p> : null}
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className={`${button} flex-1`}
-            disabled={isPending || saved || !assignment}
-            onClick={handleConfirm}
-          >
-            {isPending ? "Salvo…" : saved ? "Scelte salvate" : "Conferma le scelte"}
-          </button>
-          {!saved && !isPending ? (
+        {!readOnly ? (
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              className={buttonGhost}
-              onClick={() => {
-                setCounts(initialCounts(slots));
-                setError(null);
-                setSaved(true);
-              }}
+              className={`${button} flex-1`}
+              disabled={isPending || saved || !assignment}
+              onClick={handleConfirm}
             >
-              Annulla
+              {isPending ? "Salvo…" : saved ? "Scelte salvate" : "Conferma le scelte"}
             </button>
-          ) : null}
-        </div>
+            {!saved && !isPending ? (
+              <button
+                type="button"
+                className={buttonGhost}
+                onClick={() => {
+                  setCounts(initialCounts(slots));
+                  setError(null);
+                  setSaved(true);
+                }}
+              >
+                Annulla
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </section>
     </>
   );

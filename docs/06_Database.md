@@ -10,7 +10,7 @@ esistente — ogni file indica quali eseguire prima).
 | Tabella | A cosa serve |
 |---|---|
 | `profiles` | un profilo per utente Supabase Auth; oggi porta solo `tutorial_seen_at` |
-| `tournaments` | un torneo: nome, competizione, organizzatore (`owner_id`), stato (`draft`/`active`/`finished`), vincitori, `is_test` (torneo di prova) |
+| `tournaments` | un torneo: nome, competizione, organizzatore (`owner_id`), stato (`draft`/`active`/`finished`), vincitori, `is_test` (torneo di prova), `slot_value` (valore in € di ogni slot — 0 = nessun premio, vedi sotto) |
 | `teams` | squadre selezionabili: quelle di riferimento condivise (`tournament_id` nullo, es. Serie A precaricata) o custom di un singolo torneo |
 | `players` | un giocatore *in un torneo* (email, nome, account collegato se già registrato) |
 | `slots` | una "vita" indipendente di un giocatore, con etichetta numerica e stato vivo/eliminato |
@@ -76,6 +76,21 @@ viceversa). Due funzioni in `src/lib/queries.ts` la usano:
 Nessuna delle due controlla `is_test` al proprio interno: è il chiamante
 (le Server Action in `src/app/dashboard/[id]/actions.ts`) a verificarlo,
 per non rischiare mai di usarle per sbaglio su un torneo vero.
+
+## Premio (`tournaments.slot_value`)
+
+`numeric(10,2)`, `0` di default (nessun premio, torneo "gratuito" come
+prima di questa colonna). Impostato dall'organizzatore in
+`/dashboard/new` alla creazione, non più modificabile dopo (come il
+numero di slot). Il premio totale NON è una colonna a sé: si calcola al
+volo come `slot_value * totale slot del torneo` (il totale slot è già
+immutabile dopo l'avvio, quindi il calcolo resta stabile da solo, senza
+bisogno di "congelarlo" in un'altra colonna). Mostrato al giocatore in
+`/play/[tournamentId]` insieme alla sua quota attuale (`suoi slot
+vivi / totale slot del torneo`): se un giorno tutti gli slot in gara
+uscissero insieme (spareggio ex aequo), questa percentuale è la fetta di
+premio che gli spetterebbe — la logica di split effettivo del premio non
+è ancora implementata, per ora è solo mostrata come informazione.
 
 ## Stato partita (`serie_a_fixtures.kickoff_at` / `.status`)
 
