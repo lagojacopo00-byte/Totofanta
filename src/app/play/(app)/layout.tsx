@@ -28,11 +28,11 @@ export default async function PlayAreaLayout({
     <div className="flex h-dvh flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain">
       <header className="sticky top-0 z-10 border-b border-line bg-background px-7 py-3 sm:py-4">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
+          <Brandbar subtitle="Area giocatore" href="/play" />
+          <div className="flex flex-none items-center gap-2.5">
             <HamburgerMenu />
-            <Brandbar subtitle="Area giocatore" />
+            <UserMenu email={user.email ?? ""} signOutAction={playerSignOutAction} />
           </div>
-          <UserMenu email={user.email ?? ""} signOutAction={playerSignOutAction} />
         </div>
       </header>
       <main className="mx-auto w-full max-w-lg flex-1 overflow-x-hidden px-7 py-6 sm:py-10">

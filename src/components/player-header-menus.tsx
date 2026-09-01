@@ -46,7 +46,7 @@ export function HamburgerMenu() {
         </svg>
       </button>
       {open ? (
-        <div className={dropdown}>
+        <div className={`${dropdown} right-0`}>
           <Link href="/play" className={dropdownLink} onClick={() => setOpen(false)}>
             I tuoi tornei
           </Link>

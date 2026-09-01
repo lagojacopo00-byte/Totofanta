@@ -341,9 +341,59 @@ richiede prima una decisione di prodotto).
   risultato già funzionante nei test. Corretto aggiungendo la policy di
   SELECT mancante — vedi
   [supabase/fix_invite_policies.sql](../supabase/fix_invite_policies.sql)
-  (da eseguire nell'SQL Editor di Supabase) e lo stesso cambio riportato
-  in `schema.sql`. Nessuna modifica al codice applicativo: la logica in
-  queries.ts era già corretta.
+  — **eseguita**, confermato in produzione il 2026-09-01 — e lo stesso
+  cambio riportato in `schema.sql`. Nessuna modifica al codice
+  applicativo: la logica in queries.ts era già corretta.
+- **Audit sistematico schema.sql vs database reale (2026-09-01)**: dopo i
+  due bug sopra (stessa causa: drift tra `schema.sql` e il progetto
+  Supabase collegato), confronto completo colonne + check constraint +
+  foreign key (`ON DELETE`) + RLS policy tra `schema.sql` e il database
+  reale. Colonne verificate via REST API (service-role key, script
+  disposable non commesso); check constraint, FK e policy via query di
+  sola lettura eseguite dall'utente nell'SQL Editor — vedi
+  [supabase/audit_query_readonly.sql](../supabase/audit_query_readonly.sql)
+  (tenuto nel repo, riutilizzabile per audit futuri: nessuna delle tre
+  query modifica nulla).
+  - Colonne: tutte presenti in produzione, incluse `profiles.role`,
+    `tournaments.is_test`, `serie_a_fixtures.kickoff_at`/`status` (i due
+    bug sopra, già corretti). Emerso però un drift nella direzione
+    opposta, solo di documentazione: `schema.sql` non elencava
+    `profiles.display_name` (da `add_profile_display_name.sql`) né
+    `serie_a_fixtures.result` (da `add_fixture_result.sql`) — colonne
+    che esistono e sono usate regolarmente dal codice, semplicemente
+    mai riportate nel file "fonte di verità" quando le rispettive
+    migrazioni incrementali sono state scritte. Corretto aggiungendo
+    entrambe le colonne a `schema.sql` (nessuna migrazione da eseguire:
+    il database reale era già a posto).
+  - Check constraint: tutti corrispondono esattamente, incluso quello
+    su `serie_a_fixtures.result` appena aggiunto a `schema.sql`.
+  - Foreign key (con `ON DELETE`): tutte e 12 corrispondono esattamente
+    a `schema.sql`, incluse le tre verso `auth.users`
+    (`profiles.id`/`tournaments.owner_id`/`players.user_id`) e le due
+    cascade di `fix_team_fk_cascade.sql` (`picks.team_id`,
+    `matchday_results.team_id`) — confermate applicate in produzione.
+  - **RLS policy: 21 su 22 — mancava `"organizer removes custom teams
+    of own tournament"` (DELETE su `teams`)**, la migrazione
+    [`supabase/add_custom_teams_delete.sql`](../supabase/add_custom_teams_delete.sql)
+    a quanto pare non fu mai eseguita in produzione. Stesso pattern
+    esatto dei due bug sopra (RLS che nega in silenzio, PostgREST
+    risponde 200 con zero righe). Impatto pratico oggi basso: la
+    sezione "Squadre" è stata rimossa dalla dashboard (vedi "Solo Serie
+    A come competizione" sopra), quindi nessuna UI chiama più
+    `removeTeamAction` — ma la funzione resta nel codice per un
+    eventuale futuro torneo a competizione custom, e senza questa
+    policy tornerebbe a fallire in silenzio. Nessun nuovo file
+    necessario: bastava eseguire `add_custom_teams_delete.sql` (già
+    idempotente) nell'SQL Editor — **eseguita**, confermato in
+    produzione lo stesso giorno.
+  - **Esito finale (poi superato, vedi voce sopra "Trova la vera causa
+    dell'invito per email"): nessun drift residuo tra schema.sql e la
+    produzione** su colonne, check constraint, foreign key e RLS policy
+    esistenti — l'audit confronta ciò che `schema.sql` dichiara contro
+    ciò che il database ha davvero, quindi per costruzione non poteva
+    scoprire una policy che mancava da ENTRAMBI: la policy SELECT per
+    invito orfano trovata subito dopo (vedi sopra) era un buco di design
+    dello schema stesso, non un drift.
 
 ## Da fare — semplice
 
