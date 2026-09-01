@@ -5,9 +5,23 @@ import { button, card, cardTight, eyebrow, pillAlive, pillOut } from "@/componen
 import { TeamBadge, TeamLabel } from "@/components/team-badge";
 import { PickCountdown } from "@/components/pick-countdown";
 import { isPickingWindowOpen } from "@/lib/pick-window";
+import { groupFixturesByDay, type MatchDayGroup } from "@/lib/match-window";
 import { submitPickAction } from "./actions";
 
 const outcomeLabel = { win: "Vinta", draw: "Pareggio", loss: "Persa" } as const;
+
+const dayGroupLabel: Record<MatchDayGroup, string> = {
+  venerdì: "Venerdì",
+  sabato: "Sabato",
+  domenica: "Domenica",
+  lunedì: "Lunedì",
+  altro: "Data da confermare",
+};
+
+const kickoffTimeFormat = new Intl.DateTimeFormat("it-IT", {
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 export default async function PlayerTournamentPage(
   props: PageProps<"/play/[tournamentId]">
@@ -49,16 +63,23 @@ export default async function PlayerTournamentPage(
   );
 
   // Accoppiamenti reali di Serie A per la giornata aperta (giornata N del
-  // torneo = giornata reale N), per mostrare l'avversario nel menu di
-  // scelta — vedi src/app/dashboard/fixtures.
-  const openFixtures = openMatchday
-    ? await queries.getFixturesForRound(supabase, openMatchday.number)
-    : [];
-  const opponentLabel = new Map<string, string>();
-  for (const f of openFixtures) {
-    opponentLabel.set(f.home_team, `vs ${f.away_team} (casa)`);
-    opponentLabel.set(f.away_team, `vs ${f.home_team} (trasferta)`);
-  }
+  // torneo = giornata reale N) — vedi src/app/dashboard/fixtures.
+  const [openFixtures, excludedTeamNames] = openMatchday
+    ? await Promise.all([
+        queries.getFixturesForRound(supabase, openMatchday.number),
+        queries.getExcludedTeamNames(supabase, openMatchday.number),
+      ])
+    : [[], new Set<string>()];
+  // Partite della giornata aperta raggruppate per giorno, per la
+  // schermata di scelta come lista partite (vedi src/lib/match-window.ts).
+  // Le squadre disponibili ma senza una partita in calendario questa
+  // giornata (es. competizioni personalizzate senza calendario) restano
+  // scelte in fondo, fuori dai gruppi.
+  const fixtureDayGroups = groupFixturesByDay(openFixtures);
+  const teamNamesInFixtures = new Set(
+    openFixtures.flatMap((f) => [f.home_team, f.away_team])
+  );
+  const teamByName = new Map(availableTeams.map((t) => [t.name, t]));
   const resultKey = (matchdayId: string, teamId: string) => `${matchdayId}:${teamId}`;
   const resultByKey = new Map(
     results.map((r) => [resultKey(r.matchday_id, r.team_id), r.outcome])
@@ -193,9 +214,57 @@ export default async function PlayerTournamentPage(
           const pickForOpenMatchday = openMatchday
             ? slotPicks.find((p) => p.matchday_id === openMatchday.id)
             : undefined;
-          const available = availableTeams.filter(
-            (t) => !usedTeamIds.includes(t.id)
+          const otherTeams = availableTeams.filter(
+            (t) => !teamNamesInFixtures.has(t.name) && !usedTeamIds.includes(t.id)
           );
+
+          // Un'opzione di scelta (una squadra): oscurata e non cliccabile
+          // se già usata su questo slot, se la sua partita è esclusa/fuori
+          // dalla finestra ven-sab-dom-lun, o se non fa parte delle
+          // squadre disponibili per questo torneo.
+          const renderTeamOption = (teamName: string) => {
+            const team = teamByName.get(teamName);
+            const isExcluded = excludedTeamNames.has(teamName);
+            const isUsed = team ? usedTeamIds.includes(team.id) : false;
+            const disabled = !team || isExcluded || isUsed;
+            const reason = !team
+              ? "non in questo torneo"
+              : isExcluded
+                ? "non disponibile"
+                : isUsed
+                  ? "già scelta"
+                  : null;
+            return (
+              <label
+                key={teamName}
+                className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 text-xs transition-colors ${
+                  disabled
+                    ? "cursor-not-allowed border-line bg-surface-2/50 opacity-50"
+                    : "cursor-pointer border-line bg-surface-2 has-[:checked]:border-accent has-[:checked]:bg-win-bg"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="team_id"
+                  value={team?.id ?? ""}
+                  required
+                  disabled={disabled}
+                  className="sr-only"
+                />
+                <TeamBadge name={teamName} size="sm" />
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate font-semibold text-foreground">
+                    {teamName}
+                  </span>
+                  {reason ? (
+                    <span className="truncate text-[10px] text-foreground-faint">
+                      {reason}
+                    </span>
+                  ) : null}
+                </span>
+              </label>
+            );
+          };
 
           return (
             <div key={slot.id} className={`${card} min-w-0`}>
@@ -238,32 +307,39 @@ export default async function PlayerTournamentPage(
                     <p className="text-xs text-foreground-faint">
                       Scegli una squadra per la giornata {openMatchday.number}
                     </p>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {available.map((t) => (
-                        <label
-                          key={t.id}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface-2 px-2.5 py-2 text-xs transition-colors has-[:checked]:border-accent has-[:checked]:bg-win-bg"
-                        >
-                          <input
-                            type="radio"
-                            name="team_id"
-                            value={t.id}
-                            required
-                            className="sr-only"
-                          />
-                          <TeamBadge name={t.name} size="sm" />
-                          <span className="flex min-w-0 flex-col">
-                            <span className="truncate font-semibold text-foreground">
-                              {t.name}
-                            </span>
-                            {opponentLabel.has(t.name) ? (
-                              <span className="truncate text-[10px] text-foreground-faint">
-                                {opponentLabel.get(t.name)}
-                              </span>
-                            ) : null}
-                          </span>
-                        </label>
+                    <div className="flex flex-col gap-3">
+                      {fixtureDayGroups.map(({ group, fixtures }) => (
+                        <div key={group} className="flex flex-col gap-1.5">
+                          <p className="text-[11px] font-bold uppercase tracking-wide text-foreground-faint">
+                            {dayGroupLabel[group]}
+                          </p>
+                          <div className="flex flex-col gap-2">
+                            {fixtures.map((f) => (
+                              <div key={f.id} className="flex flex-col gap-1">
+                                {f.kickoff_at ? (
+                                  <p className="text-[10px] text-foreground-faint">
+                                    {kickoffTimeFormat.format(new Date(f.kickoff_at))}
+                                  </p>
+                                ) : null}
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  {renderTeamOption(f.home_team)}
+                                  {renderTeamOption(f.away_team)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       ))}
+                      {otherTeams.length > 0 ? (
+                        <div className="flex flex-col gap-1.5">
+                          <p className="text-[11px] font-bold uppercase tracking-wide text-foreground-faint">
+                            Altre squadre disponibili
+                          </p>
+                          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                            {otherTeams.map((t) => renderTeamOption(t.name))}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                     <button className={`${button} self-start`} type="submit">
                       Conferma scelta
