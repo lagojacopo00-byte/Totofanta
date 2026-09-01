@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   applyMatchdayResults,
+  computeRoundOutcomes,
   teamsAvailableForSlot,
   type AliveSlot,
   type MatchdayPick,
@@ -735,24 +736,15 @@ export async function updateFixtureResult(
  */
 export async function tryFinalizeRoundEverywhere(db: DB, round: number) {
   const fixtures = await getFixturesForRound(db, round);
-  const relevant = fixtures.filter((f) => f.status !== "excluded");
-  if (relevant.length === 0 || relevant.some((f) => !f.result)) {
-    return { finalized: [] as string[] };
-  }
-
-  const outcomeByTeamName = new Map<string, GameOutcome>();
-  for (const f of relevant) {
-    if (f.result === "home_win") {
-      outcomeByTeamName.set(f.home_team, "win");
-      outcomeByTeamName.set(f.away_team, "loss");
-    } else if (f.result === "away_win") {
-      outcomeByTeamName.set(f.home_team, "loss");
-      outcomeByTeamName.set(f.away_team, "win");
-    } else {
-      outcomeByTeamName.set(f.home_team, "draw");
-      outcomeByTeamName.set(f.away_team, "draw");
-    }
-  }
+  const { ready, outcomeByTeamName } = computeRoundOutcomes(
+    fixtures.map((f) => ({
+      home_team: f.home_team,
+      away_team: f.away_team,
+      status: f.status,
+      result: f.result,
+    }))
+  );
+  if (!ready) return { finalized: [] as string[] };
 
   const res = await db
     .from("matchdays")
@@ -764,7 +756,15 @@ export async function tryFinalizeRoundEverywhere(db: DB, round: number) {
   const finalized: string[] = [];
   for (const row of rows) {
     const tournament = row.tournaments;
-    if (!tournament || tournament.competition !== "Serie A" || tournament.status !== "active") {
+    if (
+      !tournament ||
+      tournament.competition !== "Serie A" ||
+      tournament.status !== "active" ||
+      // I tornei di test hanno il proprio meccanismo indipendente
+      // (simulateMatchday, esiti casuali): non devono essere toccati da
+      // risultati reali, altrimenti si mescolerebbero con le simulazioni.
+      tournament.is_test
+    ) {
       continue;
     }
     const teams = await getAvailableTeams(db, tournament.id, tournament.competition);

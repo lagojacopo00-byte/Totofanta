@@ -157,6 +157,55 @@ export function applyMatchdayResults(
   return { slotOutcomes, aliveSlotsAfter, tournamentFinished: false, winners: [] }
 }
 
+export interface RoundFixture {
+  home_team: string
+  away_team: string
+  status: 'scheduled' | 'excluded'
+  result: 'home_win' | 'draw' | 'away_win' | null
+}
+
+export interface RoundOutcomes {
+  /** true solo se OGNI partita non esclusa della giornata ha un esito
+   * noto — mai vero se manca anche una sola partita, anche se
+   * tecnicamente "decisiva" per nessuno slot: non si può saperlo senza
+   * guardare i pick di ogni torneo, quindi si aspetta sempre la giornata
+   * intera (vedi tryFinalizeRoundEverywhere in src/lib/queries.ts). */
+  ready: boolean
+  /** Esito di ogni squadra coinvolta, per nome (i tornei risolvono poi il
+   * nome al proprio team_id). Vuota se `ready` è false. */
+  outcomeByTeamName: Map<string, Outcome>
+}
+
+/**
+ * Da un elenco di partite reali di una giornata, determina se è ormai
+ * "completa" (ogni partita non esclusa ha un esito) e, se sì, l'esito di
+ * ogni squadra coinvolta. Una giornata senza nessuna partita rilevante
+ * (tutte escluse, o nessuna partita configurata) non risulta mai pronta:
+ * va chiusa a mano dall'organizzatore in quel caso, non c'è nessun
+ * risultato da cui derivare automaticamente chi sopravvive.
+ */
+export function computeRoundOutcomes(fixtures: RoundFixture[]): RoundOutcomes {
+  const relevant = fixtures.filter((f) => f.status !== 'excluded')
+  if (relevant.length === 0 || relevant.some((f) => !f.result)) {
+    return { ready: false, outcomeByTeamName: new Map() }
+  }
+
+  const outcomeByTeamName = new Map<string, Outcome>()
+  for (const f of relevant) {
+    if (f.result === 'home_win') {
+      outcomeByTeamName.set(f.home_team, 'win')
+      outcomeByTeamName.set(f.away_team, 'loss')
+    } else if (f.result === 'away_win') {
+      outcomeByTeamName.set(f.home_team, 'loss')
+      outcomeByTeamName.set(f.away_team, 'win')
+    } else {
+      outcomeByTeamName.set(f.home_team, 'draw')
+      outcomeByTeamName.set(f.away_team, 'draw')
+    }
+  }
+  return { ready: true, outcomeByTeamName }
+}
+
 /**
  * Le squadre che uno slot può ancora scegliere: tutte quelle disponibili nel
  * torneo tranne quelle già scelte in passato SU QUESTO slot (lo storico di

@@ -2,7 +2,9 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   applyMatchdayResults,
+  computeRoundOutcomes,
   teamsAvailableForSlot,
+  type RoundFixture,
   type Team,
 } from '../game-logic'
 
@@ -154,4 +156,52 @@ test('teamsAvailableForSlot esclude solo le squadre già usate su quello slot', 
     available.map((t) => t.id),
     ['milan', 'lazio']
   )
+})
+
+test('computeRoundOutcomes: giornata senza nessuna partita non è mai pronta', () => {
+  const result = computeRoundOutcomes([])
+  assert.equal(result.ready, false)
+  assert.equal(result.outcomeByTeamName.size, 0)
+})
+
+test('computeRoundOutcomes: manca anche un solo esito -> non pronta', () => {
+  const fixtures: RoundFixture[] = [
+    { home_team: 'Napoli', away_team: 'Milan', status: 'scheduled', result: 'home_win' },
+    { home_team: 'Roma', away_team: 'Lazio', status: 'scheduled', result: null },
+  ]
+  assert.equal(computeRoundOutcomes(fixtures).ready, false)
+})
+
+test('computeRoundOutcomes: le partite escluse non contano, né per la prontezza né per gli esiti', () => {
+  const fixtures: RoundFixture[] = [
+    { home_team: 'Napoli', away_team: 'Milan', status: 'scheduled', result: 'home_win' },
+    { home_team: 'Roma', away_team: 'Lazio', status: 'excluded', result: null },
+  ]
+  const outcomes = computeRoundOutcomes(fixtures)
+  assert.equal(outcomes.ready, true)
+  assert.equal(outcomes.outcomeByTeamName.has('Roma'), false)
+  assert.equal(outcomes.outcomeByTeamName.has('Lazio'), false)
+})
+
+test('computeRoundOutcomes: tutte partite escluse -> non pronta (niente su cui basarsi)', () => {
+  const fixtures: RoundFixture[] = [
+    { home_team: 'Napoli', away_team: 'Milan', status: 'excluded', result: null },
+  ]
+  assert.equal(computeRoundOutcomes(fixtures).ready, false)
+})
+
+test('computeRoundOutcomes: home_win, away_win e draw danno gli esiti giusti a entrambe le squadre', () => {
+  const fixtures: RoundFixture[] = [
+    { home_team: 'Napoli', away_team: 'Milan', status: 'scheduled', result: 'home_win' },
+    { home_team: 'Roma', away_team: 'Lazio', status: 'scheduled', result: 'away_win' },
+    { home_team: 'Inter', away_team: 'Juventus', status: 'scheduled', result: 'draw' },
+  ]
+  const { ready, outcomeByTeamName } = computeRoundOutcomes(fixtures)
+  assert.equal(ready, true)
+  assert.equal(outcomeByTeamName.get('Napoli'), 'win')
+  assert.equal(outcomeByTeamName.get('Milan'), 'loss')
+  assert.equal(outcomeByTeamName.get('Roma'), 'loss')
+  assert.equal(outcomeByTeamName.get('Lazio'), 'win')
+  assert.equal(outcomeByTeamName.get('Inter'), 'draw')
+  assert.equal(outcomeByTeamName.get('Juventus'), 'draw')
 })
