@@ -213,11 +213,13 @@ export default async function PlayerTournamentPage(
       {/* Premio: il dato più importante insieme agli slot ancora da
           schierare, per questo in cima. Nascosto se l'organizzatore non ha
           impostato un valore per slot (torneo "gratuito"). La percentuale è
-          la quota di questo giocatore sul totale slot del torneo: se TUTTI
-          gli slot in gara (di ogni giocatore) uscissero insieme sulla stessa
+          la quota di questo giocatore sugli slot ANCORA VIVI in tutto il
+          torneo (non sul totale slot venduti, morti compresi): se TUTTI gli
+          slot ancora vivi (di ogni giocatore) uscissero insieme sulla stessa
           giornata, lo spareggio ex aequo li farebbe vincere tutti, e questa
-          percentuale è la fetta di premio che spetterebbe a lui. */}
-      {tournament.slot_value > 0 && totalSlots > 0 ? (
+          percentuale è la fetta di premio che spetterebbe a lui in quel
+          caso. */}
+      {tournament.slot_value > 0 && totalSlots > 0 && aliveSlots > 0 ? (
         <section className={`${card} border-accent/30`}>
           <p className={eyebrow}>Premio</p>
           <div className="mt-2 flex items-end justify-between gap-4">
@@ -226,7 +228,7 @@ export default async function PlayerTournamentPage(
             </p>
             <span className="text-right">
               <span className="block font-mono text-lg font-bold text-accent">
-                {((myAliveSlots / totalSlots) * 100).toLocaleString("it-IT", {
+                {((myAliveSlots / aliveSlots) * 100).toLocaleString("it-IT", {
                   maximumFractionDigits: 1,
                 })}
                 %
@@ -237,7 +239,7 @@ export default async function PlayerTournamentPage(
             </span>
           </div>
           <p className="mt-1.5 text-xs text-foreground-faint">
-            {myAliveSlots}/{totalSlots} slot del torneo ancora vivi sono
+            {myAliveSlots}/{aliveSlots} slot ancora vivi nel torneo sono
             tuoi ({prizeFormat.format(tournament.slot_value)} a slot).
           </p>
         </section>
