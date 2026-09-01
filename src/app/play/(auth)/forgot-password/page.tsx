@@ -11,8 +11,8 @@ export default async function ForgotPasswordPage(
   const sent = params.sent === "1";
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 py-16">
-      <Brandbar subtitle="Password dimenticata" />
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 pt-16 pb-24">
+      <Brandbar subtitle="Password dimenticata" center />
 
       {sent ? (
         <div className={card}>
