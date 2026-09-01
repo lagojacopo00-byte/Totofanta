@@ -294,12 +294,29 @@ richiede prima una decisione di prodotto).
   della giornata che aveva chiuso il torneo per spareggio zero superstiti).
   Nessuna modifica allo schema/RLS: le policy "organizer manages..." già
   esistenti per slots/matchdays/matchday_results coprono tutto.
-  In questo test è emerso un bug di schema pre-esistente e non collegato
-  (segnalato a parte, non ancora corretto): cancellare un torneo con
-  squadre custom (competizione diversa da Serie A) già scelte/valutate
-  fallisce per un vincolo di chiave esterna mancante
-  (`picks.team_id`/`matchday_results.team_id` non hanno `on delete
-  cascade` verso `teams`).
+  In questo test è emerso un bug di schema pre-esistente e non collegato,
+  poi corretto — vedi voce sotto.
+- **Solo Serie A come competizione**: tolto il campo "Competizione" dal
+  form di creazione torneo (`/dashboard/new`) — l'unica competizione
+  utilizzabile per ora è la Serie A precaricata, farla scegliere non
+  serviva. `createTournamentAction` la fissa a "Serie A" lato server (non
+  più letta dal form). Di conseguenza `addTeamAction`/`removeTeamAction`
+  (dashboard) e `addTeamToTournament`/`removeTeamFromTournament`
+  (queries.ts) erano già codice morto (nessuna UI li richiamava più da
+  quando era stata tolta la sezione "Squadre") e sono stati rimossi.
+- **Fix bug schema — cancellazione torneo con squadre custom**: emerso
+  testando "annulla ultima giornata" con squadre create ad hoc per il
+  test. `picks.team_id` e `matchday_results.team_id` referenziavano
+  `teams(id)` senza `on delete cascade`: cancellando un torneo con
+  squadre custom (`teams.tournament_id` non nullo) già scelte/valutate,
+  Postgres provava a cancellarle (cascade da `tournaments`) mentre
+  picks/risultati le referenziavano ancora, con un errore di chiave
+  esterna. Corretto con `on delete cascade` su entrambe le FK — vedi
+  [supabase/fix_team_fk_cascade.sql](../supabase/fix_team_fk_cascade.sql)
+  (da eseguire nell'SQL Editor di Supabase) e lo stesso cambio riportato in
+  `schema.sql` per i progetti nuovi. Con la voce sopra (solo Serie A,
+  niente più squadre custom creabili) il caso che innescava il bug non è
+  più raggiungibile dall'app, ma la foreign key resta corretta comunque.
 
 ## Da fare — semplice
 

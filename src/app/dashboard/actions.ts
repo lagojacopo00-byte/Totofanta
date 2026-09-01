@@ -16,7 +16,11 @@ export async function createTournamentAction(formData: FormData) {
   const { supabase, user } = await requireUser();
 
   const name = String(formData.get("name") ?? "").trim();
-  const competition = String(formData.get("competition") ?? "").trim() || "Serie A";
+  // Unica competizione utilizzabile per ora: niente da far scegliere
+  // all'organizzatore in creazione (vedi anche tryFinalizeRoundEverywhere
+  // in src/lib/queries.ts, che già assume "Serie A" per il caricamento
+  // automatico dei risultati reali).
+  const competition = "Serie A";
   const defaultNumSlots = Math.max(
     1,
     Math.min(100, Number(formData.get("default_num_slots") ?? 1) || 1)

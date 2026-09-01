@@ -190,7 +190,12 @@ create table picks (
   id uuid primary key default gen_random_uuid(),
   slot_id uuid not null references slots (id) on delete cascade,
   matchday_id uuid not null references matchdays (id) on delete cascade,
-  team_id uuid not null references teams (id),
+  -- on delete cascade anche qui: se una squadra custom (tournament_id non
+  -- nullo) viene cancellata insieme al suo torneo, cade anche il pick che
+  -- la referenzia — senza, cancellare il torneo fallirebbe (le squadre
+  -- cadrebbero prima, per il cascade di teams.tournament_id, mentre i
+  -- pick le referenziano ancora).
+  team_id uuid not null references teams (id) on delete cascade,
   created_at timestamptz not null default now(),
   unique (slot_id, matchday_id)
 );
@@ -207,7 +212,9 @@ create index picks_slot_idx on picks (slot_id);
 create table matchday_results (
   id uuid primary key default gen_random_uuid(),
   matchday_id uuid not null references matchdays (id) on delete cascade,
-  team_id uuid not null references teams (id),
+  -- Stesso motivo di picks.team_id sopra: cascade per non bloccare la
+  -- cancellazione di un torneo con squadre custom già valutate.
+  team_id uuid not null references teams (id) on delete cascade,
   outcome text not null check (outcome in ('win', 'draw', 'loss')),
   created_at timestamptz not null default now(),
   unique (matchday_id, team_id)

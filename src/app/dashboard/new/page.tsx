@@ -24,7 +24,7 @@ export default async function NewTournamentPage(props: PageProps<"/dashboard/new
         </h1>
         <p className="mt-2 max-w-md text-sm text-foreground-soft">
           Puoi ancora cambiare idea: questi valori si modificano finché il
-          torneo non parte davvero.
+          torneo non parte davvero. Competizione: Serie A.
         </p>
       </div>
 
@@ -42,28 +42,6 @@ export default async function NewTournamentPage(props: PageProps<"/dashboard/new
             required
             placeholder="Es. Sopravvissuti tra colleghi"
           />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className={label} htmlFor="competition">
-            Competizione
-          </label>
-          <input
-            className={input}
-            id="competition"
-            name="competition"
-            list="competitions"
-            defaultValue="Serie A"
-          />
-          <datalist id="competitions">
-            <option value="Serie A" />
-            <option value="Serie B" />
-            <option value="Champions League" />
-          </datalist>
-          <p className="text-xs text-foreground-faint">
-            Serie A già pronta all&apos;uso. Un&apos;altra competizione?
-            Aggiungi le squadre a mano.
-          </p>
         </div>
 
         <div className="flex flex-col gap-1.5">

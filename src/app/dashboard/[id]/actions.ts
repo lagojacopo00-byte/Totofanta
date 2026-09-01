@@ -97,26 +97,6 @@ export async function undoLastMatchdayAction(tournamentId: string) {
   revalidatePath(`/dashboard/${tournamentId}`);
 }
 
-/** Aggiunge una squadra su misura per questo torneo — serve soprattutto
- * quando la competizione non è la Serie A precaricata, ma è utile anche
- * per completare un elenco che risulta incompleto. */
-export async function addTeamAction(tournamentId: string, formData: FormData) {
-  const { supabase, tournament } = await ownedTournament(tournamentId);
-  const name = String(formData.get("name") ?? "").trim();
-  if (!name) return;
-
-  await queries.addTeamToTournament(supabase, tournamentId, tournament.competition, name);
-  revalidatePath(`/dashboard/${tournamentId}`);
-}
-
-/** Toglie una squadra aggiunta a mano (mai una di quelle di riferimento
- * condivise, che non compaiono nemmeno tra quelle rimovibili). */
-export async function removeTeamAction(tournamentId: string, teamId: string) {
-  const { supabase } = await ownedTournament(tournamentId);
-  await queries.removeTeamFromTournament(supabase, tournamentId, teamId);
-  revalidatePath(`/dashboard/${tournamentId}`);
-}
-
 /** Verifica, oltre a essere l'organizzatore, che il torneo sia
  * effettivamente "di test": le funzioni di test (giocatori finti,
  * simulazione) non vanno mai usate su un torneo vero, quindi lo
