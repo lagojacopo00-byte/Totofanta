@@ -1,7 +1,34 @@
 // Badge colorato con le iniziali di una squadra: niente dipendenze
-// esterne (stemmi reali), colore stabile per squadra (derivato dal nome),
-// leggibile sul tema scuro dell'app. Usato ovunque compaia un nome
-// squadra nell'interfaccia.
+// esterne (stemmi reali, niente questioni di licenza — solo un colore di
+// sfondo), leggibile sul tema scuro dell'app. Usato ovunque compaia un
+// nome squadra nell'interfaccia.
+
+// Colore ufficiale (maglia/identità visiva) delle squadre di Serie A
+// 2026/2027 — deciso con l'utente: solo lo sfondo, non stemmi/loghi reali.
+// Le squadre non in elenco (competizioni diverse, squadre custom di un
+// torneo) restano sul colore derivato dal nome (hash) qui sotto.
+const OFFICIAL_TEAM_COLORS: Record<string, string> = {
+  Atalanta: "#14213D",
+  Bologna: "#A6192E",
+  Cagliari: "#1B3B6F",
+  Como: "#2E86D6",
+  Fiorentina: "#582C83",
+  Frosinone: "#F2C230",
+  Genoa: "#0F3B7A",
+  Inter: "#0B5EA8",
+  Juventus: "#1A1A1A",
+  Lazio: "#6CACE4",
+  Lecce: "#F7D117",
+  Milan: "#E2231A",
+  Monza: "#EE1122",
+  Napoli: "#12A0D7",
+  Parma: "#F3C300",
+  Roma: "#8E1F2F",
+  Sassuolo: "#00A651",
+  Torino: "#8A1538",
+  Udinese: "#3B3B3B",
+  Venezia: "#F76900",
+};
 
 const PALETTE = [
   "#e0575b",
@@ -44,7 +71,7 @@ export function teamInitials(name: string): string {
 }
 
 export function teamColor(name: string): string {
-  return PALETTE[hashString(name) % PALETTE.length];
+  return OFFICIAL_TEAM_COLORS[name] ?? PALETTE[hashString(name) % PALETTE.length];
 }
 
 const badgeSizeClasses = {
