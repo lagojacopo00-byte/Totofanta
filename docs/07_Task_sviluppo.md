@@ -169,6 +169,15 @@ richiede prima una decisione di prodotto).
   dashboard organizzatore per cambiare `slot_value` in qualunque momento
   (non solo alla creazione) — non tocca la meccanica di gioco, quindi non
   serve restare in "draft" come per il numero di slot.
+- **L'admin può modificare gli slot di un giocatore in qualunque momento**:
+  "Aggiorna slot" prima spariva appena il torneo usciva da "draft", senza
+  modo di correggere slot mal configurati dopo (causa concreta di un bug
+  segnalato: giocatori di test creati in bulk con 1 solo slot ciascuno,
+  irraggiungibili da correggere una volta aperta la prima giornata).
+  Riducendo il numero, `updatePlayerNumSlots` toglie per prima le righe
+  già "eliminated" e solo se non bastano tocca quelle "alive", per non
+  cancellare storico vivo quando basterebbe pulire slot già persi.
+  "Rimuovi" giocatore resta invece ristretto a "draft" (non richiesto).
 
 ## Da fare — semplice
 
