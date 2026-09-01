@@ -317,6 +317,26 @@ richiede prima una decisione di prodotto).
   `schema.sql` per i progetti nuovi. Con la voce sopra (solo Serie A,
   niente più squadre custom creabili) il caso che innescava il bug non è
   più raggiungibile dall'app, ma la foreign key resta corretta comunque.
+- **Fix bug — invito per email non si agganciava**: riprodotto end-to-end
+  contro produzione (browser reale, non service-role, per non bypassare
+  le RLS): l'organizzatore aggiunge un giocatore per email
+  (`addPlayerAction`), quella persona si registra con la STESSA email, ma
+  `players.user_id` restava `null` — non veniva agganciata al torneo,
+  restava "Ancora nessun torneo all'attivo" in home. Causa: drift tra
+  `schema.sql` e il database reale (stessa categoria di bug già trovata
+  oggi in `URGENTE_migrazioni_mancanti.sql`) — la policy RLS "a player
+  claims their own pending invite" su `players` (usata da
+  `claimPendingInvites` in queries.ts, chiamata da `requirePlayer` a ogni
+  pagina dell'area giocatore) mancava o non corrispondeva a quella
+  dichiarata in schema.sql sul progetto Supabase collegato: l'update
+  veniva bloccato in silenzio da RLS (PostgREST risponde 200 con zero
+  righe, nessun errore — per questo passava inosservato). Il percorso
+  "link di invito" (`selfJoinTournament`, `is draft tournament`) invece
+  funzionava già correttamente nei test. Corretto ri-applicando (drop +
+  create) entrambe le policy — vedi
+  [supabase/fix_invite_policies.sql](../supabase/fix_invite_policies.sql)
+  (da eseguire nell'SQL Editor di Supabase). Nessuna modifica al codice
+  applicativo: la logica in queries.ts era già corretta.
 
 ## Da fare — semplice
 
