@@ -96,6 +96,9 @@ export function UserMenu({
       {open ? (
         <div className={`${dropdown} right-0`}>
           <p className="truncate px-3 py-1.5 text-xs text-foreground-faint">{email}</p>
+          <Link href="/play/profile" className={dropdownLink} onClick={() => setOpen(false)}>
+            Profilo
+          </Link>
           <form action={signOutAction}>
             <button className={`${buttonGhost} mt-1 w-full px-3 py-2 text-xs`} type="submit">
               Esci

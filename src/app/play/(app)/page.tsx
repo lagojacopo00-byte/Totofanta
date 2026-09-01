@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requirePlayer } from "@/lib/supabase/require-player";
-import { getPlayerMemberships } from "@/lib/queries";
+import { getPlayerMemberships, getProfileDisplayName } from "@/lib/queries";
 import { buttonGhost, card, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { PickCountdown } from "@/components/pick-countdown";
 
@@ -12,13 +12,19 @@ const statusLabel: Record<string, string> = {
 
 export default async function PlayHomePage() {
   const { supabase, user } = await requirePlayer();
-  const memberships = await getPlayerMemberships(supabase, user.id);
+  const [memberships, profileDisplayName] = await Promise.all([
+    getPlayerMemberships(supabase, user.id),
+    getProfileDisplayName(supabase, user.id),
+  ]);
 
+  // Il nome scelto in Profilo vince su tutto; senza, ripiega su quello
+  // dato in fase di registrazione, poi sulla parte locale dell'email.
   const displayName =
-    typeof user.user_metadata?.display_name === "string" &&
+    profileDisplayName ??
+    (typeof user.user_metadata?.display_name === "string" &&
     user.user_metadata.display_name.trim().length > 0
       ? user.user_metadata.display_name
-      : (user.email ?? "").split("@")[0];
+      : (user.email ?? "").split("@")[0]);
 
   const hasActiveTournament = memberships.some(
     (m) => m.tournaments.status === "active"

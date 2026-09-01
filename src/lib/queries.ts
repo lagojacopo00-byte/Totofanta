@@ -117,7 +117,9 @@ export async function getPlayersWithSlots(db: DB, tournamentId: string) {
     .select("*, slots(*)")
     .eq("tournament_id", tournamentId)
     .order("created_at", { ascending: true });
-  return assertNoError(res) as (Player & { slots: Slot[] })[];
+  const players = assertNoError(res) as (Player & { slots: Slot[] })[];
+  const overrides = await getProfileDisplayNames(db, players.map((p) => p.user_id));
+  return players.map((p) => ({ ...p, display_name: resolveDisplayName(p, overrides) }));
 }
 
 export async function getMatchdays(db: DB, tournamentId: string) {
@@ -605,14 +607,17 @@ export async function getPlayerForTournament(
 export async function getTournamentStandings(db: DB, tournamentId: string) {
   const res = await db
     .from("players")
-    .select("id, display_name, slots(status)")
+    .select("id, display_name, user_id, slots(status)")
     .eq("tournament_id", tournamentId)
     .order("created_at", { ascending: true });
-  return assertNoError(res) as {
+  const rows = assertNoError(res) as {
     id: string;
     display_name: string;
+    user_id: string | null;
     slots: { status: "alive" | "eliminated" }[];
   }[];
+  const overrides = await getProfileDisplayNames(db, rows.map((r) => r.user_id));
+  return rows.map((r) => ({ ...r, display_name: resolveDisplayName(r, overrides) }));
 }
 
 /**
@@ -748,6 +753,54 @@ export async function markTutorialSeen(db: DB, userId: string) {
       .update({ tutorial_seen_at: new Date().toISOString() })
       .eq("id", userId)
   );
+}
+
+/** Nome pubblico scelto dall'utente (profiles.display_name), o null se
+ * non l'ha ancora impostato — in quel caso resta valido il nome che
+ * l'organizzatore ha messo per ogni singolo torneo. */
+export async function getProfileDisplayName(db: DB, userId: string): Promise<string | null> {
+  const res = await db
+    .from("profiles")
+    .select("display_name")
+    .eq("id", userId)
+    .maybeSingle();
+  const row = assertNoError(res) as { display_name: string | null } | null;
+  return row?.display_name ?? null;
+}
+
+export async function updateProfileDisplayName(db: DB, userId: string, displayName: string) {
+  assertNoError(
+    await db
+      .from("profiles")
+      .update({ display_name: displayName })
+      .eq("id", userId)
+  );
+}
+
+/** Nomi pubblici scelti dagli utenti per gli account passati (solo quelli
+ * che l'hanno impostato). Usata per sovrascrivere, ovunque si mostrano i
+ * giocatori di un torneo, il players.display_name che l'organizzatore ha
+ * messo per quel torneo — stessa persona, stesso nome in ogni torneo. */
+async function getProfileDisplayNames(
+  db: DB,
+  userIds: (string | null)[]
+): Promise<Map<string, string>> {
+  const ids = Array.from(new Set(userIds.filter((id): id is string => Boolean(id))));
+  if (ids.length === 0) return new Map();
+  const res = await db
+    .from("profiles")
+    .select("id, display_name")
+    .in("id", ids)
+    .not("display_name", "is", null);
+  const rows = assertNoError(res) as { id: string; display_name: string }[];
+  return new Map(rows.map((r) => [r.id, r.display_name]));
+}
+
+function resolveDisplayName(
+  player: { display_name: string; user_id: string | null },
+  overrides: Map<string, string>
+): string {
+  return (player.user_id && overrides.get(player.user_id)) || player.display_name;
 }
 
 export type ProfileRole = "player" | "creator";
