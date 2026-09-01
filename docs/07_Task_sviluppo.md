@@ -191,6 +191,21 @@ richiede prima una decisione di prodotto).
   già "eliminated" e solo se non bastano tocca quelle "alive", per non
   cancellare storico vivo quando basterebbe pulire slot già persi.
   "Rimuovi" giocatore resta invece ristretto a "draft" (non richiesto).
+- **Colori ufficiali delle squadre nei badge**: anticipato dalla fase
+  visual/UX su richiesta esplicita dell'utente. Mappa
+  `OFFICIAL_TEAM_COLORS` in
+  [team-badge.tsx](../src/components/team-badge.tsx) per le 20 squadre di
+  Serie A 2026/2027 (solo sfondo, iniziali invariate, niente stemmi/loghi
+  reali — non è cambiato). Squadre non in elenco (altre competizioni,
+  custom di un torneo) restano sul colore hash-generato come prima.
+- **Orari giornata 1 per il picker**: mai popolati nel seed originale
+  (solo gli accoppiamenti) — il picker non poteva raggruppare per giorno
+  e mostrava sempre "Data da confermare". Migrazione manuale
+  [`supabase/set_matchday1_kickoffs.sql`](../supabase/set_matchday1_kickoffs.sql)
+  (fonte: ricerca web — giorno affidabile, orario esatto ricostruito
+  sugli slot standard dove non confermato da più fonti). Le giornate
+  2-25 restano senza orario finché non le si popola allo stesso modo o
+  a mano da `/dashboard/fixtures`.
 
 ## Da fare — semplice
 
@@ -202,13 +217,6 @@ richiede prima una decisione di prodotto).
   [06_Database.md](./06_Database.md), da eventualmente promuovere a
   pagina/sezione a parte se serve anche fuori dal codice.
 
-## Da fare — media
-
-- Colori ufficiali delle squadre nei badge, al posto del colore
-  hash-generato attuale — **deciso con l'utente**: solo il colore di
-  sfondo ufficiale, iniziali invariate, niente stemmi/loghi reali (niente
-  questioni di licenza). Rimandato di proposito alla fase visual/UX, vedi
-  [08_Direzione_visiva_UX.md](./08_Direzione_visiva_UX.md).
 ## Da fare — complessa
 
 - **Unificare login e redirect in base al ruolo**: oggi `/login` →
