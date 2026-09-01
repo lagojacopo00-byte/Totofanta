@@ -53,20 +53,35 @@ richiede prima una decisione di prodotto).
   selezionabile e chi l'aveva già scelta resta vivo senza che conti né
   vittoria né sconfitta. Dettagli in [06_Database.md](./06_Database.md) e
   [02_Regole_gioco.md](./02_Regole_gioco.md).
-- Redesign schermata di scelta come lista partite per giornata: in
-  `/play/[tournamentId]` le partite della giornata sono ora raggruppate
-  per giorno (Venerdì/Sabato/Domenica/Lunedì/"Data da confermare",
-  ordine cronologico crescente ven→lun — interpretazione di "decrescente"
-  nella richiesta originale, da confermare con l'utente), mostrate a
-  coppie casa-ospiti con
-  l'orario quando disponibile; le squadre non disponibili (già scelte su
-  quello slot, o appartenenti a una partita esclusa/fuori finestra) sono
-  oscurate, non cliccabili e mostrano il motivo ("già scelta" / "non
-  disponibile"). Le squadre senza una partita in calendario quella
-  giornata (tornei con competizione custom) restano selezionabili in una
-  sezione a parte "Altre squadre disponibili" — la funzione esistente per
-  aggiungere/rimuovere squadre custom di un torneo (dashboard
-  organizzatore, sezione "Squadre") non è stata toccata.
+- Redesign schermata di scelta come lista partite per giornata (prima
+  versione, poi sostituita dal picker unico descritto sotto): raggruppo
+  per giorno, coppie casa-ospiti, squadre non disponibili oscurate.
+- **Picker unico per la scelta squadra** (sostituisce la prima versione
+  sopra, che ripeteva l'intera lista partite una volta per slot — con
+  molti slot diventava una lista di liste, illeggibile): in
+  `/play/[tournamentId]` ora c'è UNA SOLA lista di partite raggruppate
+  per giorno; ogni partita è una card con casa e ospite affiancati e un
+  "vs" in mezzo, per chiarire subito chi gioca contro chi. Si assegnano
+  più slot alla stessa squadra cliccando ripetutamente il suo badge (un
+  click = uno slot in più su quella squadra), con un contatore visibile
+  e un bottone rosso "−" di fianco per toglierne uno; le scelte si
+  confermano tutte insieme con "Conferma le scelte" (si può anche
+  annullare prima di confermare). Il calcolo di quale slot fisico vada a
+  quale squadra usa un vero matching bipartito
+  ([`src/lib/slot-assignment.ts`](../src/lib/slot-assignment.ts),
+  algoritmo di Kuhn, con test dedicati): un "primo slot libero" ingenuo
+  potrebbe bloccare scelte in realtà possibili quando gli slot hanno
+  storici diversi (quali squadre hanno già usato in passato). Nuova
+  server action `submitPicksAction` (sostituisce la vecchia
+  `submitPickAction` one-shot) che applica l'intera assegnazione in
+  blocco, comprese le rimozioni. Le squadre non disponibili (già scelte
+  su quello slot per TUTTI gli slot, o appartenenti a una partita
+  esclusa/fuori finestra) restano oscurate col motivo. Le squadre senza
+  una partita in calendario quella giornata (tornei con competizione
+  custom) restano selezionabili in una sezione a parte "Altre squadre
+  disponibili" — la funzione esistente per aggiungere/rimuovere squadre
+  custom di un torneo (dashboard organizzatore, sezione "Squadre") non è
+  stata toccata.
 - Onboarding per chi arriva da un link di invito e non ha ancora un
   account: `/play/join/[tournamentId]` non rimanda più subito a un login
   anonimo per chi non ha una sessione attiva, ma mostra prima una

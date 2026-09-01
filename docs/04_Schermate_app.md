@@ -31,8 +31,13 @@
 
 - `/play` — elenco dei propri tornei con anteprima slot vivi e countdown
 - `/play/[tournamentId]` — la schermata principale: posizione in
-  classifica, countdown, slot con scelta squadra, storico squadre
-  giocate, classifica completa
+  classifica, countdown, il **picker** (una sola lista di partite per la
+  giornata aperta, raggruppate per giorno e mostrate casa-ospite con
+  "vs"; si clicca il badge di una squadra per assegnarle uno slot in
+  più, un bottone rosso "−" ne toglie uno, si conferma tutto insieme —
+  vedi [07_Task_sviluppo.md](./07_Task_sviluppo.md)), poi lo stato/
+  storico di ogni singolo slot, storico squadre giocate, classifica
+  completa
 - `/play/how-it-works` — tutorial (mostrato obbligatoriamente la prima
   volta, poi sempre raggiungibile dal menu)
 - `/play/regolamento` — regolamento completo con i casi particolari
