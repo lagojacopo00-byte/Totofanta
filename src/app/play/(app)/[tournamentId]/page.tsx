@@ -15,6 +15,16 @@ const prizeFormat = new Intl.NumberFormat("it-IT", {
   maximumFractionDigits: 2,
 });
 
+function InfoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 11v5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="7.7" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export default async function PlayerTournamentPage(
   props: PageProps<"/play/[tournamentId]">
 ) {
@@ -123,6 +133,13 @@ export default async function PlayerTournamentPage(
       teamAliveBurnCount.set(teamId, (teamAliveBurnCount.get(teamId) ?? 0) + 1);
     }
   }
+
+  // Solo le squadre che bloccano ancora almeno uno slot vivo: quelle
+  // giocate solo su slot ormai eliminati non contano più per le scelte
+  // future, mostrarle sarebbe solo rumore.
+  const burnedTeams = playedTeams.filter(
+    (t) => (teamAliveBurnCount.get(t.id) ?? 0) > 0
+  );
 
   let winnerNames: string[] = [];
   if (tournament.status === "finished" && tournament.winners.length > 0) {
@@ -296,11 +313,23 @@ export default async function PlayerTournamentPage(
         </div>
       </div>
 
-      {playedTeams.length > 0 ? (
+      {burnedTeams.length > 0 ? (
         <section className={cardTight}>
-          <p className={eyebrow}>Le squadre già bruciate</p>
+          <div className="flex items-center gap-1.5">
+            <p className={eyebrow}>Le squadre già bruciate</p>
+            <details className="group relative leading-none">
+              <summary className="flex cursor-pointer list-none items-center text-foreground-faint hover:text-foreground [&::-webkit-details-marker]:hidden">
+                <InfoIcon className="h-3.5 w-3.5" />
+              </summary>
+              <p className="absolute left-0 top-full z-10 mt-1.5 w-60 rounded-lg border border-line bg-surface-2 p-2.5 text-[11px] leading-relaxed text-foreground-soft shadow-[0_20px_50px_-30px_rgba(0,0,0,0.6)]">
+                Il numero sotto ogni squadra dice su quanti dei tuoi slot
+                ancora vivi non puoi più schierarla: l&apos;hai già usata lì
+                in una giornata precedente.
+              </p>
+            </details>
+          </div>
           <div className="mt-2.5 flex flex-wrap gap-2">
-            {playedTeams.map((t) => {
+            {burnedTeams.map((t) => {
               const burned = teamAliveBurnCount.get(t.id) ?? 0;
               return (
                 <span
@@ -310,17 +339,11 @@ export default async function PlayerTournamentPage(
                   <TeamBadge name={t.name} size="sm" />
                   <span className="text-[11px] text-foreground-faint">
                     {t.name}
-                    {burned > 0 ? (
-                      <>
-                        {" · "}
-                        <span className="font-mono text-foreground">
-                          {burned}/{myAliveSlotsList.length}
-                        </span>{" "}
-                        slot vivi
-                      </>
-                    ) : (
-                      " · non blocca più nessun slot vivo"
-                    )}
+                    {" · "}
+                    <span className="font-mono text-foreground">
+                      {burned}/{myAliveSlotsList.length}
+                    </span>{" "}
+                    slot vivi
                   </span>
                 </span>
               );
