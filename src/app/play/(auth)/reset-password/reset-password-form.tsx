@@ -36,6 +36,9 @@ export function ResetPasswordForm() {
       const hash = new URLSearchParams(window.location.hash.slice(1));
       const accessToken = hash.get("access_token");
       const refreshToken = hash.get("refresh_token");
+      // DEBUG temporaneo, da togliere.
+      console.log("[reset-password] hash raw:", window.location.hash.slice(0, 40));
+      console.log("[reset-password] accessToken present:", !!accessToken, "refreshToken present:", !!refreshToken);
 
       if (!accessToken || !refreshToken) {
         if (!cancelled) setStatus("invalid");
@@ -46,6 +49,7 @@ export function ResetPasswordForm() {
         access_token: accessToken,
         refresh_token: refreshToken,
       });
+      console.log("[reset-password] setSession result:", { error: error?.message, hasSession: !!data.session });
       if (cancelled) return;
 
       if (error || !data.session) {
