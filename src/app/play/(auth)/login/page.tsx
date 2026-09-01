@@ -10,8 +10,8 @@ export default async function PlayerLoginPage(props: PageProps<"/play/login">) {
   const signupHref = next ? `/play/signup?next=${encodeURIComponent(next)}` : "/play/signup";
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 py-16">
-      <Brandbar subtitle="Accedi" />
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 pt-16 pb-24">
+      <Brandbar subtitle="Accedi" center />
 
       <form action={loginAction} className={`${card} flex flex-col gap-3`}>
         {error ? <p className="text-sm text-lose">{error}</p> : null}
