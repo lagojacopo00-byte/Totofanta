@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { TeamBadge } from "@/components/team-badge";
 import { button, buttonGhost, card, eyebrow } from "@/components/ui";
 import { maxAssignableForTeam, solveSlotAssignment, type SlotOption } from "@/lib/slot-assignment";
@@ -129,6 +130,20 @@ export function TeamPicker({
   const [saved, setSaved] = useState(true);
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // La barra "Slot ancora disponibili" non è un secondo elemento sticky
+  // indipendente (vedi play/(app)/layout.tsx): è un portale dentro il
+  // contenitore sticky dell'header condiviso, cercato via id solo lato
+  // client (dopo il mount) — sull'HTML iniziale dal server quel nodo non
+  // è ancora popolato, ma è già nel markup dell'header.
+  const [barSlot, setBarSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    // Il nodo DOM del portale esiste solo lato client (renderizzato dal
+    // layout server-side, ma serve `document` per trovarlo): un caso
+    // legittimo di sincronizzazione con qualcosa di esterno a React.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBarSlot(document.getElementById("picker-sticky-bar-slot"));
+  }, []);
 
   const teamByName = useMemo(() => new Map(teams.map((t) => [t.name, t])), [teams]);
   const excludedSet = useMemo(() => new Set(excludedTeamNames), [excludedTeamNames]);
@@ -339,26 +354,16 @@ export function TeamPicker({
   const visibleDayGroups = showCollapsed ? collapsedDayGroups : dayGroups;
   const visibleOtherTeams = showCollapsed ? collapsedOtherTeams : otherTeams;
 
-  return (
-    <>
-      {/* Fissa in cima mentre si scorre la lista di partite sotto:
-          quanti slot restano da assegnare (aggiornato a ogni click,
-          prima ancora di confermare) e il conto alla rovescia, sempre
-          sott'occhio insieme — deciso con l'utente il 2026-09-02. Sticky
-          attaccata subito sotto l'header condiviso: `top` combacia con
-          la sua altezza FISSA (vedi play/(app)/layout.tsx — un valore
-          misurato a runtime soffriva di un bug noto di Safari, non si
-          riposizionava sempre subito dopo il primo render). Barra piena
-          da bordo a bordo, non una card: -mx-7/px-7 annulla il padding
-          orizzontale di <main> così combacia esattamente con la
-          larghezza dell'header, senza margine né angoli arrotondati che
-          la farebbero sembrare "staccata". Bottone di conferma qui
-          dentro, non solo in fondo alla lista partite: altrimenti, con
-          molti slot/partite, dopo una modifica bisognava scorrere
-          parecchio per ritrovare "Schiera e conferma". */}
-      <div
-        className="sticky top-16 z-[5] -mx-7 border-b border-line bg-background px-7 py-3 sm:top-[72px]"
-      >
+  // Contenuto della barra "Slot ancora disponibili": quanti slot restano
+  // da assegnare (aggiornato a ogni click, prima ancora di confermare) e
+  // il conto alla rovescia, sempre sott'occhio insieme mentre si scorre
+  // la lista partite sotto — deciso con l'utente il 2026-09-02. Bottone
+  // di conferma qui dentro, non solo in fondo alla lista partite:
+  // altrimenti, con molti slot/partite, dopo una modifica bisognava
+  // scorrere parecchio per ritrovare "Schiera e conferma".
+  const stickyBar = (
+    <div className="border-t border-line bg-background">
+      <div className="mx-auto w-full max-w-lg px-7 py-3">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className={eyebrow}>Slot ancora disponibili</p>
@@ -394,6 +399,12 @@ export function TeamPicker({
           </div>
         ) : null}
       </div>
+    </div>
+  );
+
+  return (
+    <>
+      {barSlot ? createPortal(stickyBar, barSlot) : null}
 
       <section className={`${card} flex min-w-0 flex-col gap-4`}>
         <div>

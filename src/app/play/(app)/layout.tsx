@@ -26,24 +26,28 @@ export default async function PlayAreaLayout({
     // dentro invece che sul documento, l'header sticky non tocca più
     // quel percorso di Safari.
     <div className="flex h-dvh flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain">
-      {/* Altezza fissa (invece di auto via padding): la barra sticky del
-          picker (team-picker.tsx) si aggancia con un top che deve
-          combaciare esattamente con questa — un valore calcolato a
-          runtime (misurato via JS) soffriva di un bug noto di Safari:
-          un elemento sticky già "agganciato" non si riposiziona sempre
-          subito quando il suo `top` cambia dopo il primo render, finché
-          non arriva un nuovo scroll — lasciava un vuoto (trovato il
-          2026-09-02, con screenshot). Un'altezza fissa nota in anticipo
-          evita del tutto il problema: nessun valore che cambia dopo il
-          render. */}
-      <header className="sticky top-0 z-10 flex h-16 items-center border-b border-line bg-background px-7 sm:h-[72px]">
-        <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
+      {/* Un solo elemento sticky, non due coordinati a mano: la barra
+          "Slot ancora disponibili" del picker (team-picker.tsx) non è
+          più un secondo `position: sticky` separato che deve indovinare
+          un `top` combaciante con l'altezza di questo header — tentativo
+          già fallito più volte (l'ultimo: altezza fissa + top fisso,
+          ancora vulnerabile a scarti su Safari iOS durante lo scroll,
+          vedi screenshot del 2026-09-02). Qui c'è solo un contenitore
+          vuoto (#picker-sticky-bar-slot) dentro QUESTO stesso header
+          sticky: team-picker.tsx ci fa un portale (React createPortal)
+          quando è montato. Così la barra è fisicamente una riga in più
+          dello stesso blocco sticky — non può scollarsi dall'header per
+          costruzione, non c'è nessun valore da far combaciare. Vuoto su
+          tutte le altre pagine di /play (nessun impatto visivo lì). */}
+      <header className="sticky top-0 z-10 flex flex-col border-b border-line bg-background">
+        <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3 px-7 py-3 sm:py-4">
           <Brandbar subtitle="Area giocatore" href="/play" />
           <div className="flex flex-none items-center gap-2.5">
             <HamburgerMenu />
             <UserMenu email={user.email ?? ""} signOutAction={playerSignOutAction} />
           </div>
         </div>
+        <div id="picker-sticky-bar-slot" />
       </header>
       {/* NIENTE overflow-x-hidden qui: su un asse impostato a
           "hidden" e l'altro lasciato implicito, la spec CSS forza
