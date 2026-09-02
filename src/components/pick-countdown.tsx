@@ -24,7 +24,17 @@ function formatRemaining(ms: number) {
   return `${minutes}m`;
 }
 
-export function PickCountdown({ deadline }: { deadline: string | null }) {
+interface PickCountdownProps {
+  deadline: string | null;
+  /** "compact" (default): riga di testo piccola, usata inline sotto al
+   * titolo del torneo. "large": numero grande con etichetta sotto, stessa
+   * misura di "Slot ancora disponibili" — usato nella barra fissa in
+   * cima al picker (vedi team-picker.tsx), così chi scorre la pagina ha
+   * sempre sott'occhio sia quanti slot mancano sia quanto tempo resta. */
+  variant?: "compact" | "large";
+}
+
+export function PickCountdown({ deadline, variant = "compact" }: PickCountdownProps) {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -36,6 +46,34 @@ export function PickCountdown({ deadline }: { deadline: string | null }) {
     const id = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(id);
   }, []);
+
+  if (variant === "large") {
+    const isOpen = now && deadline ? now.getTime() < new Date(deadline).getTime() : true;
+    const value = !now
+      ? "…"
+      : !deadline
+        ? "—"
+        : isOpen
+          ? formatRemaining(new Date(deadline).getTime() - now.getTime())
+          : "Chiuse";
+    const label = !deadline
+      ? "Orario da confermare"
+      : isOpen
+        ? "Schiera entro"
+        : "Scelte chiuse";
+    return (
+      <div className="text-right">
+        <p
+          className={`font-display text-4xl font-extrabold leading-none ${
+            isOpen && deadline ? "text-accent" : "text-foreground"
+          }`}
+        >
+          {value}
+        </p>
+        <p className="mt-1 text-[11px] text-foreground-faint">{label}</p>
+      </div>
+    );
+  }
 
   if (!now) return null;
 

@@ -36,7 +36,7 @@ export default async function DashboardLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 px-7 py-10">
+      <main className="mx-auto w-full max-w-3xl flex-1 overflow-x-hidden px-7 py-10">
         {children}
       </main>
     </div>

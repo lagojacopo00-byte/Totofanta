@@ -191,7 +191,17 @@ export async function getAvailableTeams(
 export async function addPlayer(
   db: DB,
   tournament: Tournament,
-  input: { displayName: string; email: string; numSlots: number }
+  input: {
+    displayName: string;
+    email: string;
+    numSlots: number;
+    // Impostato solo quando l'organizzatore aggiunge SE STESSO come
+    // giocatore (checkbox "Parteciperò anch'io" in creazione torneo):
+    // essendo già un account autenticato, non serve passare dal
+    // meccanismo dell'invito "orfano" (players.user_id null, agganciato
+    // più tardi via claimPendingInvites) — si collega subito.
+    userId?: string | null;
+  }
 ) {
   const player = assertNoError(
     await db
@@ -201,6 +211,7 @@ export async function addPlayer(
         display_name: input.displayName,
         email: input.email.trim().toLowerCase(),
         num_slots: input.numSlots,
+        user_id: input.userId ?? null,
       })
       .select("*")
       .single()

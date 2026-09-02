@@ -562,8 +562,36 @@ richiede prima una decisione di prodotto).
   2026-09-02: giornate 1 e 2 già concluse, giornata 3 non ancora
   iniziata → un torneo di test avviato oggi parte correttamente dalla
   giornata 3 (non dalla 1).
-
-## Da fare — semplice
+- **"Parteciperò anch'io a questo torneo"**: checkbox in
+  `/dashboard/new` (spuntata di default) — aggiunge subito
+  l'organizzatore come giocatore del proprio torneo, già collegato al
+  proprio account (passato `userId` direttamente ad `addPlayer`, che ora
+  lo accetta: non serve più il giro dell'invito per email dato che è già
+  autenticato). Non deve più invitare se stesso a parte. Verificato
+  contro produzione con un torneo di test disposable.
+- **Barra fissa "Slot disponibili" + "Schiera entro" in cima al
+  picker**: richiesto dall'utente il 2026-09-02. Prima il conto alla
+  rovescia era un piccolo testo sotto al titolo del torneo (scorreva via
+  scrollando), separato dal numero grande "Slot ancora disponibili" più
+  in basso. Ora sono uniti in un'unica barra `sticky` in cima al picker
+  (in `team-picker.tsx`, sotto l'header condiviso — offset `top`
+  calcolato sull'altezza effettiva dell'header), stessa dimensione
+  grande per entrambi: sempre visibili scrollando la lista di partite.
+  Nuovo `variant="large"` su `PickCountdown` (in
+  [`src/components/pick-countdown.tsx`](../src/components/pick-countdown.tsx)),
+  riusa la stessa logica di conteggio del variant compatto (rimasto per
+  altri usi futuri).
+- **Bug segnalato — header dashboard organizzatore non fisso su iOS
+  Safari**: il codice (stesso pattern `sticky`/`h-dvh` già in uso e
+  verificato per l'header dell'area giocatore) risultava corretto a
+  revisione, nessuna modifica successiva al fix di stamattina l'aveva
+  toccato. Aggiunto per sicurezza `overflow-x-hidden` sul `<main>` della
+  dashboard (mancava, presente invece nell'area giocatore fin dal primo
+  fix di questo bug) — un residuo di scroll orizzontale è la causa più
+  nota di questa classe di bug su Safari iOS. **Da confermare con
+  l'utente su un dispositivo reale** se il problema persiste dopo questo
+  fix: non riproducibile da qui (nessun accesso a Safari iOS reale, e la
+  pagina richiede login che Claude non può eseguire).
 
 - ~~Contatore "pronostici disponibili" nella UI slot~~ — già coperto
   dall'indicatore esistente "N/M tuoi slot vivi" nella card "La tua
