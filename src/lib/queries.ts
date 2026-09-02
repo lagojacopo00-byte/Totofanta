@@ -9,6 +9,7 @@ import {
   type Outcome as GameOutcome,
 } from "./game-logic";
 import { isWithinMatchWindow } from "./match-window";
+import { computePickDeadline, isPickingWindowOpen } from "./pick-window";
 import { fetchSerieAFixtures, matchTeamName } from "./football-api";
 import { createAdminClient } from "./supabase/admin";
 import {
@@ -273,11 +274,35 @@ export async function updatePlayerNumSlots(
 
 /** Crea la prossima giornata (aperta) e, se il torneo era ancora "draft",
  * lo porta ad "active". */
+/**
+ * La prima giornata Serie A ancora "giocabile": quella il cui primo
+ * calcio d'inizio non escluso non è ancora passato (vedi
+ * computePickDeadline in pick-window.ts). Se un torneo si avvia mentre
+ * una giornata è già in corso (o già finita), la giornata 1 del torneo
+ * non riparte dalla giornata reale 1 — potrebbe essere già finita da
+ * settimane — ma da qui: deciso con l'utente il 2026-09-02. Una
+ * giornata non ancora in calendario (nessuna partita configurata) viene
+ * saltata, non considerata "giocabile" per difetto. Ritorna 1 se
+ * nessuna giornata risulta ancora giocabile (fine stagione, o
+ * calendario non ancora inserito) — stesso comportamento di sempre in
+ * quel caso limite.
+ */
+export async function findCurrentPlayableRound(db: DB): Promise<number> {
+  for (let round = 1; round <= 38; round++) {
+    const fixtures = await getFixturesForRound(db, round);
+    if (fixtures.length === 0) continue;
+    const excludedNames = await getExcludedTeamNames(db, round);
+    const deadline = computePickDeadline(fixtures, excludedNames);
+    if (isPickingWindowOpen(deadline)) return round;
+  }
+  return 1;
+}
+
 export async function createNextMatchday(db: DB, tournament: Tournament) {
   const existing = await getMatchdays(db, tournament.id);
   const nextNumber = existing.length > 0
     ? Math.max(...existing.map((m) => m.number)) + 1
-    : 1;
+    : await findCurrentPlayableRound(db);
 
   const matchday = assertNoError(
     await db
