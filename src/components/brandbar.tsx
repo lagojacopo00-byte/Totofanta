@@ -19,7 +19,7 @@ export function Brandbar({
         <BallMark className="h-7 w-7" />
       </div>
       <div>
-        <span className="font-display text-xl font-extrabold tracking-tight text-foreground">
+        <span className="font-display text-3xl font-extrabold tracking-tight text-foreground">
           Toto<span className="text-accent">fanta</span>
         </span>
         {subtitle ? (
