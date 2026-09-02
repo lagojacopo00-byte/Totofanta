@@ -145,7 +145,7 @@ export default async function RegolamentoPage() {
           </div>
           <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
             Conta solo quello che succede nella finestra ufficiale della
-            giornata, indicativamente da giovedì a lunedì.
+            giornata, indicativamente da venerdì a lunedì.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Una partita{" "}
