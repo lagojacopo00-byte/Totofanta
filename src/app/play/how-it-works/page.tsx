@@ -42,37 +42,42 @@ export default async function HowItWorksPage(
           <p className={eyebrow}>Il gioco, in breve</p>
         </div>
         <h1 className="mt-2 font-display text-3xl font-extrabold leading-tight sm:text-4xl">
-          Una giornata. Una scelta. Sbagli, sei fuori.
+          Una giornata. Una scelta. Sbagli e sei fuori.
         </h1>
         <p className="mt-4 text-[15px] leading-relaxed text-foreground-soft">
           Totofanta corre insieme al campionato vero.
         </p>
         <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-          Ogni giornata scegli la squadra che pensi possa vincere. Se
-          vince, continui il tuo percorso. Se pareggia o perde, quello
-          slot è eliminato.
+          Ogni giornata scegli la squadra che deve vincere.
         </p>
         <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-          Niente calcoli complicati, niente seconde possibilità:
-          sopravvive chi riesce a scegliere meglio degli altri.
+          Se vince, continui il tuo percorso. Se pareggia o perde sei
+          fuori.
+        </p>
+        <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
+          Niente calcoli complicati.
         </p>
       </div>
 
       <section id="premio" className={`${card} scroll-mt-6 border-accent/30`}>
         <div className="flex items-center gap-2.5">
           <CoinIcon className="h-5 w-5 flex-none text-accent" />
-          <p className={eyebrow}>Amici, orgoglio e (se volete) soldi veri</p>
+          <p className={eyebrow}>Amici, orgoglio e… soldi</p>
         </div>
         <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
-          Crea un torneo, invita chi vuoi e — se decidete voi — mettete
-          in palio un premio reale.
+          Crea un torneo, invita chi vuoi.
         </p>
         <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-          Ogni slot può avere un valore: più slot vengono acquistati, più
-          cresce il montepremi.
+          Scegli il prezzo dello slot.
         </p>
         <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-          Alla fine vince chi riesce a restare in gioco più a lungo.
+          Ogni giocatore compra da te quanti slot vuole.
+        </p>
+        <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
+          Prezzo slot × numero slot tot = montepremi finale.
+        </p>
+        <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
+          L&apos;ultimo sopravvissuto si intasca il bottino.
         </p>
       </section>
 
@@ -113,9 +118,8 @@ export default async function HowItWorksPage(
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Se invece una giornata elimina tutti contemporaneamente,
-            vincono ex aequo tutti quelli che erano ancora in corsa prima
-            del turno e il montepremi viene diviso secondo le regole del
-            torneo.
+            vincono ex aequo quelli che erano ancora in corsa e il
+            montepremi viene diviso in percentuale.
           </p>
         </section>
 
@@ -145,23 +149,17 @@ export default async function HowItWorksPage(
           </div>
           <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
             Schiera la tua squadra prima del calcio d&apos;inizio della
-            prima partita della giornata: da quel momento le scelte si
-            chiudono, per quella giornata specifica.
+            prima partita.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Poi si gioca.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            I risultati arrivano man mano che le partite finiscono, e la
-            giornata successiva si apre appena quella in corso è
+            La giornata successiva si apre appena quella in corso sarà
             completa.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Il conto alla rovescia verso la chiusura è sempre visibile
-            nella pagina del torneo.
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Per i casi limite — rinvii, tavolino e mancata scelta — trovi
+            Per i casi limite — rinvii, sconfitta simultanea — trovi
             tutto nel{" "}
             <Link href="/play/regolamento" className="underline hover:text-accent">
               regolamento completo

@@ -58,19 +58,12 @@ export default async function RegolamentoPage() {
           </div>
           <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
             Uno slot resta vivo solo se la squadra scelta{" "}
-            <strong className="text-foreground">vince</strong>.
+            <strong className="text-foreground">vince</strong>. Pareggio o
+            sconfitta significano eliminazione.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Pareggio o sconfitta significano eliminazione: non conta il
-            piazzamento, non conta quanto ci sei andato vicino.
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            <strong className="text-foreground">Esempio:</strong> l&apos;Inter
-            va sotto, la riprende al 90&apos; e finisce 1-1? Slot eliminato lo
-            stesso — qui pareggiare vale come perdere.
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Nel Totofanta conta solo una cosa: il fischio finale.
+            Un giocatore viene eliminato dal torneo quando tutti i suoi
+            slot sono stati eliminati.
           </p>
         </section>
 
@@ -84,16 +77,6 @@ export default async function RegolamentoPage() {
           <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
             Uno slot senza una squadra scelta entro la scadenza viene
             considerato sconfitto ed eliminato.
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            <strong className="text-foreground">Attenzione:</strong> qui non
-            esiste una squadra assegnata automaticamente se te ne dimentichi
-            — niente scelte di riserva, niente ripescaggi. Schierarti in
-            tempo è solo compito tuo.
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            L&apos;unica eccezione è l&apos;organizzatore, che può schierare
-            al tuo posto anche dopo la scadenza — vedi più sotto.
           </p>
         </section>
 
@@ -109,24 +92,12 @@ export default async function RegolamentoPage() {
             <strong className="text-foreground">
               calcio d&apos;inizio della prima partita
             </strong>{" "}
-            di quella giornata — non un giorno fisso della settimana: ogni
-            giornata ha il proprio orario, letto dal calendario Serie A
-            reale.
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            <strong className="text-foreground">Esempio:</strong> se la
-            giornata apre con Napoli-Cagliari alle 15:00 di sabato, quello è
-            il tuo termine — anche se il resto delle partite si gioca fino a
-            lunedì sera.
+            di quella giornata.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Da quel momento il mercato chiude fino alla chiusura della
-            giornata stessa, quando vengono caricati i risultati e si apre
-            il nuovo turno.
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Il conto alla rovescia nella pagina del torneo indica sempre
-            quanto tempo rimane.
+            giornata. Quando vengono caricati i risultati e si apre il
+            nuovo turno.
           </p>
         </section>
 
@@ -145,11 +116,12 @@ export default async function RegolamentoPage() {
             Nessuna squadra può essere scelta due volte sullo stesso slot.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            <strong className="text-foreground">Esempio:</strong> hai
-            giocato la Roma sullo Slot 1 alla giornata 3? Su quello slot è
-            bruciata per sempre. Ma se hai anche uno Slot 2 che non l&apos;ha
-            mai scelta, lì la Roma è ancora libera — gli slot non si
-            parlano tra loro.
+            Gli slot restano indipendenti tra loro: la stessa squadra può
+            essere ancora disponibile su un altro slot dello stesso
+            giocatore.
+          </p>
+          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
+            (Capirai meglio giocando…)
           </p>
         </section>
 
@@ -162,32 +134,25 @@ export default async function RegolamentoPage() {
           </div>
           <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
             Conta solo quello che succede nella finestra ufficiale della
-            giornata, indicativamente da venerdì a lunedì.
+            giornata, indicativamente da venerdì a lunedì. Il lunedì a
+            mezzanotte si chiude la giornata.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Una partita{" "}
             <strong className="text-foreground">rinviata</strong> e{" "}
             <strong className="text-foreground">recuperata</strong> fuori
-            da questa finestra non vale per quella giornata.
+            da questa finestra non vale per quella giornata: lo slot resta
+            vivo, non viene assegnata né vittoria né sconfitta e la
+            squadra scelta non viene consumata.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            <strong className="text-foreground">Attenzione:</strong> non
-            conta né come vittoria né come sconfitta — lo slot resta
-            semplicemente in sospeso, e la squadra scelta non viene
-            consumata.
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            <strong className="text-foreground">Esempio:</strong> hai
-            schierato l&apos;Atalanta e la sua partita slitta a un martedì
-            di recupero, due settimane dopo? Per quella giornata è come se
-            non l&apos;avessi giocata: lo slot resta vivo e l&apos;Atalanta
-            resta disponibile per una scelta futura.
+            La squadra resta quindi disponibile per una scelta futura.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Una vittoria a{" "}
             <strong className="text-foreground">tavolino</strong> invece
-            vale come un risultato reale dal momento in cui viene
-            ufficializzata dagli organi competenti.
+            vale come vinta se il risultato viene ufficializzato entro i
+            tempi (lunedì a mezzanotte).
           </p>
         </section>
 
@@ -205,10 +170,6 @@ export default async function RegolamentoPage() {
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Da quel momento ogni slot viene aggiornato automaticamente.
           </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Un giocatore viene eliminato dal torneo quando tutti i suoi
-            slot sono stati eliminati.
-          </p>
         </section>
 
         <section id="vittoria" className={`${cardTight} scroll-mt-24 p-5`}>
@@ -222,19 +183,11 @@ export default async function RegolamentoPage() {
             Si va avanti finché resta più di un giocatore in gara.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Se rimane un solo giocatore con almeno uno slot vivo, il
-            torneo finisce: ha vinto lui.
+            Se rimane un solo giocatore vivo, il torneo è suo.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Se invece una giornata elimina contemporaneamente tutti gli
-            slot ancora vivi, vincono ex aequo tutti i giocatori che erano
-            ancora in corsa prima del turno.
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            <strong className="text-foreground">Esempio:</strong> siete
-            rimasti in tre, tutti con l&apos;ultimo slot vivo, e la
-            giornata li elimina tutti insieme? Vincete in tre, ex aequo —
-            il torneo finisce lì, senza spareggi.
+            Se una giornata elimina tutti i giocatori? Vincono tutti ex
+            aequo.
           </p>
         </section>
 
