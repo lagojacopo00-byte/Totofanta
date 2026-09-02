@@ -26,7 +26,17 @@ export default async function PlayAreaLayout({
     // dentro invece che sul documento, l'header sticky non tocca più
     // quel percorso di Safari.
     <div className="flex h-dvh flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain">
-      <header className="sticky top-0 z-10 border-b border-line bg-background px-7 py-3 sm:py-4">
+      {/* Altezza fissa (invece di auto via padding): la barra sticky del
+          picker (team-picker.tsx) si aggancia con un top che deve
+          combaciare esattamente con questa — un valore calcolato a
+          runtime (misurato via JS) soffriva di un bug noto di Safari:
+          un elemento sticky già "agganciato" non si riposiziona sempre
+          subito quando il suo `top` cambia dopo il primo render, finché
+          non arriva un nuovo scroll — lasciava un vuoto (trovato il
+          2026-09-02, con screenshot). Un'altezza fissa nota in anticipo
+          evita del tutto il problema: nessun valore che cambia dopo il
+          render. */}
+      <header className="sticky top-0 z-10 flex h-16 items-center border-b border-line bg-background px-7 sm:h-[72px]">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
           <Brandbar subtitle="Area giocatore" href="/play" />
           <div className="flex flex-none items-center gap-2.5">
