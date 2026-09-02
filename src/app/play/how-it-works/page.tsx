@@ -29,7 +29,8 @@ export default async function HowItWorksPage(
   await requirePlayer(`/play/how-it-works?next=${encodeURIComponent(next)}`);
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-7 py-8 sm:py-10 text-center">
+    <>
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-7 pb-32 pt-8 text-center sm:pt-10">
       <BackLink href="/play" label="I tuoi tornei" />
       <div className="flex justify-center">
         <Brandbar subtitle="Come funziona" />
@@ -147,27 +148,31 @@ export default async function HowItWorksPage(
         </section>
       </div>
 
-      <form
-        action={markTutorialSeenAction}
-        className={`${card} flex flex-col items-center gap-3 text-center`}
-      >
-        <input type="hidden" name="next" value={next} />
+      <div className={`${card} flex flex-col items-center gap-3 text-center`}>
         <p className="text-sm text-foreground-soft">Tutto chiaro?</p>
         <p className="text-sm text-foreground-soft">
           Questa pagina resta sempre a un click da Come funziona, nella
           tua area giocatore.
         </p>
-        <div className="flex flex-wrap justify-center gap-3">
-          <button className={button} type="submit">
-            Gioca
-          </button>
-          <Link href="/play/regolamento" className={buttonGhost}>
-            Vedi regolamento
-          </Link>
-        </div>
-      </form>
+      </div>
 
       <ScrollDots sections={sections} />
     </main>
+
+    <form
+      action={markTutorialSeenAction}
+      className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-background px-7 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4"
+    >
+      <input type="hidden" name="next" value={next} />
+      <div className="mx-auto flex w-full max-w-lg flex-wrap justify-center gap-3">
+        <button className={button} type="submit">
+          Gioca
+        </button>
+        <Link href="/play/regolamento" className={buttonGhost}>
+          Vedi regolamento
+        </Link>
+      </div>
+    </form>
+    </>
   );
 }
