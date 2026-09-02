@@ -45,7 +45,15 @@ export default async function PlayAreaLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-lg flex-1 overflow-x-hidden px-7 py-6 sm:py-10">
+      {/* NIENTE overflow-x-hidden qui: su un asse impostato a
+          "hidden" e l'altro lasciato implicito, la spec CSS forza
+          quello implicito da "visible" ad "auto" — main diventerebbe
+          un secondo contenitore di scroll indipendente dal div sopra,
+          e la barra sticky di team-picker.tsx (dentro main) si
+          aggancerebbe al bordo di main invece che all'header (fuori
+          da main), lasciando sempre uno scarto. Il fix per lo scroll
+          orizzontale di Safari basta già a livello del div esterno. */}
+      <main className="mx-auto w-full max-w-lg flex-1 px-7 py-6 sm:py-10">
         {children}
       </main>
     </div>

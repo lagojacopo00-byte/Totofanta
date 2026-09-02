@@ -36,7 +36,14 @@ export default async function DashboardLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 overflow-x-hidden px-7 py-10">
+      {/* NIENTE overflow-x-hidden qui: su un asse impostato a
+          "hidden" e l'altro lasciato implicito, la spec CSS forza
+          quello implicito da "visible" ad "auto" — main diventerebbe
+          un secondo contenitore di scroll indipendente dal div sopra,
+          rompendo l'header sticky (che sta fuori da main). Il fix per
+          lo scroll orizzontale di Safari basta già a livello del div
+          esterno. */}
+      <main className="mx-auto w-full max-w-3xl flex-1 px-7 py-10">
         {children}
       </main>
     </div>
