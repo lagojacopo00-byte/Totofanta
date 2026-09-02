@@ -369,7 +369,16 @@ export function TeamPicker({
               </span>
             </p>
           </div>
-          <PickCountdown deadline={deadline} variant="large" />
+          {showCollapsed ? (
+            <div className="min-w-0 text-right">
+              <p className="whitespace-nowrap font-display text-2xl font-extrabold leading-none text-accent sm:text-3xl">
+                ✓
+              </p>
+              <p className="mt-1 text-[11px] text-foreground-faint">Formazione schierata</p>
+            </div>
+          ) : (
+            <PickCountdown deadline={deadline} variant="large" />
+          )}
         </div>
         {!readOnly && !saved ? (
           <div className="mt-2 flex items-center gap-2">
