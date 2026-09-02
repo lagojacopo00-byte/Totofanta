@@ -64,7 +64,6 @@ spieghi come l'app è stata progettata e costruita. Task tracciato in
 decisione sopra (niente scalabilità/utenti esterni): l'obiettivo
 portfolio richiede qualità e chiarezza della documentazione tecnica, non
 una base utenti ampia.
-visiva/UX già in corso per chi gioca con i torneo esistenti.
 
 ## Ruoli (terminologia)
 
