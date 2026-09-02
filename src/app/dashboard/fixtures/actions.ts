@@ -85,7 +85,7 @@ export async function setFixtureResultAction(
 
   await queries.updateFixtureResult(supabase, fixtureId, result);
   if (result) {
-    await queries.tryFinalizeRoundEverywhere(supabase, round);
+    await queries.tryFinalizeRoundEverywhere(round);
   }
   revalidatePath("/dashboard/fixtures");
 }
