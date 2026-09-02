@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Worktree scratch space usata dalle sessioni cloud di Claude Code:
+    // è una copia completa del repo, senza escluderla viene lintata due
+    // volte (raddoppia ogni problema, veri e falsi).
+    ".claude/worktrees/**",
   ]),
 ]);
 
