@@ -606,6 +606,27 @@ richiede prima una decisione di prodotto).
   "attaccata" invece che fluttuante. Aggiunti anche i minuti al conto
   alla rovescia (prima "2g 5h", ora "2g 5h 32m" sempre su una riga sola,
   testo più piccolo per non andare a capo).
+- **Corretto per davvero il gap tra header e barra fissa (secondo giro,
+  con nuovo screenshot)**: l'altezza misurata a runtime via
+  `ResizeObserver` non bastava — un elemento `sticky` già "agganciato"
+  su Safari/WebKit non si riposiziona sempre subito quando il suo `top`
+  cambia DOPO il primo render (il valore misurato arriva via un
+  `useEffect`, quindi dopo il primo paint), finché non arriva un nuovo
+  scroll: lasciava un vuoto persistente. Risolto alla radice cambiando
+  l'header di `play/(app)/layout.tsx` da altezza automatica (padding +
+  contenuto) ad altezza FISSA (`h-16`/`sm:h-[72px]`), e usando lo stesso
+  valore come `top` statico nella barra del picker — nessun valore che
+  cambia dopo il render, nessuna finestra in cui Safari possa sbagliare
+  il riposizionamento. Rimossa la logica `ResizeObserver`, non più
+  necessaria.
+- **Bottone di conferma anche nella barra fissa**: segnalato
+  dall'utente ("ho modificato le scelte e non c'è un salva-modifiche")
+  — il bottone "Schiera e conferma" restava solo in fondo alla lista
+  partite, lontano da raggiungere scorrendo dopo una modifica con molte
+  partite/slot. La barra fissa mostra già "Modifiche non salvate": ora
+  accanto c'è anche un bottone "Conferma" compatto che richiama la
+  stessa `handleConfirm` del bottone in fondo (non lo sostituisce,
+  resta anche quello).
 
 - ~~Contatore "pronostici disponibili" nella UI slot~~ — già coperto
   dall'indicatore esistente "N/M tuoi slot vivi" nella card "La tua

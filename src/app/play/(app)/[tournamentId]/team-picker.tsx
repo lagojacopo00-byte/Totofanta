@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { TeamBadge } from "@/components/team-badge";
 import { button, buttonGhost, card, eyebrow } from "@/components/ui";
 import { maxAssignableForTeam, solveSlotAssignment, type SlotOption } from "@/lib/slot-assignment";
@@ -129,23 +129,6 @@ export function TeamPicker({
   const [saved, setSaved] = useState(true);
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  // Altezza reale dell'header condiviso (play/(app)/layout.tsx), misurata
-  // a runtime invece di indovinata in CSS: la barra fissa sotto (slot
-  // disponibili + scadenza) deve attaccarsi esattamente al suo bordo
-  // inferiore, e un valore fisso sbagliava per davvero su schermi reali
-  // (trovato il 2026-09-02). Un ResizeObserver la tiene aggiornata anche
-  // se l'header cambia altezza (breakpoint, testo diverso, ecc.).
-  const [headerHeight, setHeaderHeight] = useState(0);
-  useEffect(() => {
-    const header = document.querySelector("header");
-    if (!header) return;
-    const update = () => setHeaderHeight(header.getBoundingClientRect().height);
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(header);
-    return () => observer.disconnect();
-  }, []);
 
   const teamByName = useMemo(() => new Map(teams.map((t) => [t.name, t])), [teams]);
   const excludedSet = useMemo(() => new Set(excludedTeamNames), [excludedTeamNames]);
@@ -362,16 +345,19 @@ export function TeamPicker({
           quanti slot restano da assegnare (aggiornato a ogni click,
           prima ancora di confermare) e il conto alla rovescia, sempre
           sott'occhio insieme — deciso con l'utente il 2026-09-02. Sticky
-          attaccata subito sotto l'header condiviso (top = la sua altezza
-          reale misurata sopra, non un valore CSS indovinato — un
-          offset fisso sbagliava su schermi reali). Barra piena da bordo
-          a bordo, non una card: -mx-7/px-7 annulla il padding
+          attaccata subito sotto l'header condiviso: `top` combacia con
+          la sua altezza FISSA (vedi play/(app)/layout.tsx — un valore
+          misurato a runtime soffriva di un bug noto di Safari, non si
+          riposizionava sempre subito dopo il primo render). Barra piena
+          da bordo a bordo, non una card: -mx-7/px-7 annulla il padding
           orizzontale di <main> così combacia esattamente con la
           larghezza dell'header, senza margine né angoli arrotondati che
-          la farebbero sembrare "staccata". */}
+          la farebbero sembrare "staccata". Bottone di conferma qui
+          dentro, non solo in fondo alla lista partite: altrimenti, con
+          molti slot/partite, dopo una modifica bisognava scorrere
+          parecchio per ritrovare "Schiera e conferma". */}
       <div
-        className="sticky z-[5] -mx-7 border-b border-line bg-background px-7 py-3"
-        style={{ top: headerHeight }}
+        className="sticky top-16 z-[5] -mx-7 border-b border-line bg-background px-7 py-3 sm:top-[72px]"
       >
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -385,8 +371,18 @@ export function TeamPicker({
           </div>
           <PickCountdown deadline={deadline} variant="large" />
         </div>
-        {!saved ? (
-          <p className="mt-2 text-xs text-foreground-faint">Modifiche non salvate</p>
+        {!readOnly && !saved ? (
+          <div className="mt-2 flex items-center gap-2">
+            <p className="text-xs text-foreground-faint">Modifiche non salvate</p>
+            <button
+              type="button"
+              disabled={isPending || !assignment}
+              onClick={handleConfirm}
+              className={`${button} ml-auto px-3 py-1.5 text-xs`}
+            >
+              {isPending ? "Salvo…" : "Conferma"}
+            </button>
+          </div>
         ) : null}
       </div>
 
