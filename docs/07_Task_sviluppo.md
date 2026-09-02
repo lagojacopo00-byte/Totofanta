@@ -592,6 +592,20 @@ richiede prima una decisione di prodotto).
   l'utente su un dispositivo reale** se il problema persiste dopo questo
   fix: non riproducibile da qui (nessun accesso a Safari iOS reale, e la
   pagina richiede login che Claude non può eseguire).
+- **Corretta la barra fissa del picker (segnalato su iOS con
+  screenshot)**: l'offset `top` indovinato in CSS (65px/73px) era
+  sbagliato su schermo reale — la barra appariva staccata dall'header,
+  a metà pagina, sovrapposta al contenuto sotto. Sostituito con
+  l'altezza REALE dell'header misurata a runtime (`ResizeObserver` su
+  `document.querySelector("header")`, in `team-picker.tsx`), robusta a
+  prescindere da eventuali differenze di misura che indovinare in CSS
+  non può prevedere. Cambiato anche lo stile da "card" (angoli
+  arrotondati, ombra, margine) a barra piena da bordo a bordo
+  (`-mx-7`/`px-7` per annullare il padding di `<main>`, stesso sfondo e
+  bordo dell'header) — deciso con l'utente per farla sembrare
+  "attaccata" invece che fluttuante. Aggiunti anche i minuti al conto
+  alla rovescia (prima "2g 5h", ora "2g 5h 32m" sempre su una riga sola,
+  testo più piccolo per non andare a capo).
 
 - ~~Contatore "pronostici disponibili" nella UI slot~~ — già coperto
   dall'indicatore esistente "N/M tuoi slot vivi" nella card "La tua
