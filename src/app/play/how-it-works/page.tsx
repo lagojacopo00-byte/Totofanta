@@ -5,11 +5,9 @@ import { BackLink } from "@/components/back-link";
 import { button, buttonGhost, card, cardTight, eyebrow } from "@/components/ui";
 import { ScrollDots, type ScrollDotSection } from "@/components/scroll-dots";
 import {
-  BallIcon,
   CoinIcon,
   HeartIcon,
   TrophyIcon,
-  ListIcon,
   CalendarIcon,
 } from "@/components/rule-icons";
 import { markTutorialSeenAction } from "./actions";
@@ -19,7 +17,6 @@ const sections: ScrollDotSection[] = [
   { id: "premio", label: "Amici e premio" },
   { id: "slot", label: "Gli slot" },
   { id: "vittoria", label: "Chi vince il torneo" },
-  { id: "nell-app", label: "Nell'app trovi" },
   { id: "ritmo", label: "Il ritmo della settimana" },
 ];
 
@@ -37,12 +34,8 @@ export default async function HowItWorksPage(
       <Brandbar subtitle="Come funziona" />
 
       <div id="il-gioco" className="scroll-mt-6">
-        <div className="flex items-center gap-2.5">
-          <BallIcon className="h-5 w-5 flex-none text-accent" />
-          <p className={eyebrow}>Il gioco, in breve</p>
-        </div>
-        <h1 className="mt-2 font-display text-3xl font-extrabold leading-tight sm:text-4xl">
-          Una giornata. Una scelta. Sbagli e sei fuori.
+        <h1 className="font-display text-3xl font-extrabold leading-tight sm:text-4xl">
+          Una giornata. Una scelta. Sbagli e sei fuori
         </h1>
         <p className="mt-4 text-[15px] leading-relaxed text-foreground-soft">
           Totofanta corre insieme al campionato vero.
@@ -55,7 +48,7 @@ export default async function HowItWorksPage(
           fuori.
         </p>
         <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-          Niente calcoli complicati.
+          Niente calcoli complicati
         </p>
       </div>
 
@@ -65,19 +58,19 @@ export default async function HowItWorksPage(
           <p className={eyebrow}>Amici, orgoglio e… soldi</p>
         </div>
         <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
-          Crea un torneo, invita chi vuoi.
+          Crea un torneo, invita chi vuoi
         </p>
         <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-          Scegli il prezzo dello slot.
+          Scegli il prezzo dello slot
         </p>
         <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-          Ogni giocatore compra da te quanti slot vuole.
+          Ogni giocatore compra quanti slot vuole
         </p>
         <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-          Prezzo slot × numero slot tot = montepremi finale.
+          Prezzo slot X numero slot tot = montepremi finale
         </p>
         <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-          L&apos;ultimo sopravvissuto si intasca il bottino.
+          L&apos;ultimo sopravvissuto si intasca il bottino
         </p>
       </section>
 
@@ -123,23 +116,6 @@ export default async function HowItWorksPage(
           </p>
         </section>
 
-        <section id="nell-app" className={`${cardTight} scroll-mt-6 p-5`}>
-          <div className="flex items-center gap-2.5">
-            <ListIcon className="h-5 w-5 flex-none text-accent" />
-            <h2 className="font-display text-lg font-extrabold sm:text-xl">
-              Nell&apos;app trovi
-            </h2>
-          </div>
-          <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
-            La classifica di chi è ancora vivo e chi è già fuori, e
-            l&apos;avversario di ogni squadra disponibile.
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Le giornate vengono aperte dall&apos;organizzatore, che carica
-            anche i risultati.
-          </p>
-        </section>
-
         <section id="ritmo" className={`${cardTight} scroll-mt-6 p-5`}>
           <div className="flex items-center gap-2.5">
             <CalendarIcon className="h-5 w-5 flex-none text-accent" />
@@ -155,11 +131,11 @@ export default async function HowItWorksPage(
             Poi si gioca.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            La giornata successiva si apre appena quella in corso sarà
+            la giornata successiva si apre appena quella in corso sarà
             completa.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Per i casi limite — rinvii, sconfitta simultanea — trovi
+            Per i casi limite — rinvii – sconfitta simultanea — trovi
             tutto nel{" "}
             <Link href="/play/regolamento" className="underline hover:text-accent">
               regolamento completo
@@ -181,7 +157,7 @@ export default async function HowItWorksPage(
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <button className={button} type="submit">
-            Si gioca
+            Gioca
           </button>
           <Link href="/play/regolamento" className={buttonGhost}>
             Vedi regolamento
