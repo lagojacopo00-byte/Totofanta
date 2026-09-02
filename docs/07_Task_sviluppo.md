@@ -394,6 +394,49 @@ richiede prima una decisione di prodotto).
     scoprire una policy che mancava da ENTRAMBI: la policy SELECT per
     invito orfano trovata subito dopo (vedi sopra) era un buco di design
     dello schema stesso, non un drift.
+- **Sincronizzazione automatica del calendario Serie A da
+  football-data.org**: nuovo bottone "Sincronizza ora" su
+  `/dashboard/fixtures` (solo creator) che scarica data/ora e risultati
+  reali della stagione e li applica a `serie_a_fixtures` — stesso
+  percorso già usato per l'inserimento manuale (`updateFixtureResult` +
+  `tryFinalizeRoundEverywhere`), solo con la sorgente del dato
+  automatica. Non tocca mai `status` (una partita esclusa a mano resta
+  tale). Nuovo modulo
+  [`src/lib/football-api.ts`](../src/lib/football-api.ts) (logica pura,
+  testata) con un confronto nomi squadra tollerante (accenti, maiuscole,
+  prefissi/suffissi societari come "AC"/"FC"/"CFC"/anno di fondazione)
+  invece di un elenco di alias scritto a mano — verificato contro i nomi
+  reali dell'API (es. "FC Internazionale Milano", "Genoa CFC"), zero
+  nomi non riconosciuti nel primo giro reale contro produzione (vedi
+  sotto). I nomi non riconosciuti (se mai capitassero) finiscono nel
+  riepilogo mostrato all'utente e nella console del server, mai persi
+  silenziosamente. Scartata l'automazione via cron (Vercel Cron sul
+  piano Hobby gira al massimo una volta al giorno): il creator clicca il
+  bottone durante la finestra di gioco, come già faceva a mano per i
+  risultati.
+  - **Prima scelta, poi scartata: API-Football**. Piano gratuito
+    verificato con una chiave reale: aggiornamento ogni 15 secondi
+    durante le partite, ma **non copre la stagione in corso** — il free
+    plan permette solo le stagioni 2022-2024, quella 2026/2027 richiede
+    un piano a pagamento (~$19/mese). Scoperto testando direttamente
+    l'API (la ricerca preliminare non l'aveva verificato con
+    precisione), non dopo aver scritto il codice.
+  - **Passato a football-data.org**: piano gratuito registrato (token
+    gratuito, 10 richieste/minuto) che include la stagione in corso.
+    Verificato con una chiamata reale: **gli esiti hanno un ritardo di
+    circa 24-30 ore** (aggiornamento periodico, non partita per
+    partita — tutte le partite già giocate avevano lo stesso identico
+    `lastUpdated`), mentre gli orari (`kickoff_at`) sono sempre corretti
+    da subito (noti in anticipo, non soggetti allo stesso ritardo).
+    Deciso con l'utente: sincronizzare comunque anche i risultati
+    nonostante il ritardo — il creator può sempre inserirne uno a mano
+    prima per chiudere la giornata subito, come faceva già.
+  - **Verificato end-to-end contro produzione** (2026-09-02, solo tornei
+    di test attivi quindi nessun impatto su tornei reali —
+    `tryFinalizeRoundEverywhere` esclude comunque sempre i tornei di
+    test): sincronizzate tutte le 380 partite della stagione con
+    data/ora corrette, applicati i 20 risultati delle giornate 1-2 già
+    giocate, **zero nomi squadra non riconosciuti**.
 
 ## Da fare — semplice
 
@@ -411,8 +454,9 @@ Nessuna al momento.
 
 ## Bassa priorità (esplicitamente rimandato dall'utente)
 
-- Import automatico dei risultati Serie A (CSV/scraping) al posto
-  dell'inserimento manuale.
+- ~~Import automatico dei risultati Serie A (CSV/scraping) al posto
+  dell'inserimento manuale~~ — fatto, vedi "Sincronizzazione automatica
+  del calendario Serie A da football-data.org" sopra in Fatto.
 
 ## Direzione visiva / UX
 

@@ -9,6 +9,7 @@ import {
   type Outcome as GameOutcome,
 } from "./game-logic";
 import { isWithinMatchWindow } from "./match-window";
+import { fetchSerieAFixtures, matchTeamName } from "./football-api";
 import type {
   Fixture,
   FixtureResult,
@@ -792,6 +793,79 @@ export async function updateFixtureResult(
   assertNoError(
     await db.from("serie_a_fixtures").update({ result }).eq("id", fixtureId)
   );
+}
+
+/**
+ * Sincronizza date/ora e risultati reali di Serie A da football-data.org:
+ * scarica l'intera stagione (una sola chiamata), aggiorna kickoff_at per
+ * ogni partita e, per quelle già finite, chiama updateFixtureResult +
+ * tryFinalizeRoundEverywhere — lo stesso percorso che già usa il creator
+ * cliccando 1/X/2 a mano su /dashboard/fixtures, solo con la sorgente del
+ * dato automatica invece che manuale. Non tocca mai `status` (una
+ * partita segnata "esclusa" a mano resta tale): quella è una decisione
+ * dell'app, non un fatto che l'API conosca.
+ *
+ * ATTENZIONE ritardo risultati: il piano gratuito di football-data.org
+ * aggiorna gli esiti circa una volta al giorno, non appena finisce la
+ * partita (vedi il commento in fetchSerieAFixtures in football-api.ts,
+ * verificato con una chiamata reale). Gli orari (kickoff_at) invece sono
+ * sempre aggiornati, essendo noti in anticipo. Deciso con l'utente:
+ * sincronizzare comunque anche i risultati nonostante il ritardo — il
+ * creator può sempre inserirne uno a mano prima per chiudere la giornata
+ * subito, invece di aspettare il giro automatico del giorno dopo.
+ *
+ * Ritorna un riepilogo per mostrare all'utente cosa è successo — in
+ * particolare `unmatched`, i nomi squadra che l'API ha restituito e che
+ * non abbiamo saputo far combaciare con nessuna squadra nota: senza
+ * questo la sincronizzazione di quelle partite fallirebbe in silenzio
+ * (stessa categoria di bug delle policy RLS mancanti trovate oggi).
+ */
+export async function syncFixturesFromFootballData(
+  db: DB,
+  apiToken: string,
+  season?: number
+) {
+  const [apiFixtures, knownTeams] = await Promise.all([
+    fetchSerieAFixtures(apiToken, season),
+    getReferenceTeams(db, "Serie A"),
+  ]);
+  const knownNames = knownTeams.map((t) => t.name);
+
+  let kickoffsSynced = 0;
+  let resultsSynced = 0;
+  const roundsToFinalize = new Set<number>();
+  const unmatched: { home: string; away: string }[] = [];
+
+  for (const f of apiFixtures) {
+    const homeTeam = matchTeamName(f.homeTeamName, knownNames);
+    const awayTeam = matchTeamName(f.awayTeamName, knownNames);
+    if (!homeTeam || !awayTeam) {
+      unmatched.push({ home: f.homeTeamName, away: f.awayTeamName });
+      continue;
+    }
+
+    const row = await upsertFixture(db, {
+      round: f.round,
+      homeTeam,
+      awayTeam,
+      kickoffAt: f.kickoffAt,
+    });
+    kickoffsSynced += 1;
+
+    if (f.finished && f.result) {
+      if (row.result !== f.result) {
+        await updateFixtureResult(db, row.id, f.result);
+        resultsSynced += 1;
+      }
+      roundsToFinalize.add(f.round);
+    }
+  }
+
+  for (const round of roundsToFinalize) {
+    await tryFinalizeRoundEverywhere(db, round);
+  }
+
+  return { kickoffsSynced, resultsSynced, unmatched };
 }
 
 /**
