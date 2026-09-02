@@ -544,6 +544,24 @@ richiede prima una decisione di prodotto).
     attivo — il riepilogo giornata e lo stato degli slot si aggiornano
     da soli mentre si guarda la pagina, senza dover ricaricare a mano,
     non appena il creator sincronizza o inserisce un esito altrove.
+- **Il torneo parte dalla giornata reale giocabile, non sempre dalla 1**:
+  richiesto dall'utente il 2026-09-02. Prima, avviare un torneo creava
+  sempre "giornata 1" del torneo agganciata alla giornata reale 1 —
+  sbagliato se la stagione è già iniziata da settimane (giornata 1 già
+  finita da un pezzo, picker inutilizzabile). Nuova
+  `findCurrentPlayableRound` in
+  [`src/lib/queries.ts`](../src/lib/queries.ts): scorre le giornate
+  Serie A da 1 in su e ritorna la prima il cui primo calcio d'inizio non
+  escluso non è ancora passato (`computePickDeadline` +
+  `isPickingWindowOpen` di `pick-window.ts`, già scritte per il punto 2
+  di oggi) — una giornata non ancora in calendario viene saltata, non
+  considerata "giocabile" per difetto. Usata solo per la PRIMA giornata
+  di un torneo (`createNextMatchday`, ramo `existing.length === 0`): le
+  giornate successive continuano a incrementare normalmente da quella
+  precedente, come sempre. **Verificato contro produzione** il
+  2026-09-02: giornate 1 e 2 già concluse, giornata 3 non ancora
+  iniziata → un torneo di test avviato oggi parte correttamente dalla
+  giornata 3 (non dalla 1).
 
 ## Da fare — semplice
 
