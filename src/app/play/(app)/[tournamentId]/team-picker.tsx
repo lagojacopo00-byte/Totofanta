@@ -127,6 +127,7 @@ export function TeamPicker({
   const [counts, setCounts] = useState<Record<string, number>>(() => initialCounts(slots));
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(true);
+  const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const teamByName = useMemo(() => new Map(teams.map((t) => [t.name, t])), [teams]);
@@ -164,6 +165,15 @@ export function TeamPicker({
   const assignedCount = Object.values(counts).reduce((sum, n) => sum + n, 0);
   const remainingSlots = totalSlots - assignedCount;
 
+  // Una volta schierati tutti gli slot, la lista intera delle partite
+  // (utile mentre si sceglie) diventa solo rumore: mostriamo un riepilogo
+  // con le sole partite che riguardano le squadre scelte, con un bottone
+  // per riaprire il picker completo se si vuole cambiare idea. In
+  // readOnly (weekend, scelte chiuse) resta invece sempre tutto il
+  // calendario, come deciso in precedenza — qui serve monitorare l'intera
+  // giornata, non solo le proprie squadre.
+  const showCollapsed = !readOnly && !editing && totalSlots > 0 && remainingSlots === 0 && saved;
+
   const eligibleAnywhere = useMemo(() => {
     const set = new Set<string>();
     for (const s of slots) for (const t of s.eligibleTeamIds) set.add(t);
@@ -191,9 +201,7 @@ export function TeamPicker({
     const max = maxima[teamId] ?? 0;
     const count = counts[teamId] ?? 0;
     if (count >= max) {
-      return count > 0
-        ? `hai raggiunto il massimo per questa squadra (${max})`
-        : "nessuno slot libero per questa scelta";
+      return count > 0 ? "massimo raggiunto" : "non assegnabile";
     }
     return null;
   }
@@ -226,6 +234,7 @@ export function TeamPicker({
       try {
         await submitPicksAction(tournamentId, matchdayId, assignments);
         setSaved(true);
+        setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Salvataggio fallito. Riprova.");
       }
@@ -281,6 +290,55 @@ export function TeamPicker({
     );
   }
 
+  // Versione in sola lettura di una riga squadra, per il riepilogo "le tue
+  // scelte": niente bottoni, solo badge/nome e — se questa è la squadra
+  // scelta — il numero di slot che le sono stati assegnati.
+  function CollapsedTeamRow({ name, teamId }: { name: string; teamId: string | undefined }) {
+    const count = teamId ? (counts[teamId] ?? 0) : 0;
+    if (count <= 0) {
+      return (
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-line/60 px-2 py-1.5 text-xs opacity-40">
+          <TeamBadge name={name} size="sm" />
+          <span className="truncate font-semibold text-foreground-faint">{name}</span>
+        </div>
+      );
+    }
+    return (
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-accent/50 bg-accent/10 px-2 py-1.5 text-xs">
+        <TeamBadge name={name} size="sm" />
+        <span className="truncate font-semibold text-foreground">{name}</span>
+        <span className="ml-auto flex-none rounded-full bg-accent px-2 py-0.5 font-mono text-[11px] font-bold text-accent-ink">
+          {count}
+        </span>
+      </div>
+    );
+  }
+
+  const collapsedDayGroups = useMemo(() => {
+    if (!showCollapsed) return [];
+    return dayGroups
+      .map(({ group, fixtures }) => ({
+        group,
+        fixtures: fixtures.filter((f) => {
+          const homeId = teamByName.get(f.homeTeam)?.id;
+          const awayId = teamByName.get(f.awayTeam)?.id;
+          return (
+            (homeId ? (counts[homeId] ?? 0) > 0 : false) ||
+            (awayId ? (counts[awayId] ?? 0) > 0 : false)
+          );
+        }),
+      }))
+      .filter((g) => g.fixtures.length > 0);
+  }, [showCollapsed, dayGroups, teamByName, counts]);
+
+  const collapsedOtherTeams = useMemo(
+    () => (showCollapsed ? otherTeams.filter((t) => (counts[t.id] ?? 0) > 0) : []),
+    [showCollapsed, otherTeams, counts]
+  );
+
+  const visibleDayGroups = showCollapsed ? collapsedDayGroups : dayGroups;
+  const visibleOtherTeams = showCollapsed ? collapsedOtherTeams : otherTeams;
+
   return (
     <>
       {/* Fissa in cima mentre si scorre la lista di partite sotto:
@@ -331,7 +389,8 @@ export function TeamPicker({
       <section className={`${card} flex min-w-0 flex-col gap-4`}>
         <div>
           <p className={eyebrow}>
-            Giornata {matchdayNumber} · {readOnly ? "calendario" : "scendi in campo"}
+            Giornata {matchdayNumber} ·{" "}
+            {readOnly ? "calendario" : showCollapsed ? "le tue scelte" : "scendi in campo"}
           </p>
           {readOnly ? (
             <p className="mt-1 text-xs text-foreground-faint">
@@ -339,11 +398,15 @@ export function TeamPicker({
               giornata. Qui sotto trovi comunque il programma di ogni
               squadra.
             </p>
+          ) : showCollapsed ? (
+            <p className="mt-1 text-xs text-foreground-faint">
+              Hai schierato tutti i tuoi slot per questa giornata.
+            </p>
           ) : null}
         </div>
 
         <div className="flex min-w-0 flex-col gap-3">
-          {dayGroups.map(({ group, fixtures }) => (
+          {visibleDayGroups.map(({ group, fixtures }) => (
             <div key={group} className="flex min-w-0 flex-col gap-1.5">
               <p className="text-[11px] font-bold uppercase tracking-wide text-foreground-faint">
                 {dayGroupLabel[group]}
@@ -371,14 +434,22 @@ export function TeamPicker({
                         <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-foreground-faint">
                           <HomeIcon /> Casa
                         </span>
-                        <TeamControl name={f.homeTeam} teamId={teamByName.get(f.homeTeam)?.id} />
+                        {showCollapsed ? (
+                          <CollapsedTeamRow name={f.homeTeam} teamId={teamByName.get(f.homeTeam)?.id} />
+                        ) : (
+                          <TeamControl name={f.homeTeam} teamId={teamByName.get(f.homeTeam)?.id} />
+                        )}
                       </div>
                       <span className="flex-none font-mono text-[10px] text-foreground-faint">vs</span>
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
                         <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-foreground-faint">
                           <AwayIcon /> Trasferta
                         </span>
-                        <TeamControl name={f.awayTeam} teamId={teamByName.get(f.awayTeam)?.id} />
+                        {showCollapsed ? (
+                          <CollapsedTeamRow name={f.awayTeam} teamId={teamByName.get(f.awayTeam)?.id} />
+                        ) : (
+                          <TeamControl name={f.awayTeam} teamId={teamByName.get(f.awayTeam)?.id} />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -387,15 +458,19 @@ export function TeamPicker({
             </div>
           ))}
 
-          {otherTeams.length > 0 ? (
+          {visibleOtherTeams.length > 0 ? (
             <div className="flex min-w-0 flex-col gap-1.5">
               <p className="text-[11px] font-bold uppercase tracking-wide text-foreground-faint">
                 Altre squadre disponibili
               </p>
               <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                {otherTeams.map((t) => (
-                  <TeamControl key={t.id} name={t.name} teamId={t.id} />
-                ))}
+                {visibleOtherTeams.map((t) =>
+                  showCollapsed ? (
+                    <CollapsedTeamRow key={t.id} name={t.name} teamId={t.id} />
+                  ) : (
+                    <TeamControl key={t.id} name={t.name} teamId={t.id} />
+                  )
+                )}
               </div>
             </div>
           ) : null}
@@ -404,29 +479,36 @@ export function TeamPicker({
         {error ? <p className="text-sm text-lose">{error}</p> : null}
 
         {!readOnly ? (
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              className={`${button} flex-1`}
-              disabled={isPending || saved || !assignment}
-              onClick={handleConfirm}
-            >
-              {isPending ? "Salvo…" : saved ? "Squadre schierate" : "Schiera e conferma"}
+          showCollapsed ? (
+            <button type="button" className={button} onClick={() => setEditing(true)}>
+              Modifica slot
             </button>
-            {!saved && !isPending ? (
+          ) : (
+            <div className="flex items-center gap-3">
               <button
                 type="button"
-                className={buttonGhost}
-                onClick={() => {
-                  setCounts(initialCounts(slots));
-                  setError(null);
-                  setSaved(true);
-                }}
+                className={`${button} flex-1`}
+                disabled={isPending || saved || !assignment}
+                onClick={handleConfirm}
               >
-                Annulla
+                {isPending ? "Salvo…" : saved ? "Squadre schierate" : "Schiera e conferma"}
               </button>
-            ) : null}
-          </div>
+              {!saved && !isPending ? (
+                <button
+                  type="button"
+                  className={buttonGhost}
+                  onClick={() => {
+                    setCounts(initialCounts(slots));
+                    setError(null);
+                    setSaved(true);
+                    setEditing(false);
+                  }}
+                >
+                  Annulla
+                </button>
+              ) : null}
+            </div>
+          )
         ) : null}
       </section>
     </>

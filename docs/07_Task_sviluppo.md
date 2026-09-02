@@ -638,7 +638,18 @@ richiede prima una decisione di prodotto).
 
 ## Da fare — complessa
 
-Nessuna al momento.
+- **Documentazione tecnica per portfolio** (richiesta esplicitamente per
+  più avanti, NON avviare finché l'utente non lo chiede direttamente):
+  l'utente sta seguendo un corso da data engineer ed è in cerca di
+  lavoro, vuole inserire Totofanta nel proprio portfolio. Prima serve
+  rivedere schema e diagramma ER del database
+  ([06_Database.md](./06_Database.md), `supabase/schema.sql`) e tutte le
+  decisioni progettuali prese nel corso del progetto (vedi lo storico in
+  "Fatto" più sotto in questo file), poi scrivere una documentazione
+  tecnica organica che spieghi come l'app è stata progettata e costruita
+  — pensata per essere leggibile da chi valuta una candidatura, non solo
+  da chi lavora già sul codice. Vedi anche
+  [01_Visione_progetto.md](./01_Visione_progetto.md).
 
 ## Bassa priorità (esplicitamente rimandato dall'utente)
 

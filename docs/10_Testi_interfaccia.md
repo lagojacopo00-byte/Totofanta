@@ -222,8 +222,8 @@ File: `src/app/play/(app)/[tournamentId]/team-picker.tsx`
 - `[PICKER-MOTIVO-NON-TORNEO]`: "non in questo torneo"
 - `[PICKER-MOTIVO-NON-DISPONIBILE]`: "non disponibile questa giornata"
 - `[PICKER-MOTIVO-GIA-USATA]`: "già usata su tutti i tuoi slot"
-- `[PICKER-MOTIVO-MASSIMO]`: "hai raggiunto il massimo per questa squadra ({N})"
-- `[PICKER-MOTIVO-NESSUNO-SLOT]`: "nessuno slot libero per questa scelta"
+- `[PICKER-MOTIVO-MASSIMO]`: "massimo raggiunto" (il numero è già visibile nel badge del conteggio, accanto)
+- `[PICKER-MOTIVO-NESSUNO-SLOT]`: "non assegnabile"
 - `[PICKER-ALTRE-SQUADRE]`: "Altre squadre disponibili"
 - `[PICKER-TOGLI-SLOT]`: "Togli uno slot da {squadra}" (etichetta del bottone "−", non visibile ma letta da chi usa lettori di schermo)
 - `[PICKER-ERRORE-NON-REALIZZABILI]`: "Le scelte attuali non sono realizzabili: prova a togliere e rimettere qualche slot."

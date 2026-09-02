@@ -29,3 +29,12 @@ La direzione visiva/UX resta volutamente in fondo: non proporla o anticiparla fi
 - npm test (test runner: tsx --test src/lib/__tests__/**/*.test.ts)
 
 Solo dopo che tutti e tre passano puliti si committa.
+
+## Commit (indicazione esplicita dell'utente, 2026-09-02)
+
+Quando la verifica sopra passa pulita, committa senza chiedere conferma
+ogni volta — l'utente lavora anche da altre sessioni in parallelo (es.
+cloud/mobile) sullo stesso repo: prima di committare fai sempre `git
+status`/`git pull` per accorgerti di eventuali commit remoti nel
+frattempo, e se il locale è indietro integra (merge) con cura invece di
+sovrascrivere, specialmente sui file toccati anche dall'altra sessione.
