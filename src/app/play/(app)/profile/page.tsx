@@ -1,7 +1,6 @@
 import { requirePlayer } from "@/lib/supabase/require-player";
 import { getOrganizerTournaments, getProfileDisplayName } from "@/lib/queries";
 import { card, cardTight, eyebrow, input, label, button } from "@/components/ui";
-import { BackLink } from "@/components/back-link";
 import { DeleteAccountButton } from "./delete-account-button";
 import { updateDisplayNameAction, updateEmailAction, updatePasswordAction } from "./actions";
 
@@ -18,8 +17,6 @@ export default async function ProfilePage(props: PageProps<"/play/profile">) {
 
   return (
     <div className="flex flex-col gap-6">
-      <BackLink href="/play" label="I tuoi tornei" />
-
       <div>
         <p className={eyebrow}>Profilo</p>
         <h1 className="mt-1 font-display text-2xl font-extrabold">

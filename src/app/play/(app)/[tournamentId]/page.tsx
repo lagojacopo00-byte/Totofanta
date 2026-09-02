@@ -8,7 +8,6 @@ import { groupFixturesByDay } from "@/lib/match-window";
 import { computeTeamOutcomes } from "@/lib/game-logic";
 import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
 import { MatchdayRecap, type RecapSlot } from "./matchday-recap";
-import { BackLink } from "@/components/back-link";
 import { AutoRefresh } from "@/components/auto-refresh";
 
 const prizeFormat = new Intl.NumberFormat("it-IT", {
@@ -246,7 +245,6 @@ export default async function PlayerTournamentPage(
       {tournament.status === "active" && openMatchday ? (
         <AutoRefresh intervalMs={60_000} />
       ) : null}
-      <BackLink href="/play" label="I tuoi tornei" />
 
       <div className="min-w-0">
         <p className={eyebrow}>{tournament.competition}</p>

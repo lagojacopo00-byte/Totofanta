@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import { cardTight, eyebrow } from "@/components/ui";
-import { BackLink } from "@/components/back-link";
 import { ScrollDots, type ScrollDotSection } from "@/components/scroll-dots";
 import {
   ShieldIcon,
@@ -30,8 +29,6 @@ export default async function RegolamentoPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <BackLink href="/play" label="I tuoi tornei" />
-
       <div>
         <p className={eyebrow}>Regole del gioco</p>
         <h1 className="mt-1.5 font-display text-3xl font-extrabold sm:text-4xl">
