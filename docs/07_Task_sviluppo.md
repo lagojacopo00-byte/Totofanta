@@ -454,6 +454,48 @@ richiede prima una decisione di prodotto).
   service-role internamente, non più quello di chi la chiama — riguarda
   sia la sincronizzazione automatica sia l'inserimento manuale 1/X/2
   (quest'ultimo bacato allo stesso modo ancora prima di oggi).
+- **Backup automatico delle giornate** (checklist completa in
+  "Specifiche funzionali — Aggiornamenti", punti 5 e 6, richiesta
+  dall'utente via messaggi vocali il 2026-09-02; iniziato da questi due
+  perché indicati come priorità):
+  - **Punto 5 (Inserimento manuale dei risultati partita per partita)**:
+    era già implementato da prima (`FixtureResultButtons` su
+    `/dashboard/fixtures`, tre pulsanti 1/X/2 per partita — mai squadra
+    per squadra, quindi nessuna combinazione incoerente possibile) e la
+    sincronizzazione da football-data.org già sostituisce un risultato
+    manuale con quello ufficiale quando arriva. Aggiunta solo
+    un'etichetta esplicita "Anticipa risultati" nella UI.
+  - **Punto 6 (Backup Excel delle giornate)**: nuovo. Checkbox "Salva
+    giornate" alla creazione del torneo (`tournaments.auto_backup_matchdays`,
+    impostabile solo in creazione) — se attivo, ogni volta che
+    `submitMatchdayResults` chiude una giornata (manuale, automatica da
+    API o simulata) genera un file Excel via
+    [`src/lib/matchday-export.ts`](../src/lib/matchday-export.ts) (nuova
+    dipendenza `exceljs`, l'unica libreria che supporta la colorazione
+    delle celle richiesta — un CSV non può rappresentare verde/rosso) e
+    lo carica nel bucket storage privato `matchday-backups` (percorso
+    `<tournament_id>/giornata-<numero>.xlsx`, vedi
+    [`supabase/add_matchday_backups.sql`](../supabase/add_matchday_backups.sql)
+    — **eseguita**, confermato in produzione il 2026-09-02). Colonne =
+    giocatori, righe = tutti gli slot (1..N, N = il massimo tra i
+    giocatori), cella = squadra scelta in quella giornata colorata di
+    verde (slot vivo) o rosso (eliminato). La generazione non blocca mai
+    la chiusura della giornata: un errore di storage finisce solo nei
+    log del server. Sezione "Backup giornate" nella dashboard del
+    torneo con i link di download (scadenza firma 1 ora, si rigenerano
+    ricaricando la pagina). **Verificato end-to-end contro produzione**
+    (torneo di test creato, 5 giocatori finti, giornata simulata, file
+    generato/scaricato/verificato, poi tutto ripulito).
+  - **Bug corretto durante la preparazione**: vedi la voce sopra su
+    `tryFinalizeRoundEverywhere` — trovato proprio agganciando il
+    backup a quella funzione.
+  - **Ancora da fare, stessa checklist** (punti 1-4, non ancora
+    iniziati): chiusura formazioni dinamica sull'orario reale della
+    prima partita (non più giovedì 24:00) + aggiornamento testi di
+    Regolamento/Come funziona; pagina di recap risultati per il
+    giocatore (slot schierati, badge squadre, esito, stato); refresh
+    automatico lato giocatore quando la sincronizzazione porta nuovi
+    risultati (oggi serve ricaricare la pagina).
 
 ## Da fare — semplice
 
