@@ -826,14 +826,14 @@ export async function getPlayerForTournament(
 export async function getTournamentStandings(db: DB, tournamentId: string) {
   const res = await db
     .from("players")
-    .select("id, display_name, user_id, slots(status)")
+    .select("id, display_name, user_id, slots(status, eliminated_matchday)")
     .eq("tournament_id", tournamentId)
     .order("created_at", { ascending: true });
   const rows = assertNoError(res) as {
     id: string;
     display_name: string;
     user_id: string | null;
-    slots: { status: "alive" | "eliminated" }[];
+    slots: { status: "alive" | "eliminated"; eliminated_matchday: number | null }[];
   }[];
   const overrides = await getProfileDisplayNames(db, rows.map((r) => r.user_id));
   return rows.map((r) => ({ ...r, display_name: resolveDisplayName(r, overrides) }));

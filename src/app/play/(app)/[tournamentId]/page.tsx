@@ -3,9 +3,10 @@ import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
 import { card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { TeamBadge } from "@/components/team-badge";
+import { TrophyIcon } from "@/components/rule-icons";
 import { computePickDeadline, isPickingWindowOpen } from "@/lib/pick-window";
 import { groupFixturesByDay } from "@/lib/match-window";
-import { computeTeamOutcomes } from "@/lib/game-logic";
+import { computeFinalPrizeShare, computeTeamOutcomes } from "@/lib/game-logic";
 import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
 import { MatchdayRecap, type RecapSlot } from "./matchday-recap";
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -150,6 +151,25 @@ export default async function PlayerTournamentPage(
       .map((p) => p.display_name);
   }
   const isWinner = tournament.winners.includes(player.id);
+
+  // Quota di premio a fine torneo (solo per chi ha vinto) — vedi
+  // computeFinalPrizeShare in game-logic.ts per i dettagli, incluso il
+  // caso ex aequo "zero superstiti".
+  const myPrizeShare =
+    tournament.status === "finished" && isWinner
+      ? computeFinalPrizeShare(
+          standings.map((s) => ({
+            id: s.id,
+            slots: s.slots.map((sl) => ({
+              status: sl.status,
+              eliminatedMatchday: sl.eliminated_matchday,
+            })),
+          })),
+          tournament.winners,
+          tournament.decisive_matchday,
+          player.id
+        )
+      : null;
   // Scadenza per schierare = orario del primo calcio d'inizio non escluso
   // di QUESTA giornata (non più un giorno fisso di calendario) — vedi
   // src/lib/pick-window.ts.
@@ -254,8 +274,11 @@ export default async function PlayerTournamentPage(
       </div>
 
       {tournament.status === "finished" ? (
-        <div className={`${card} ${isWinner ? "border-accent/50" : ""}`}>
-          <p className={eyebrow}>Game over</p>
+        <div
+          className={`${card} ${isWinner ? "items-center border-accent/50 text-center" : ""} flex flex-col`}
+        >
+          {isWinner ? <TrophyIcon className="h-14 w-14 text-accent" /> : null}
+          <p className={`${eyebrow} ${isWinner ? "mt-3" : ""}`}>Game over</p>
           <p className="mt-2 font-display text-lg font-bold">
             {isWinner
               ? winnerNames.length > 1
@@ -265,6 +288,19 @@ export default async function PlayerTournamentPage(
                 ? `Ha vinto ${winnerNames.join(", ")}`
                 : "Torneo chiuso. Si ricomincia alla prossima."}
           </p>
+          {isWinner && tournament.slot_value > 0 && myPrizeShare !== null ? (
+            <div className="mt-4 flex flex-col items-center gap-1.5">
+              <p className="font-display text-5xl font-extrabold leading-none text-accent">
+                {prizeFormat.format(tournament.slot_value * totalSlots * myPrizeShare)}
+              </p>
+              <span className={pillAlive}>
+                {(myPrizeShare * 100).toLocaleString("it-IT", {
+                  maximumFractionDigits: 1,
+                })}
+                % del montepremi
+              </span>
+            </div>
+          ) : null}
         </div>
       ) : tournament.status === "draft" ? (
         <p className="text-sm text-foreground-soft">
@@ -281,8 +317,12 @@ export default async function PlayerTournamentPage(
           slot ancora vivi (di ogni giocatore) uscissero insieme sulla stessa
           giornata, lo spareggio ex aequo li farebbe vincere tutti, e questa
           percentuale è la fetta di premio che spetterebbe a lui in quel
-          caso. */}
-      {tournament.slot_value > 0 && totalSlots > 0 && aliveSlots > 0 ? (
+          caso. Nascosta anche a torneo concluso: la quota finale, già
+          decisa, è mostrata nella card "Game over" sopra — ripeterla qui
+          come "quota attuale" sarebbe ridondante e, nello spareggio ex
+          aequo, pure fuorviante (gli slot dei vincitori risultano
+          "eliminated", quindi aliveSlots sarebbe 0). */}
+      {tournament.status !== "finished" && tournament.slot_value > 0 && totalSlots > 0 && aliveSlots > 0 ? (
         <section className={`${card} border-accent/30`}>
           <p className={eyebrow}>Premio</p>
           <div className="mt-2 flex items-end justify-between gap-4">

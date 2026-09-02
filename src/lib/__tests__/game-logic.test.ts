@@ -2,9 +2,11 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   applyMatchdayResults,
+  computeFinalPrizeShare,
   computeRoundOutcomes,
   computeTeamOutcomes,
   teamsAvailableForSlot,
+  type FinalStandingPlayer,
   type RoundFixture,
   type Team,
 } from '../game-logic'
@@ -225,4 +227,74 @@ test('computeTeamOutcomes: ignora le partite escluse anche se hanno un risultato
   ]
   const outcomes = computeTeamOutcomes(fixtures)
   assert.equal(outcomes.size, 0)
+})
+
+test('computeFinalPrizeShare: vittoria normale, il vincitore prende tutto (100%)', () => {
+  const standings: FinalStandingPlayer[] = [
+    {
+      id: 'p1',
+      slots: [
+        { status: 'alive', eliminatedMatchday: null },
+        { status: 'alive', eliminatedMatchday: null },
+      ],
+    },
+    {
+      id: 'p2',
+      // Eliminato in una giornata precedente: non conta più, anche se
+      // "eliminated" come gli slot dell'eventuale spareggio.
+      slots: [{ status: 'eliminated', eliminatedMatchday: 3 }],
+    },
+  ]
+  const share = computeFinalPrizeShare(standings, ['p1'], 5, 'p1')
+  assert.equal(share, 1)
+})
+
+test('computeFinalPrizeShare: spareggio ex aequo, la quota è proporzionale agli slot in corsa', () => {
+  // Esempio concreto dell'utente: torneo da 10 slot totali, due giocatori
+  // ancora in corsa escono insieme sulla stessa giornata (spareggio "zero
+  // superstiti") con 6 e 4 slot rispettivamente -> 60%/40%, non 50/50.
+  const standings: FinalStandingPlayer[] = [
+    {
+      id: 'p1',
+      slots: Array.from({ length: 6 }, () => ({
+        status: 'eliminated' as const,
+        eliminatedMatchday: 7,
+      })),
+    },
+    {
+      id: 'p2',
+      slots: Array.from({ length: 4 }, () => ({
+        status: 'eliminated' as const,
+        eliminatedMatchday: 7,
+      })),
+    },
+  ]
+  const shareP1 = computeFinalPrizeShare(standings, ['p1', 'p2'], 7, 'p1')
+  const shareP2 = computeFinalPrizeShare(standings, ['p1', 'p2'], 7, 'p2')
+  assert.equal(shareP1, 0.6)
+  assert.equal(shareP2, 0.4)
+})
+
+test('computeFinalPrizeShare: slot eliminati in una giornata precedente a quella decisiva non contano', () => {
+  const standings: FinalStandingPlayer[] = [
+    {
+      id: 'p1',
+      slots: [
+        { status: 'eliminated', eliminatedMatchday: 7 }, // nello spareggio
+        { status: 'eliminated', eliminatedMatchday: 7 }, // nello spareggio
+        { status: 'eliminated', eliminatedMatchday: 4 }, // morto prima, non conta
+      ],
+    },
+    {
+      id: 'p2',
+      slots: [{ status: 'eliminated', eliminatedMatchday: 7 }],
+    },
+  ]
+  const share = computeFinalPrizeShare(standings, ['p1', 'p2'], 7, 'p1')
+  assert.equal(share, 2 / 3)
+})
+
+test('computeFinalPrizeShare: nessuno slot dei vincitori trovato -> null', () => {
+  const share = computeFinalPrizeShare([], ['p1'], 5, 'p1')
+  assert.equal(share, null)
 })
