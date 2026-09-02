@@ -685,3 +685,28 @@ su richiesta esplicita dell'utente questa parte è partita. Dettagli in
   corrente (nuovo componente riutilizzabile
   [scroll-dots.tsx](../src/components/scroll-dots.tsx), basato su
   `IntersectionObserver`).
+- **Motivo scelta bloccata più corto**: nel picker, i testi sotto una
+  squadra non cliccabile ("hai raggiunto il massimo per questa squadra
+  (N)", "nessuno slot libero per questa scelta") uscivano dal riquadro su
+  schermi stretti. Accorciati a "massimo raggiunto" e "non assegnabile"
+  (il numero resta comunque visibile nel badge accanto) — vedi
+  [team-picker.tsx](../src/app/play/(app)/[tournamentId]/team-picker.tsx)
+  e [10_Testi_interfaccia.md](./10_Testi_interfaccia.md).
+- **Riepilogo "le tue scelte" + Modifica slot**: una volta schierati
+  tutti gli slot per la giornata aperta, il picker non mostra più la
+  lista intera delle partite ma solo quelle con le squadre scelte
+  (badge evidenziato con il numero di slot), con un bottone "Modifica
+  slot" sotto che riapre il picker completo per rimodificare tutto. Se
+  la scelta non è ancora completa si continua a vedere tutte le partite,
+  come prima. La vista in sola lettura del weekend (calendario/risultati
+  sempre completo, non filtrato) non è stata toccata — resta per
+  monitorare l'intera giornata, non solo le proprie squadre, come deciso
+  in precedenza. Vedi
+  [team-picker.tsx](../src/app/play/(app)/[tournamentId]/team-picker.tsx).
+- **Fix ambito lint**: `npm run lint` lintava anche
+  `.claude/worktrees/clever-fermi-70de0f` (un worktree Git di una
+  sessione cloud precedente, copia completa del repo), raddoppiando ogni
+  problema (~22.790 invece dei reali). Escluso `.claude/worktrees/**` in
+  [eslint.config.mjs](../eslint.config.mjs). Il worktree in sé non è
+  stato toccato (branch già mersato, ma la rimozione è una scelta
+  dell'utente).
