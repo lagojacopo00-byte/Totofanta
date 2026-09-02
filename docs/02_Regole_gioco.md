@@ -21,14 +21,20 @@ Fonte di verità: `src/lib/game-logic.ts` (logica pura, testata in
   lui. Se una giornata azzera tutti gli slot ancora vivi in un colpo solo,
   vincono ex aequo tutti quelli che erano vivi prima di quella giornata
   (spareggio "zero superstiti", vedi `applyMatchdayResults`).
-- **Scadenze**: si schiera da lunedì a giovedì 23:59:59; da venerdì le
-  scelte sono chiuse fino a lunedì a mezzanotte. Enforcement sia
-  server-side (`submitPickAction` rifiuta i pick fuori finestra) sia
-  visivo (countdown `PickCountdown`, form nascosto quando la finestra è
-  chiusa). Vedi `computePickPhase` in `pick-window.ts`.
+- **Scadenze**: NON più un giorno fisso di calendario (era lunedì-giovedì
+  23:59:59, cambiato il 2026-09-02 su richiesta esplicita dell'utente).
+  La scadenza è l'orario del calcio d'inizio della PRIMA partita non
+  esclusa della giornata aperta, letto dal calendario Serie A
+  sincronizzato (`serie_a_fixtures.kickoff_at`) — vedi
+  `computePickDeadline` in `pick-window.ts`. Se nessuna partita non
+  esclusa ha ancora un orario noto, le scelte restano aperte (nessuna
+  scadenza a cui ancorarsi). Enforcement sia server-side
+  (`submitPicksAction` rifiuta i pick dopo la scadenza) sia visivo
+  (countdown `PickCountdown`, form nascosto quando la finestra è
+  chiusa).
 - **Override organizzatore**: l'organizzatore può schierare, cambiare o
-  togliere la scelta di qualsiasi slot in qualsiasi momento (anche fuori
-  dalla finestra lunedì-giovedì), dalla pagina di gestione giornata
+  togliere la scelta di qualsiasi slot in qualsiasi momento (anche dopo
+  la scadenza dei giocatori), dalla pagina di gestione giornata
   (`organizerSetPickAction` / `organizerClearPickAction`).
 - **Finestra ufficiale delle partite** (venerdì-sabato-domenica-lunedì,
   vedi `src/lib/match-window.ts`) **e stato partita (valida/esclusa)**:

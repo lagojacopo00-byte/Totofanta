@@ -40,8 +40,8 @@ export async function submitResultsAction(
  * appartenga a quel torneo e sia ancora aperta, e che lo slot indicato sia
  * davvero uno slot di un giocatore di quel torneo — condiviso dalle due
  * azioni sotto, che lasciano all'organizzatore piena libertà di gestire le
- * scelte di ogni giocatore, senza il vincolo del giovedì che vale per loro
- * (vedi src/lib/pick-window.ts, usato solo lato giocatore).
+ * scelte di ogni giocatore, senza il vincolo della scadenza dinamica che
+ * vale per loro (vedi src/lib/pick-window.ts, usato solo lato giocatore).
  */
 async function ownedOpenMatchdaySlot(
   tournamentId: string,

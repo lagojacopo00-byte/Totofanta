@@ -177,6 +177,34 @@ export interface RoundOutcomes {
 }
 
 /**
+ * Esito di ogni squadra le cui partite hanno GIÀ un risultato noto, a
+ * prescindere che la giornata sia "completa" o no — a differenza di
+ * `computeRoundOutcomes` sotto, che è tutto-o-niente. Serve per il recap
+ * progressivo mostrato al giocatore durante il weekend (vedi
+ * MatchdayRecap in play/(app)/[tournamentId]/page.tsx): una partita già
+ * finita conta subito, anche se altre della stessa giornata sono ancora
+ * in corso. Le partite escluse e quelle senza ancora un esito sono
+ * semplicemente assenti dalla mappa.
+ */
+export function computeTeamOutcomes(fixtures: RoundFixture[]): Map<string, Outcome> {
+  const outcomeByTeamName = new Map<string, Outcome>()
+  for (const f of fixtures) {
+    if (f.status === 'excluded' || !f.result) continue
+    if (f.result === 'home_win') {
+      outcomeByTeamName.set(f.home_team, 'win')
+      outcomeByTeamName.set(f.away_team, 'loss')
+    } else if (f.result === 'away_win') {
+      outcomeByTeamName.set(f.home_team, 'loss')
+      outcomeByTeamName.set(f.away_team, 'win')
+    } else {
+      outcomeByTeamName.set(f.home_team, 'draw')
+      outcomeByTeamName.set(f.away_team, 'draw')
+    }
+  }
+  return outcomeByTeamName
+}
+
+/**
  * Da un elenco di partite reali di una giornata, determina se è ormai
  * "completa" (ogni partita non esclusa ha un esito) e, se sì, l'esito di
  * ogni squadra coinvolta. Una giornata senza nessuna partita rilevante
@@ -189,21 +217,7 @@ export function computeRoundOutcomes(fixtures: RoundFixture[]): RoundOutcomes {
   if (relevant.length === 0 || relevant.some((f) => !f.result)) {
     return { ready: false, outcomeByTeamName: new Map() }
   }
-
-  const outcomeByTeamName = new Map<string, Outcome>()
-  for (const f of relevant) {
-    if (f.result === 'home_win') {
-      outcomeByTeamName.set(f.home_team, 'win')
-      outcomeByTeamName.set(f.away_team, 'loss')
-    } else if (f.result === 'away_win') {
-      outcomeByTeamName.set(f.home_team, 'loss')
-      outcomeByTeamName.set(f.away_team, 'win')
-    } else {
-      outcomeByTeamName.set(f.home_team, 'draw')
-      outcomeByTeamName.set(f.away_team, 'draw')
-    }
-  }
-  return { ready: true, outcomeByTeamName }
+  return { ready: true, outcomeByTeamName: computeTeamOutcomes(fixtures) }
 }
 
 /**

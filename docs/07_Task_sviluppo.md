@@ -489,13 +489,61 @@ richiede prima una decisione di prodotto).
   - **Bug corretto durante la preparazione**: vedi la voce sopra su
     `tryFinalizeRoundEverywhere` — trovato proprio agganciando il
     backup a quella funzione.
-  - **Ancora da fare, stessa checklist** (punti 1-4, non ancora
-    iniziati): chiusura formazioni dinamica sull'orario reale della
-    prima partita (non più giovedì 24:00) + aggiornamento testi di
-    Regolamento/Come funziona; pagina di recap risultati per il
-    giocatore (slot schierati, badge squadre, esito, stato); refresh
-    automatico lato giocatore quando la sincronizzazione porta nuovi
-    risultati (oggi serve ricaricare la pagina).
+  - **Punto 2 (Chiusura delle formazioni)**: fatto. La scadenza per
+    schierare NON è più un giorno fisso di calendario (era
+    lunedì-giovedì 23:59:59) ma l'orario del calcio d'inizio della PRIMA
+    partita non esclusa della giornata aperta, letto dal calendario
+    Serie A sincronizzato — vedi `computePickDeadline` in
+    [`src/lib/pick-window.ts`](../src/lib/pick-window.ts) (pura,
+    testata: 5 nuovi test). Enforcement sia server-side
+    (`submitPicksAction`) sia visivo (`PickCountdown`, che ora riceve la
+    scadenza calcolata dal server invece di calcolarsela da sé sul
+    giorno della settimana). Se nessuna partita non esclusa ha ancora un
+    orario noto, le scelte restano aperte. Tolto il countdown dalla home
+    "I tuoi tornei": con una scadenza per-giornata (e potenzialmente
+    diversa tra tornei su round diversi), un valore unico lì non sarebbe
+    più corretto — resta solo nella pagina del singolo torneo, dove ha
+    un valore univoco. Aggiornati i testi in "Come funziona",
+    "Regolamento", la pagina di gestione giornata dell'organizzatore e
+    [`docs/02_Regole_gioco.md`](./02_Regole_gioco.md) +
+    [`docs/10_Testi_interfaccia.md`](./10_Testi_interfaccia.md) (colta
+    l'occasione per allineare anche una voce lì già disallineata dal
+    codice prima di oggi).
+  - **Punto 3 (Pagina di recap della giornata)**: fatto. Nuova sezione
+    "Riepilogo giornata" in `/play/[tournamentId]`, sopra al picker —
+    vedi
+    [`matchday-recap.tsx`](../src/app/play/(app)/[tournamentId]/matchday-recap.tsx).
+    Una riga per ogni SLOT schierato dal giocatore in quella giornata
+    (non uno slot già eliminato in una giornata precedente, che qui non
+    ha nulla da mostrare): badge delle due squadre della sua partita,
+    esito, stato dello slot. Deciso con l'utente via l'esempio nello
+    spec: due slot sull'Inter, l'Inter perde 0-2 → entrambi mostrati
+    "Eliminato" separatamente, anche se hanno scelto la stessa squadra —
+    verificato con un piccolo smoke test isolato (render a stringa,
+    nessun bisogno di login) esattamente su questo scenario. Progressivo
+    per costruzione (vedi punto 4): usa la nuova
+    `computeTeamOutcomes` in
+    [`src/lib/game-logic.ts`](../src/lib/game-logic.ts) (2 nuovi test),
+    che — a differenza di `computeRoundOutcomes` usata per
+    l'eliminazione vera e propria — non aspetta che TUTTA la giornata
+    abbia un esito: una partita già finita mostra subito "Eliminato" o
+    lo stato vero, anche se altre partite della stessa giornata sono
+    ancora "In corso". La sezione compare solo quando almeno un
+    risultato è disponibile (niente lista di soli "In corso").
+  - **Punto 4 (Aggiornamento automatico)**: la sincronizzazione è già
+    verificata (vedi sopra, test reale contro produzione). Per
+    l'aggiornamento "quando le API si aggiornano": **non è possibile un
+    vero automatismo lato server** più frequente di una volta al giorno
+    (limite dei cron su Vercel Hobby, già scelto consapevolmente sopra)
+    — resta il creator a innescare la sincronizzazione cliccando
+    "Sincronizza ora" o inserendo un risultato a mano. Coperta invece la
+    metà raggiungibile lato client: nuovo
+    [`src/components/auto-refresh.tsx`](../src/components/auto-refresh.tsx),
+    componente invisibile che richiama `router.refresh()` ogni 60
+    secondi nella pagina torneo del giocatore mentre il torneo è
+    attivo — il riepilogo giornata e lo stato degli slot si aggiornano
+    da soli mentre si guarda la pagina, senza dover ricaricare a mano,
+    non appena il creator sincronizza o inserisce un esito altrove.
 
 ## Da fare — semplice
 

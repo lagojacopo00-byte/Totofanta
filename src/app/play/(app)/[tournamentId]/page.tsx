@@ -4,10 +4,13 @@ import * as queries from "@/lib/queries";
 import { card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { TeamBadge } from "@/components/team-badge";
 import { PickCountdown } from "@/components/pick-countdown";
-import { isPickingWindowOpen } from "@/lib/pick-window";
+import { computePickDeadline, isPickingWindowOpen } from "@/lib/pick-window";
 import { groupFixturesByDay } from "@/lib/match-window";
+import { computeTeamOutcomes } from "@/lib/game-logic";
 import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
+import { MatchdayRecap, type RecapSlot } from "./matchday-recap";
 import { BackLink } from "@/components/back-link";
+import { AutoRefresh } from "@/components/auto-refresh";
 
 const prizeFormat = new Intl.NumberFormat("it-IT", {
   style: "currency",
@@ -149,7 +152,11 @@ export default async function PlayerTournamentPage(
       .map((p) => p.display_name);
   }
   const isWinner = tournament.winners.includes(player.id);
-  const pickingOpen = isPickingWindowOpen();
+  // Scadenza per schierare = orario del primo calcio d'inizio non escluso
+  // di QUESTA giornata (non più un giorno fisso di calendario) — vedi
+  // src/lib/pick-window.ts.
+  const pickDeadline = computePickDeadline(openFixtures, excludedTeamNames);
+  const pickingOpen = isPickingWindowOpen(pickDeadline);
 
   // Per il picker unico: le squadre che OGNI slot può ancora scegliere per
   // la giornata aperta (tutte le disponibili nel torneo, tranne quelle
@@ -191,8 +198,55 @@ export default async function PlayerTournamentPage(
   const otherTeams = availableTeams.filter((t) => !teamNamesInFixtures.has(t.name));
   const teamOptions = availableTeams.map((t) => ({ id: t.id, name: t.name }));
 
+  // Riepilogo giornata: uno slot schierato = una riga, anche se due slot
+  // hanno scelto la stessa squadra (deciso con l'utente: entrambi vanno
+  // mostrati separatamente con il proprio stato). Progressivo: una
+  // partita ancora in corso resta "In corso" finché non arriva il
+  // risultato — vedi computeTeamOutcomes in game-logic.ts, che a
+  // differenza di computeRoundOutcomes non aspetta la giornata intera.
+  const teamOutcomeByName = computeTeamOutcomes(openFixtures);
+  const recapSlots: RecapSlot[] = openMatchday
+    ? myAliveSlotsList
+        .map((slot): RecapSlot | null => {
+          const pick = allPicks.find(
+            (p) => p.slot_id === slot.id && p.matchday_id === openMatchday.id
+          );
+          if (!pick) return null;
+          const teamName = teamById.get(pick.team_id);
+          if (!teamName) return null;
+          const fixture = openFixtures.find(
+            (f) => f.home_team === teamName || f.away_team === teamName
+          );
+          if (!fixture) return null;
+
+          const isExempt = excludedTeamNames.has(teamName);
+          const outcome = teamOutcomeByName.get(teamName);
+          const status: RecapSlot["status"] = isExempt
+            ? "exempt"
+            : !outcome
+              ? "pending"
+              : outcome === "win"
+                ? "alive"
+                : "eliminated";
+
+          return {
+            id: slot.id,
+            label: slot.label,
+            homeTeam: fixture.home_team,
+            awayTeam: fixture.away_team,
+            pickedTeam: teamName,
+            result: fixture.result,
+            status,
+          };
+        })
+        .filter((s): s is RecapSlot => s !== null)
+    : [];
+
   return (
     <div className="flex min-w-0 flex-col gap-6">
+      {tournament.status === "active" && openMatchday ? (
+        <AutoRefresh intervalMs={60_000} />
+      ) : null}
       <BackLink href="/play" label="I tuoi tornei" />
 
       <div className="min-w-0">
@@ -200,9 +254,9 @@ export default async function PlayerTournamentPage(
         <h1 className="mt-1 break-words font-display text-2xl font-extrabold">
           {tournament.name}
         </h1>
-        {tournament.status === "active" ? (
+        {tournament.status === "active" && openMatchday ? (
           <div className="mt-1.5">
-            <PickCountdown />
+            <PickCountdown deadline={pickDeadline?.toISOString() ?? null} />
           </div>
         ) : null}
       </div>
@@ -260,6 +314,16 @@ export default async function PlayerTournamentPage(
             tuoi ({prizeFormat.format(tournament.slot_value)} a slot).
           </p>
         </section>
+      ) : null}
+
+      {/* Riepilogo giornata: uno sguardo veloce a come sono andati i TUOI
+          slot, prima della lista completa di tutte le partite qui sotto —
+          compare solo quando c'è almeno un risultato disponibile (non ha
+          senso mostrare una lista di soli slot "In corso"). */}
+      {openMatchday &&
+      recapSlots.length > 0 &&
+      openFixtures.some((f) => f.result !== null) ? (
+        <MatchdayRecap matchdayNumber={openMatchday.number} slots={recapSlots} />
       ) : null}
 
       {/* Scelta squadra: un'unica lista di partite per tutta la giornata,

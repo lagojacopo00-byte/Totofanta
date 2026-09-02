@@ -90,10 +90,11 @@ interface TeamPickerProps {
   /** Tutte le squadre disponibili nel torneo, per risalire dal nome (delle
    * partite) alla squadra (id) — le partite riportano il nome, non l'id. */
   teams: TeamOption[];
-  /** true quando la finestra di scelta (lunedì-giovedì) è chiusa: il
-   * calendario resta visibile (serve proprio nel weekend, mentre si
-   * gioca), ma i controlli diventano tutti disabilitati e spariscono i
-   * bottoni di conferma. */
+  /** true quando la finestra di scelta è chiusa (dopo il calcio d'inizio
+   * della prima partita della giornata, vedi src/lib/pick-window.ts): il
+   * calendario resta visibile (serve proprio mentre si gioca), ma i
+   * controlli diventano tutti disabilitati e spariscono i bottoni di
+   * conferma. */
   readOnly?: boolean;
 }
 
@@ -301,8 +302,9 @@ export function TeamPicker({
           </p>
           {readOnly ? (
             <p className="mt-1 text-xs text-foreground-faint">
-              Mercato chiuso: si schiera solo da lunedì a giovedì. Qui
-              sotto trovi comunque il programma di ogni squadra.
+              Mercato chiuso: è già iniziata la prima partita della
+              giornata. Qui sotto trovi comunque il programma di ogni
+              squadra.
             </p>
           ) : null}
         </div>

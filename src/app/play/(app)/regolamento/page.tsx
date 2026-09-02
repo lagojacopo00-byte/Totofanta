@@ -96,20 +96,22 @@ export default async function RegolamentoPage() {
             </h2>
           </div>
           <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
-            Si schiera da lunedì fino alla{" "}
+            Si schiera fino al{" "}
             <strong className="text-foreground">
-              mezzanotte tra giovedì e venerdì
-            </strong>
-            .
+              calcio d&apos;inizio della prima partita
+            </strong>{" "}
+            di quella giornata — non un giorno fisso della settimana: ogni
+            giornata ha il proprio orario, letto dal calendario Serie A
+            reale.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Da quel momento il mercato chiude fino alla chiusura della
-            giornata successiva, quando vengono caricati i risultati e si
-            apre il nuovo turno.
+            giornata stessa, quando vengono caricati i risultati e si apre
+            il nuovo turno.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Il conto alla rovescia in home e nella pagina del torneo
-            indica sempre quanto tempo rimane.
+            Il conto alla rovescia nella pagina del torneo indica sempre
+            quanto tempo rimane.
           </p>
         </section>
 
