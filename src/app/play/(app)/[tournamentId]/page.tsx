@@ -3,7 +3,6 @@ import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
 import { card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { TeamBadge } from "@/components/team-badge";
-import { PickCountdown } from "@/components/pick-countdown";
 import { computePickDeadline, isPickingWindowOpen } from "@/lib/pick-window";
 import { groupFixturesByDay } from "@/lib/match-window";
 import { computeTeamOutcomes } from "@/lib/game-logic";
@@ -254,11 +253,6 @@ export default async function PlayerTournamentPage(
         <h1 className="mt-1 break-words font-display text-2xl font-extrabold">
           {tournament.name}
         </h1>
-        {tournament.status === "active" && openMatchday ? (
-          <div className="mt-1.5">
-            <PickCountdown deadline={pickDeadline?.toISOString() ?? null} />
-          </div>
-        ) : null}
       </div>
 
       {tournament.status === "finished" ? (
@@ -343,6 +337,7 @@ export default async function PlayerTournamentPage(
           excludedTeamNames={Array.from(excludedTeamNames)}
           teams={teamOptions}
           readOnly={!pickingOpen}
+          deadline={pickDeadline?.toISOString() ?? null}
         />
       ) : tournament.status === "active" && myAliveSlotsList.length > 0 ? (
         <p className="text-sm text-foreground-faint">
