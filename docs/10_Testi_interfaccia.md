@@ -120,7 +120,7 @@ File: `src/app/play/how-it-works/page.tsx`
 - `[TUTORIAL-TROVI-TITOLO]`: "Nell'app trovi"
 - `[TUTORIAL-TROVI-TESTO]`: "La classifica di chi è vivo o eliminato, e l'avversario di giornata per ogni squadra scelta. Le giornate le apre l'organizzatore, che inserisce anche i risultati."
 - `[TUTORIAL-RITMO-TITOLO]`: "Il ritmo della settimana"
-- `[TUTORIAL-RITMO-TESTO]`: "Scegli la squadra entro giovedì. Da venerdì le scelte sono chiuse: lunedì a mezzanotte escono i risultati e si aprono le squadre per la giornata successiva. Nella tua home e nella pagina del torneo trovi sempre il conto alla rovescia. Per i casi particolari (rinvii, tavolino, mancata scelta) c'è il regolamento completo." (l'ultima parte "regolamento completo" è un link)
+- `[TUTORIAL-RITMO-TESTO]`: "Schiera la tua squadra prima del calcio d'inizio della prima partita della giornata: da quel momento le scelte si chiudono, per quella giornata specifica. Poi si gioca. I risultati arrivano man mano che le partite finiscono, e la giornata successiva si apre appena quella in corso è completa. Il conto alla rovescia verso la chiusura è sempre visibile nella pagina del torneo. Per i casi particolari (rinvii, tavolino, mancata scelta) c'è il regolamento completo." (l'ultima parte "regolamento completo" è un link)
 - `[TUTORIAL-CHIUSURA]`: "Tutto chiaro? Puoi rivedere questa pagina quando vuoi dal link "Come funziona" nell'area giocatore."
 - `[TUTORIAL-BTN]`: "Si comincia"
 
@@ -190,10 +190,11 @@ File: `src/app/play/(app)/[tournamentId]/page.tsx`
 - `[TORNEO-CLASSIFICA-TU]`: "(tu)" — aggiunto dopo il tuo nome in classifica
 - `[TORNEO-CLASSIFICA-VIVI]`: "{N}/{M} vivi"
 
-File: `src/components/pick-countdown.tsx` (conto alla rovescia, in home e pagina torneo)
+File: `src/components/pick-countdown.tsx` (conto alla rovescia, solo nella pagina del singolo torneo — tolto dalla home "I tuoi tornei" il 2026-09-02: con la scadenza dinamica per giornata, un countdown unico lì non ha più un valore singolo corretto se ci sono più tornei su giornate diverse)
 
-- `[COUNTDOWN-APERTO]`: "Schiera entro giovedì · mancano {tempo}"
-- `[COUNTDOWN-CHIUSO]`: "Risultati lunedì a mezzanotte · mancano {tempo}"
+- `[COUNTDOWN-SENZA-ORARIO]`: "Orario giornata da confermare" (nessun kickoff ancora noto per la giornata aperta)
+- `[COUNTDOWN-APERTO]`: "Schiera entro: {tempo}"
+- `[COUNTDOWN-CHIUSO]`: "Scelte chiuse: in attesa dei risultati"
 - `[COUNTDOWN-IMMINENTE]`: "a momenti"
 
 ---
@@ -206,7 +207,7 @@ File: `src/app/play/(app)/[tournamentId]/team-picker.tsx`
 - `[PICKER-MODIFICHE-NON-SALVATE]`: "Modifiche non salvate"
 - `[PICKER-TITOLO-SCEGLI]`: "Giornata {N} · scegli le squadre"
 - `[PICKER-TITOLO-CALENDARIO]`: "Giornata {N} · calendario"
-- `[PICKER-NOTA-CHIUSO]`: "Le scelte sono chiuse: si schiera solo da lunedì a giovedì. Qui sotto vedi comunque quando gioca ogni squadra."
+- `[PICKER-NOTA-CHIUSO]`: "Mercato chiuso: è già iniziata la prima partita della giornata. Qui sotto trovi comunque il programma di ogni squadra."
 - `[PICKER-GIORNO-VENERDI]`: "Venerdì"
 - `[PICKER-GIORNO-SABATO]`: "Sabato"
 - `[PICKER-GIORNO-DOMENICA]`: "Domenica"
@@ -246,7 +247,7 @@ File: `src/app/play/(app)/regolamento/page.tsx`
 - `[REG-MANCATA-SCELTA-TITOLO]`: "Mancata scelta"
 - `[REG-MANCATA-SCELTA-TESTO]`: "Se uno slot arriva alla scadenza senza una squadra scelta, viene trattato come una sconfitta: lo slot è eliminato. Non esistono scelte automatiche o di riserva — è responsabilità di ognuno schierarsi in tempo (l'organizzatore può comunque farlo per conto tuo, vedi più sotto)."
 - `[REG-SCADENZE-TITOLO]`: "Scadenze"
-- `[REG-SCADENZE-TESTO]`: "Si schiera da lunedì a giovedì; il termine ultimo è giovedì a mezzanotte. Da venerdì le scelte restano chiuse fino a lunedì a mezzanotte, quando escono i risultati della giornata e si aprono le squadre per quella successiva. Il conto alla rovescia in home e nella pagina del torneo mostra sempre quanto manca."
+- `[REG-SCADENZE-TESTO]`: "Si schiera fino al calcio d'inizio della prima partita di quella giornata — non un giorno fisso della settimana: ogni giornata ha il proprio orario, letto dal calendario Serie A reale. Da quel momento il mercato chiude fino alla chiusura della giornata stessa, quando vengono caricati i risultati e si apre il nuovo turno. Il conto alla rovescia nella pagina del torneo indica sempre quanto tempo rimane."
 - `[REG-SQUADRE-USATE-TITOLO]`: "Squadre già usate"
 - `[REG-SQUADRE-USATE-TESTO]`: "Ogni slot ha una propria memoria: una volta giocata, una squadra è bruciata per sempre su quello slot e non si può riscegliere. Gli slot sono indipendenti tra loro, anche quelli dello stesso giocatore: la stessa squadra può tornare libera su un altro slot."
 - `[REG-RINVII-TITOLO]`: "Rinvii, recuperi e tavolino"
@@ -256,7 +257,7 @@ File: `src/app/play/(app)/regolamento/page.tsx`
 - `[REG-VINCE-TORNEO-TITOLO]`: "Chi vince il torneo"
 - `[REG-VINCE-TORNEO-TESTO]`: "Si va avanti finché resta più di un giocatore in gara. Quando ne resta uno solo con almeno uno slot vivo, il torneo finisce e ha vinto lui. Se invece una giornata elimina in un colpo solo tutti gli slot ancora vivi, il torneo finisce comunque: vincono ex aequo tutti i giocatori che erano ancora in corsa prima di quella giornata."
 - `[REG-ORGANIZZATORE-TITOLO]`: "Il ruolo dell'organizzatore"
-- `[REG-ORGANIZZATORE-TESTO]`: "L'organizzatore apre le giornate e inserisce i risultati a mano. Può anche schierare, cambiare o togliere la scelta di qualsiasi slot in qualsiasi momento — anche oltre la scadenza di giovedì che vale per i giocatori — utile per chi è indietro con l'account o per correggere un errore."
+- `[REG-ORGANIZZATORE-TESTO]`: "L'organizzatore apre le giornate e carica i risultati. Può schierare, modificare o rimuovere la scelta di qualsiasi slot in qualsiasi momento, anche oltre la scadenza prevista per i giocatori. Serve per gestire eventuali problemi con gli account o correggere errori." (testo corrente della pagina, allineato qui il 2026-09-02 — era già disallineato dal codice prima della scadenza dinamica)
 
 ---
 
@@ -374,7 +375,7 @@ File: `src/app/dashboard/[id]/matchday/[matchdayId]/page.tsx`
 - `[GG-BACKLINK]`: "Torneo"
 - `[GG-TITOLO]`: "Giornata {N}"
 - `[GG-GESTISCI-TITOLO]`: "Gestisci le scelte"
-- `[GG-GESTISCI-TESTO]`: "Puoi schierare, cambiare o togliere la scelta di ogni giocatore quando vuoi — anche oltre la scadenza di giovedì che vale per loro."
+- `[GG-GESTISCI-TESTO]`: "Puoi schierare, cambiare o togliere la scelta di ogni giocatore quando vuoi — anche oltre la scadenza (calcio d'inizio della prima partita) che vale per loro."
 - `[GG-NESSUNO-SLOT]`: "Nessuno slot in gara al momento."
 - `[GG-NESSUNA-SCELTA]`: "Nessuna scelta"
 - `[GG-SELECT-PLACEHOLDER]`: "Scegli squadra…"

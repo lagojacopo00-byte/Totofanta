@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
-import { isPickingWindowOpen } from "@/lib/pick-window";
+import { computePickDeadline, isPickingWindowOpen } from "@/lib/pick-window";
 
 export interface PickAssignment {
   slotId: string;
@@ -32,12 +32,6 @@ export async function submitPicksAction(
   matchdayId: string,
   assignments: PickAssignment[]
 ) {
-  if (!isPickingWindowOpen()) {
-    throw new Error(
-      "Le scelte per questa giornata sono chiuse: si schiera solo da lunedì a giovedì. Aspetta i risultati di lunedì."
-    );
-  }
-
   const { supabase, user } = await requirePlayer();
   const player = await queries.getPlayerForTournament(supabase, tournamentId, user.id);
 
@@ -50,12 +44,22 @@ export async function submitPicksAction(
     player.slots.filter((s) => s.status === "alive").map((s) => s.id)
   );
 
-  const [availableTeams, excludedTeamNames, existingPicks] = await Promise.all([
+  const [availableTeams, excludedTeamNames, existingPicks, roundFixtures] = await Promise.all([
     queries.getAvailableTeams(supabase, tournamentId, player.tournaments.competition),
     queries.getExcludedTeamNames(supabase, matchday.number),
     queries.getAllPicksForTournamentSlots(supabase, Array.from(aliveSlotIds)),
+    queries.getFixturesForRound(supabase, matchday.number),
   ]);
   const availableTeamById = new Map(availableTeams.map((t) => [t.id, t]));
+
+  // Scadenza dinamica: il primo calcio d'inizio non escluso di QUESTA
+  // giornata (vedi src/lib/pick-window.ts), non più un giorno fisso.
+  const pickDeadline = computePickDeadline(roundFixtures, excludedTeamNames);
+  if (!isPickingWindowOpen(pickDeadline)) {
+    throw new Error(
+      "Le scelte per questa giornata sono chiuse: è già iniziata la prima partita. Aspetta i risultati."
+    );
+  }
 
   // Storico di ogni slot ESCLUSA la giornata aperta: quella la stiamo
   // eventualmente sostituendo, non conta come "già usata" contro se stessa.

@@ -1,43 +1,48 @@
-// Calcola la finestra settimanale entro cui i giocatori possono schierare:
-// lunedì-giovedì si sceglie, da venerdì le scelte sono chiuse e restano
-// chiuse fino alla mezzanotte del lunedì successivo, quando escono i
-// risultati e si riapre la scelta per la giornata seguente. È puramente
-// basato sul calendario reale (non su un campo del database, che varrebbe
-// per singola giornata): usato sia per il conto alla rovescia mostrato ai
-// giocatori (vedi src/components/pick-countdown.tsx) sia — qui — come
-// regola effettiva applicata server-side in submitPickAction. L'organizzatore
-// non è soggetto a questo vincolo: le sue azioni passano da altre Server
-// Actions che non chiamano queste funzioni.
+// Scadenza per schierare gli slot di una giornata: NON più un orario fisso
+// di calendario (era giovedì 23:59) — deciso con l'utente il 2026-09-02
+// (spec funzionale via messaggi vocali, punto 2) — ma l'orario reale del
+// primo calcio d'inizio di quella giornata specifica, letto dal
+// calendario Serie A sincronizzato (serie_a_fixtures.kickoff_at). Ogni
+// giornata ha quindi una scadenza diversa, calcolata sul momento invece
+// che assunta dal giorno della settimana. Usato sia per il conto alla
+// rovescia mostrato ai giocatori (vedi src/components/pick-countdown.tsx)
+// sia — qui — come regola effettiva applicata server-side in
+// submitPicksAction.
 
-export type PickPhase = "picking" | "waiting";
-
-function startOfDay(d: Date) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+export interface FixtureForDeadline {
+  kickoff_at: string | null;
+  home_team: string;
+  away_team: string;
 }
 
-function addDays(d: Date, n: number) {
-  const x = new Date(d);
-  x.setDate(x.getDate() + n);
-  return x;
+/**
+ * La scadenza per schierare: l'orario del PRIMO calcio d'inizio tra le
+ * partite non escluse di questa giornata (una partita esclusa a mano, o
+ * rinviata fuori dalla finestra ufficiale, non conta per la scadenza:
+ * non è comunque giocabile). Ritorna null se nessuna partita non esclusa
+ * ha ancora un orario noto — in quel caso le scelte restano aperte,
+ * perché non c'è nessun orario reale a cui ancorare la chiusura.
+ */
+export function computePickDeadline(
+  fixtures: FixtureForDeadline[],
+  excludedTeamNames: Set<string>
+): Date | null {
+  const kickoffs = fixtures
+    .filter(
+      (f) =>
+        !excludedTeamNames.has(f.home_team) && !excludedTeamNames.has(f.away_team)
+    )
+    .map((f) => (f.kickoff_at ? new Date(f.kickoff_at) : null))
+    .filter((d): d is Date => d !== null && !Number.isNaN(d.getTime()));
+
+  if (kickoffs.length === 0) return null;
+  return new Date(Math.min(...kickoffs.map((d) => d.getTime())));
 }
 
-export function computePickPhase(now: Date): { phase: PickPhase; target: Date } {
-  const day = now.getDay(); // 0 dom .. 6 sab
-  if (day >= 1 && day <= 4) {
-    // Lunedì-giovedì: si schiera, il traguardo è giovedì 23:59:59 di
-    // questa settimana.
-    const target = startOfDay(addDays(now, 4 - day));
-    target.setHours(23, 59, 59, 999);
-    return { phase: "picking", target };
-  }
-  // Venerdì, sabato, domenica: si aspettano i risultati, il traguardo è
-  // la mezzanotte del prossimo lunedì.
-  const daysUntilMonday = day === 0 ? 1 : 8 - day;
-  return { phase: "waiting", target: startOfDay(addDays(now, daysUntilMonday)) };
-}
-
-export function isPickingWindowOpen(now: Date = new Date()): boolean {
-  return computePickPhase(now).phase === "picking";
+export function isPickingWindowOpen(
+  deadline: Date | null,
+  now: Date = new Date()
+): boolean {
+  if (!deadline) return true;
+  return now.getTime() < deadline.getTime();
 }

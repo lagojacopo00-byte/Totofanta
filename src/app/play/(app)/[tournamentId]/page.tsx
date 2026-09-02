@@ -4,7 +4,7 @@ import * as queries from "@/lib/queries";
 import { card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { TeamBadge } from "@/components/team-badge";
 import { PickCountdown } from "@/components/pick-countdown";
-import { isPickingWindowOpen } from "@/lib/pick-window";
+import { computePickDeadline, isPickingWindowOpen } from "@/lib/pick-window";
 import { groupFixturesByDay } from "@/lib/match-window";
 import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
 import { BackLink } from "@/components/back-link";
@@ -149,7 +149,11 @@ export default async function PlayerTournamentPage(
       .map((p) => p.display_name);
   }
   const isWinner = tournament.winners.includes(player.id);
-  const pickingOpen = isPickingWindowOpen();
+  // Scadenza per schierare = orario del primo calcio d'inizio non escluso
+  // di QUESTA giornata (non più un giorno fisso di calendario) — vedi
+  // src/lib/pick-window.ts.
+  const pickDeadline = computePickDeadline(openFixtures, excludedTeamNames);
+  const pickingOpen = isPickingWindowOpen(pickDeadline);
 
   // Per il picker unico: le squadre che OGNI slot può ancora scegliere per
   // la giornata aperta (tutte le disponibili nel torneo, tranne quelle
@@ -200,9 +204,9 @@ export default async function PlayerTournamentPage(
         <h1 className="mt-1 break-words font-display text-2xl font-extrabold">
           {tournament.name}
         </h1>
-        {tournament.status === "active" ? (
+        {tournament.status === "active" && openMatchday ? (
           <div className="mt-1.5">
-            <PickCountdown />
+            <PickCountdown deadline={pickDeadline?.toISOString() ?? null} />
           </div>
         ) : null}
       </div>

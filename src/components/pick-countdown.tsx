@@ -1,16 +1,17 @@
 "use client";
 
-// Piccolo timer col ritmo settimanale del gioco: si schiera entro giovedì
-// (23:59), poi il conto alla rovescia punta al lunedì successivo a
-// mezzanotte, quando escono i risultati e si aprono le nuove scelte. È solo
-// il display — la regola vera e propria (quella che blocca davvero le
-// scelte lato server) vive in src/lib/pick-window.ts, condivisa con questo
-// componente. Calcolato sull'orologio del dispositivo di chi guarda, per
-// questo vive in un componente client e non mostra nulla finché non è
-// montato (evita disallineamenti col rendering del server).
+// Conto alla rovescia verso la scadenza per schierare: l'orario del primo
+// calcio d'inizio non escluso della giornata aperta, calcolato lato
+// server (vedi computePickDeadline in src/lib/pick-window.ts, e
+// play/(app)/[tournamentId]/page.tsx che lo passa qui) — non più un
+// giorno fisso di calendario. `deadline` null = nessun orario ancora
+// noto per questa giornata (calendario non ancora aggiornato): niente
+// conto alla rovescia, solo un'indicazione neutra. Calcolato sull'orologio
+// del dispositivo di chi guarda, per questo vive in un componente client e
+// non mostra nulla finché non è montato (evita disallineamenti col
+// rendering del server).
 
 import { useEffect, useState } from "react";
-import { computePickPhase } from "@/lib/pick-window";
 
 function formatRemaining(ms: number) {
   if (ms <= 0) return "a momenti";
@@ -23,7 +24,7 @@ function formatRemaining(ms: number) {
   return `${minutes}m`;
 }
 
-export function PickCountdown() {
+export function PickCountdown({ deadline }: { deadline: string | null }) {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -38,21 +39,23 @@ export function PickCountdown() {
 
   if (!now) return null;
 
-  const { phase, target } = computePickPhase(now);
-  const remaining = formatRemaining(target.getTime() - now.getTime());
+  if (!deadline) {
+    return (
+      <p className="inline-flex items-center gap-1.5 font-mono text-[11px] text-foreground-faint">
+        <span className="text-foreground-faint">●</span>
+        Orario giornata da confermare
+      </p>
+    );
+  }
+
+  const deadlineDate = new Date(deadline);
+  const isOpen = now.getTime() < deadlineDate.getTime();
+  const remaining = formatRemaining(deadlineDate.getTime() - now.getTime());
 
   return (
     <p className="inline-flex items-center gap-1.5 font-mono text-[11px] text-foreground-faint">
-      <span
-        className={
-          phase === "picking" ? "text-accent" : "text-foreground-faint"
-        }
-      >
-        ●
-      </span>
-      {phase === "picking"
-        ? `Schiera entro: ${remaining}`
-        : `Risultati ufficiali: ${remaining}`}
+      <span className={isOpen ? "text-accent" : "text-foreground-faint"}>●</span>
+      {isOpen ? `Schiera entro: ${remaining}` : "Scelte chiuse: in attesa dei risultati"}
     </p>
   );
 }

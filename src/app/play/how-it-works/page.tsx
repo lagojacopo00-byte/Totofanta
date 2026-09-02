@@ -144,19 +144,21 @@ export default async function HowItWorksPage(
             </h2>
           </div>
           <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
-            Schiera la tua squadra entro la mezzanotte tra giovedì e
-            venerdì.
+            Schiera la tua squadra prima del calcio d&apos;inizio della
+            prima partita della giornata: da quel momento le scelte si
+            chiudono, per quella giornata specifica.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Poi si gioca.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            A mezzanotte tra lunedì e martedì vengono caricati i risultati
-            e si apre la giornata successiva.
+            I risultati arrivano man mano che le partite finiscono, e la
+            giornata successiva si apre appena quella in corso è
+            completa.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Il conto alla rovescia è sempre visibile in home e nella
-            pagina del torneo.
+            Il conto alla rovescia verso la chiusura è sempre visibile
+            nella pagina del torneo.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Per i casi limite — rinvii, tavolino e mancata scelta — trovi

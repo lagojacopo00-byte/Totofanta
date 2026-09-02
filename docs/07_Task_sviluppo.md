@@ -489,13 +489,31 @@ richiede prima una decisione di prodotto).
   - **Bug corretto durante la preparazione**: vedi la voce sopra su
     `tryFinalizeRoundEverywhere` — trovato proprio agganciando il
     backup a quella funzione.
-  - **Ancora da fare, stessa checklist** (punti 1-4, non ancora
-    iniziati): chiusura formazioni dinamica sull'orario reale della
-    prima partita (non più giovedì 24:00) + aggiornamento testi di
-    Regolamento/Come funziona; pagina di recap risultati per il
-    giocatore (slot schierati, badge squadre, esito, stato); refresh
-    automatico lato giocatore quando la sincronizzazione porta nuovi
-    risultati (oggi serve ricaricare la pagina).
+  - **Punto 2 (Chiusura delle formazioni)**: fatto. La scadenza per
+    schierare NON è più un giorno fisso di calendario (era
+    lunedì-giovedì 23:59:59) ma l'orario del calcio d'inizio della PRIMA
+    partita non esclusa della giornata aperta, letto dal calendario
+    Serie A sincronizzato — vedi `computePickDeadline` in
+    [`src/lib/pick-window.ts`](../src/lib/pick-window.ts) (pura,
+    testata: 5 nuovi test). Enforcement sia server-side
+    (`submitPicksAction`) sia visivo (`PickCountdown`, che ora riceve la
+    scadenza calcolata dal server invece di calcolarsela da sé sul
+    giorno della settimana). Se nessuna partita non esclusa ha ancora un
+    orario noto, le scelte restano aperte. Tolto il countdown dalla home
+    "I tuoi tornei": con una scadenza per-giornata (e potenzialmente
+    diversa tra tornei su round diversi), un valore unico lì non sarebbe
+    più corretto — resta solo nella pagina del singolo torneo, dove ha
+    un valore univoco. Aggiornati i testi in "Come funziona",
+    "Regolamento", la pagina di gestione giornata dell'organizzatore e
+    [`docs/02_Regole_gioco.md`](./02_Regole_gioco.md) +
+    [`docs/10_Testi_interfaccia.md`](./10_Testi_interfaccia.md) (colta
+    l'occasione per allineare anche una voce lì già disallineata dal
+    codice prima di oggi).
+  - **Ancora da fare, stessa checklist**: punto 3 (pagina di recap
+    risultati per il giocatore: slot schierati, badge squadre, esito,
+    stato) e punto 4 (refresh automatico lato giocatore quando la
+    sincronizzazione porta nuovi risultati — oggi serve ricaricare la
+    pagina).
 
 ## Da fare — semplice
 
