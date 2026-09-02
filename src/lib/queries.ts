@@ -10,6 +10,7 @@ import {
 } from "./game-logic";
 import { isWithinMatchWindow } from "./match-window";
 import { fetchSerieAFixtures, matchTeamName } from "./football-api";
+import { createAdminClient } from "./supabase/admin";
 import type {
   Fixture,
   FixtureResult,
@@ -862,7 +863,7 @@ export async function syncFixturesFromFootballData(
   }
 
   for (const round of roundsToFinalize) {
-    await tryFinalizeRoundEverywhere(db, round);
+    await tryFinalizeRoundEverywhere(round);
   }
 
   return { kickoffsSynced, resultsSynced, unmatched };
@@ -882,8 +883,21 @@ export async function syncFixturesFromFootballData(
  * ha scelto una squadra che deve ancora giocare. Va richiamata dopo ogni
  * salvataggio di risultato: se la giornata non è ancora completa, non
  * fa nulla (nessun errore, va bene richiamarla finché non lo è).
+ *
+ * Usa SEMPRE il client service-role internamente (non accetta un `db` dal
+ * chiamante): tocca tornei di QUALUNQUE organizzatore, non solo quello
+ * dell'account che ha innescato la chiamata (il creator, cliccando 1/X/2
+ * o "Sincronizza ora"). Le policy RLS di tournaments/matchdays/slots
+ * concedono scrittura solo al proprietario del singolo torneo — con il
+ * client normale del creator, ogni torneo altrui verrebbe filtrato in
+ * silenzio (0 righe toccate, nessun errore): stessa categoria di bug
+ * delle policy RLS mancanti trovate oggi, qui causata dal client
+ * sbagliato invece che da una policy mancante. Bug scoperto e corretto
+ * il 2026-09-02, prima di mandare in produzione la funzione di backup
+ * giornate che si aggancia qui.
  */
-export async function tryFinalizeRoundEverywhere(db: DB, round: number) {
+export async function tryFinalizeRoundEverywhere(round: number) {
+  const db = createAdminClient();
   const fixtures = await getFixturesForRound(db, round);
   const { ready, outcomeByTeamName } = computeRoundOutcomes(
     fixtures.map((f) => ({

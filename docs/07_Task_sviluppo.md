@@ -437,6 +437,23 @@ richiede prima una decisione di prodotto).
     test): sincronizzate tutte le 380 partite della stagione con
     data/ora corrette, applicati i 20 risultati delle giornate 1-2 già
     giocate, **zero nomi squadra non riconosciuti**.
+- **Bug corretto — `tryFinalizeRoundEverywhere` con l'RLS sbagliata**:
+  trovato preparando il backup delle giornate (punto 6 sotto), prima di
+  mandarlo in produzione. La funzione chiude la giornata su OGNI torneo
+  Serie A attivo, non solo quelli dell'account che l'ha innescata (il
+  creator, cliccando 1/X/2 su `/dashboard/fixtures` o "Sincronizza ora")
+  — ma girava con il client normale del creator, e le policy RLS di
+  `tournaments`/`matchdays`/`slots` concedono scrittura solo al
+  proprietario del singolo torneo. Per ogni torneo NON di proprietà del
+  creator, la scrittura sarebbe stata filtrata in silenzio (0 righe
+  toccate, nessun errore) — stessa categoria dei bug RLS di stamattina,
+  qui causata dal client sbagliato invece che da una policy mancante.
+  Il test end-to-end di oggi non l'aveva mostrato perché c'erano solo
+  tornei di test attivi (esclusi a priori dalla funzione). Corretto
+  facendo usare a `tryFinalizeRoundEverywhere` sempre il client
+  service-role internamente, non più quello di chi la chiama — riguarda
+  sia la sincronizzazione automatica sia l'inserimento manuale 1/X/2
+  (quest'ultimo bacato allo stesso modo ancora prima di oggi).
 
 ## Da fare — semplice
 
