@@ -9,6 +9,7 @@ import {
   addFixtureAction,
   deleteFixtureAction,
   setFixtureKickoffAction,
+  syncFixturesFromApiAction,
   toggleFixtureStatusAction,
 } from "./actions";
 
@@ -36,8 +37,11 @@ function toDatetimeLocalValue(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export default async function FixturesPage() {
+export default async function FixturesPage(
+  props: PageProps<"/dashboard/fixtures">
+) {
   const { supabase, user } = await requireUser();
+  const params = await props.searchParams;
 
   const [fixtures, teams, role] = await Promise.all([
     queries.getAllFixtures(supabase),
@@ -45,6 +49,12 @@ export default async function FixturesPage() {
     queries.getProfileRole(supabase, user.id),
   ]);
   const isCreator = role === "creator";
+
+  const syncError = typeof params.syncError === "string" ? params.syncError : null;
+  const syncOk = params.syncOk === "1";
+  const syncKickoffs = typeof params.kickoffs === "string" ? params.kickoffs : "0";
+  const syncResults = typeof params.results === "string" ? params.results : "0";
+  const syncUnmatched = typeof params.unmatched === "string" ? params.unmatched : "0";
 
   const byRound = new Map<number, typeof fixtures>();
   for (const f of fixtures) {
@@ -69,6 +79,45 @@ export default async function FixturesPage() {
           spostata dalle tv); le altre le aggiungi tu.
         </p>
       </div>
+
+      {isCreator ? (
+        <div className={`${cardTight} flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`}>
+          <div>
+            <p className="text-sm font-semibold">Sincronizza da football-data.org</p>
+            <p className="mt-0.5 text-xs text-foreground-soft">
+              Scarica data/ora e risultati reali della stagione: aggiorna il
+              calendario e, per le partite già finite, gli esiti — senza
+              toccare le partite segnate a mano come escluse. Gli esiti del
+              piano gratuito arrivano con circa un giorno di ritardo: per
+              chiudere una giornata subito, inserisci il risultato a mano
+              come prima.
+            </p>
+          </div>
+          <form action={syncFixturesFromApiAction}>
+            <button className={`${buttonGhost} whitespace-nowrap`} type="submit">
+              Sincronizza ora
+            </button>
+          </form>
+        </div>
+      ) : null}
+
+      {syncError ? (
+        <div className={`${cardTight} border-lose/40`}>
+          <p className="text-sm text-lose">{syncError}</p>
+        </div>
+      ) : null}
+      {syncOk ? (
+        <div className={`${cardTight} border-accent/40`}>
+          <p className="text-sm text-accent">
+            Sincronizzato: {syncKickoffs} partite con data/ora aggiornata,{" "}
+            {syncResults} nuovi esiti applicati
+            {syncUnmatched !== "0"
+              ? `, ${syncUnmatched} partite non riconosciute (nome squadra non combaciante — controlla la console del server)`
+              : ""}
+            .
+          </p>
+        </div>
+      ) : null}
 
       <form
         action={addFixtureAction}
@@ -134,6 +183,16 @@ export default async function FixturesPage() {
           Salva
         </button>
       </form>
+
+      {isCreator ? (
+        <p className="text-xs text-foreground-faint">
+          <strong className="text-foreground-soft">Anticipa risultati</strong>:
+          i tre pulsanti 1/X/2 su ogni partita qui sotto inseriscono l&apos;esito
+          a mano, partita per partita — mai squadra per squadra, per evitare
+          combinazioni incoerenti. Quando arriva il risultato ufficiale da
+          football-data.org, lo sostituisce in automatico.
+        </p>
+      ) : null}
 
       {rounds.length === 0 ? (
         <div className={card}>

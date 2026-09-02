@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   applyMatchdayResults,
   computeRoundOutcomes,
+  computeTeamOutcomes,
   teamsAvailableForSlot,
   type RoundFixture,
   type Team,
@@ -204,4 +205,24 @@ test('computeRoundOutcomes: home_win, away_win e draw danno gli esiti giusti a e
   assert.equal(outcomeByTeamName.get('Lazio'), 'win')
   assert.equal(outcomeByTeamName.get('Inter'), 'draw')
   assert.equal(outcomeByTeamName.get('Juventus'), 'draw')
+})
+
+test('computeTeamOutcomes: a differenza di computeRoundOutcomes, ritorna gli esiti già noti anche a giornata non completa', () => {
+  const fixtures: RoundFixture[] = [
+    { home_team: 'Napoli', away_team: 'Milan', status: 'scheduled', result: 'home_win' },
+    { home_team: 'Roma', away_team: 'Lazio', status: 'scheduled', result: null },
+  ]
+  const outcomes = computeTeamOutcomes(fixtures)
+  assert.equal(outcomes.get('Napoli'), 'win')
+  assert.equal(outcomes.get('Milan'), 'loss')
+  assert.equal(outcomes.has('Roma'), false)
+  assert.equal(outcomes.has('Lazio'), false)
+})
+
+test('computeTeamOutcomes: ignora le partite escluse anche se hanno un risultato', () => {
+  const fixtures: RoundFixture[] = [
+    { home_team: 'Napoli', away_team: 'Milan', status: 'excluded', result: 'home_win' },
+  ]
+  const outcomes = computeTeamOutcomes(fixtures)
+  assert.equal(outcomes.size, 0)
 })

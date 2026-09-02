@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/supabase/require-user";
-import { createTournament, getProfileRole } from "@/lib/queries";
+import { addPlayer, createTournament, getProfileDisplayName, getProfileRole } from "@/lib/queries";
 
 export async function signOutAction() {
   const supabase = await createClient();
@@ -37,6 +37,8 @@ export async function createTournamentAction(formData: FormData) {
   const requestedTest = formData.get("is_test") === "on";
   const role = requestedTest ? await getProfileRole(supabase, user.id) : "player";
   const isTest = requestedTest && role === "creator";
+  const autoBackupMatchdays = formData.get("auto_backup_matchdays") === "on";
+  const joinAsPlayer = formData.get("join_as_player") === "on";
 
   const tournament = await createTournament(supabase, user.id, {
     name,
@@ -44,11 +46,27 @@ export async function createTournamentAction(formData: FormData) {
     default_num_slots: defaultNumSlots,
     is_test: isTest,
     slot_value: slotValue,
+    auto_backup_matchdays: autoBackupMatchdays,
   });
   // Chi crea un torneo ne è l'organizzatore/"admin di lega" (owner_id,
   // per quel torneo soltanto) — questo resta self-service per chiunque,
   // come sempre. "creator" è un ruolo diverso e non si ottiene più
   // creando un torneo: vedi docs/01_Visione_progetto.md.
+
+  // Checkbox "Parteciperò anch'io": aggiunge subito l'organizzatore come
+  // giocatore del proprio torneo, già collegato al suo account (non serve
+  // il giro dell'invito per email, dato che è già autenticato) — così non
+  // deve invitare se stesso a parte.
+  if (joinAsPlayer && user.email) {
+    const profileDisplayName = await getProfileDisplayName(supabase, user.id);
+    const displayName = profileDisplayName ?? user.email.split("@")[0];
+    await addPlayer(supabase, tournament, {
+      displayName,
+      email: user.email,
+      numSlots: defaultNumSlots,
+      userId: user.id,
+    });
+  }
 
   revalidatePath("/dashboard");
   redirect(`/dashboard/${tournament.id}`);

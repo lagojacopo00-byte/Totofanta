@@ -9,6 +9,13 @@ import {
   type Outcome as GameOutcome,
 } from "./game-logic";
 import { isWithinMatchWindow } from "./match-window";
+import { computePickDeadline, isPickingWindowOpen } from "./pick-window";
+import { fetchSerieAFixtures, matchTeamName } from "./football-api";
+import { createAdminClient } from "./supabase/admin";
+import {
+  buildMatchdayBackupXlsx,
+  type BackupPlayerSnapshot,
+} from "./matchday-export";
 import type {
   Fixture,
   FixtureResult,
@@ -63,6 +70,7 @@ export async function createTournament(
     default_num_slots: number;
     is_test?: boolean;
     slot_value?: number;
+    auto_backup_matchdays?: boolean;
   }
 ) {
   const res = await db
@@ -74,6 +82,7 @@ export async function createTournament(
       default_num_slots: input.default_num_slots,
       is_test: input.is_test ?? false,
       slot_value: input.slot_value ?? 0,
+      auto_backup_matchdays: input.auto_backup_matchdays ?? false,
     })
     .select("*")
     .single();
@@ -182,7 +191,17 @@ export async function getAvailableTeams(
 export async function addPlayer(
   db: DB,
   tournament: Tournament,
-  input: { displayName: string; email: string; numSlots: number }
+  input: {
+    displayName: string;
+    email: string;
+    numSlots: number;
+    // Impostato solo quando l'organizzatore aggiunge SE STESSO come
+    // giocatore (checkbox "Parteciperò anch'io" in creazione torneo):
+    // essendo già un account autenticato, non serve passare dal
+    // meccanismo dell'invito "orfano" (players.user_id null, agganciato
+    // più tardi via claimPendingInvites) — si collega subito.
+    userId?: string | null;
+  }
 ) {
   const player = assertNoError(
     await db
@@ -192,6 +211,7 @@ export async function addPlayer(
         display_name: input.displayName,
         email: input.email.trim().toLowerCase(),
         num_slots: input.numSlots,
+        user_id: input.userId ?? null,
       })
       .select("*")
       .single()
@@ -265,11 +285,35 @@ export async function updatePlayerNumSlots(
 
 /** Crea la prossima giornata (aperta) e, se il torneo era ancora "draft",
  * lo porta ad "active". */
+/**
+ * La prima giornata Serie A ancora "giocabile": quella il cui primo
+ * calcio d'inizio non escluso non è ancora passato (vedi
+ * computePickDeadline in pick-window.ts). Se un torneo si avvia mentre
+ * una giornata è già in corso (o già finita), la giornata 1 del torneo
+ * non riparte dalla giornata reale 1 — potrebbe essere già finita da
+ * settimane — ma da qui: deciso con l'utente il 2026-09-02. Una
+ * giornata non ancora in calendario (nessuna partita configurata) viene
+ * saltata, non considerata "giocabile" per difetto. Ritorna 1 se
+ * nessuna giornata risulta ancora giocabile (fine stagione, o
+ * calendario non ancora inserito) — stesso comportamento di sempre in
+ * quel caso limite.
+ */
+export async function findCurrentPlayableRound(db: DB): Promise<number> {
+  for (let round = 1; round <= 38; round++) {
+    const fixtures = await getFixturesForRound(db, round);
+    if (fixtures.length === 0) continue;
+    const excludedNames = await getExcludedTeamNames(db, round);
+    const deadline = computePickDeadline(fixtures, excludedNames);
+    if (isPickingWindowOpen(deadline)) return round;
+  }
+  return 1;
+}
+
 export async function createNextMatchday(db: DB, tournament: Tournament) {
   const existing = await getMatchdays(db, tournament.id);
   const nextNumber = existing.length > 0
     ? Math.max(...existing.map((m) => m.number)) + 1
-    : 1;
+    : await findCurrentPlayableRound(db);
 
   const matchday = assertNoError(
     await db
@@ -365,6 +409,12 @@ export async function submitMatchdayResults(
     teamId: p.team_id,
   }));
 
+  // Squadre scelte in questa giornata (serve sia per le partite escluse
+  // sotto, sia per il backup Excel più in fondo).
+  const pickedTeamIds = Array.from(new Set(picks.map((p) => p.team_id)));
+  const pickedTeams = await getTeamsByIds(db, pickedTeamIds);
+  const teamNameById = new Map(pickedTeams.map((t) => [t.id, t.name]));
+
   // Partite segnate "escluse" per questa giornata (rinvio fuori finestra,
   // tavolino non ancora deciso, ecc.): chi le aveva scelte resta vivo senza
   // che conti né come vittoria né come sconfitta — vedi
@@ -372,8 +422,6 @@ export async function submitMatchdayResults(
   const excludedNames = await getExcludedTeamNames(db, matchday.number);
   let exemptSlotIds: string[] = [];
   if (excludedNames.size > 0) {
-    const pickedTeamIds = Array.from(new Set(picks.map((p) => p.team_id)));
-    const pickedTeams = await getTeamsByIds(db, pickedTeamIds);
     const excludedTeamIds = new Set(
       pickedTeams.filter((t) => excludedNames.has(t.name)).map((t) => t.id)
     );
@@ -446,7 +494,101 @@ export async function submitMatchdayResults(
     await createNextMatchday(db, { ...tournament, status: "active" });
   }
 
+  if (tournament.auto_backup_matchdays) {
+    await generateMatchdayBackup(db, tournament, matchday, {
+      players,
+      picks,
+      teamNameById,
+      eliminatedSlotIds: new Set(eliminatedSlotIds),
+    });
+  }
+
   return result;
+}
+
+/**
+ * Genera il file Excel di backup di una giornata appena chiusa e lo carica
+ * nel bucket storage "matchday-backups" (percorso
+ * "<tournament_id>/giornata-<numero>.xlsx", sovrascritto se già esiste —
+ * es. dopo "Annulla ultima giornata" + rinserimento). Solo per i tornei
+ * con `auto_backup_matchdays` attivo (checkbox "Salva giornate" alla
+ * creazione). Non blocca mai la chiusura della giornata: un problema di
+ * storage non deve impedire l'aggiornamento del gioco vero, che a questo
+ * punto della funzione è già stato applicato — un errore qui finisce solo
+ * nei log del server.
+ */
+async function generateMatchdayBackup(
+  db: DB,
+  tournament: Tournament,
+  matchday: Matchday,
+  data: {
+    players: (Player & { slots: Slot[] })[];
+    picks: Pick[];
+    teamNameById: Map<string, string>;
+    eliminatedSlotIds: Set<string>;
+  }
+) {
+  try {
+    const pickBySlot = new Map(data.picks.map((p) => [p.slot_id, p.team_id]));
+    const snapshot: BackupPlayerSnapshot[] = data.players.map((player) => ({
+      displayName: player.display_name,
+      slots: player.slots
+        .slice()
+        .sort((a, b) => Number(a.label) - Number(b.label))
+        .map((slot) => {
+          const teamId = pickBySlot.get(slot.id);
+          const eliminatedNow = data.eliminatedSlotIds.has(slot.id);
+          const status: "alive" | "eliminated" =
+            slot.status === "eliminated" || eliminatedNow ? "eliminated" : "alive";
+          return {
+            label: slot.label,
+            teamName: teamId ? (data.teamNameById.get(teamId) ?? null) : null,
+            status,
+          };
+        }),
+    }));
+
+    const buffer = await buildMatchdayBackupXlsx(matchday.number, snapshot);
+    const path = `${tournament.id}/giornata-${matchday.number}.xlsx`;
+    const res = await db.storage.from("matchday-backups").upload(path, buffer, {
+      contentType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      upsert: true,
+    });
+    if (res.error) {
+      console.error(
+        `[generateMatchdayBackup] upload fallito per ${path}:`,
+        res.error.message
+      );
+    }
+  } catch (err) {
+    console.error(
+      `[generateMatchdayBackup] errore generando il backup per il torneo ${tournament.id}, giornata ${matchday.number}:`,
+      err
+    );
+  }
+}
+
+/** Elenca i backup Excel già generati per un torneo (vedi
+ * generateMatchdayBackup), più recenti prima, con un link di download
+ * firmato valido un'ora — per la sezione "Backup giornate" della
+ * dashboard organizzatore. */
+export async function listMatchdayBackups(db: DB, tournamentId: string) {
+  const list = await db.storage.from("matchday-backups").list(tournamentId);
+  if (list.error || !list.data) return [];
+
+  const withUrls = await Promise.all(
+    list.data.map(async (file) => {
+      const signed = await db.storage
+        .from("matchday-backups")
+        .createSignedUrl(`${tournamentId}/${file.name}`, 3600);
+      return { name: file.name, url: signed.data?.signedUrl ?? null };
+    })
+  );
+
+  return withUrls
+    .filter((f): f is { name: string; url: string } => f.url !== null)
+    .sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true }));
 }
 
 function lastCompletedMatchday(matchdays: Matchday[]): Matchday | null {
@@ -795,6 +937,79 @@ export async function updateFixtureResult(
 }
 
 /**
+ * Sincronizza date/ora e risultati reali di Serie A da football-data.org:
+ * scarica l'intera stagione (una sola chiamata), aggiorna kickoff_at per
+ * ogni partita e, per quelle già finite, chiama updateFixtureResult +
+ * tryFinalizeRoundEverywhere — lo stesso percorso che già usa il creator
+ * cliccando 1/X/2 a mano su /dashboard/fixtures, solo con la sorgente del
+ * dato automatica invece che manuale. Non tocca mai `status` (una
+ * partita segnata "esclusa" a mano resta tale): quella è una decisione
+ * dell'app, non un fatto che l'API conosca.
+ *
+ * ATTENZIONE ritardo risultati: il piano gratuito di football-data.org
+ * aggiorna gli esiti circa una volta al giorno, non appena finisce la
+ * partita (vedi il commento in fetchSerieAFixtures in football-api.ts,
+ * verificato con una chiamata reale). Gli orari (kickoff_at) invece sono
+ * sempre aggiornati, essendo noti in anticipo. Deciso con l'utente:
+ * sincronizzare comunque anche i risultati nonostante il ritardo — il
+ * creator può sempre inserirne uno a mano prima per chiudere la giornata
+ * subito, invece di aspettare il giro automatico del giorno dopo.
+ *
+ * Ritorna un riepilogo per mostrare all'utente cosa è successo — in
+ * particolare `unmatched`, i nomi squadra che l'API ha restituito e che
+ * non abbiamo saputo far combaciare con nessuna squadra nota: senza
+ * questo la sincronizzazione di quelle partite fallirebbe in silenzio
+ * (stessa categoria di bug delle policy RLS mancanti trovate oggi).
+ */
+export async function syncFixturesFromFootballData(
+  db: DB,
+  apiToken: string,
+  season?: number
+) {
+  const [apiFixtures, knownTeams] = await Promise.all([
+    fetchSerieAFixtures(apiToken, season),
+    getReferenceTeams(db, "Serie A"),
+  ]);
+  const knownNames = knownTeams.map((t) => t.name);
+
+  let kickoffsSynced = 0;
+  let resultsSynced = 0;
+  const roundsToFinalize = new Set<number>();
+  const unmatched: { home: string; away: string }[] = [];
+
+  for (const f of apiFixtures) {
+    const homeTeam = matchTeamName(f.homeTeamName, knownNames);
+    const awayTeam = matchTeamName(f.awayTeamName, knownNames);
+    if (!homeTeam || !awayTeam) {
+      unmatched.push({ home: f.homeTeamName, away: f.awayTeamName });
+      continue;
+    }
+
+    const row = await upsertFixture(db, {
+      round: f.round,
+      homeTeam,
+      awayTeam,
+      kickoffAt: f.kickoffAt,
+    });
+    kickoffsSynced += 1;
+
+    if (f.finished && f.result) {
+      if (row.result !== f.result) {
+        await updateFixtureResult(db, row.id, f.result);
+        resultsSynced += 1;
+      }
+      roundsToFinalize.add(f.round);
+    }
+  }
+
+  for (const round of roundsToFinalize) {
+    await tryFinalizeRoundEverywhere(round);
+  }
+
+  return { kickoffsSynced, resultsSynced, unmatched };
+}
+
+/**
  * Chiude automaticamente la giornata aperta di ogni torneo Serie A attivo
  * che corrisponde a questo round — ma SOLO se tutte le partite non escluse
  * di quel round hanno ormai un risultato reale caricato dal creator.
@@ -808,8 +1023,21 @@ export async function updateFixtureResult(
  * ha scelto una squadra che deve ancora giocare. Va richiamata dopo ogni
  * salvataggio di risultato: se la giornata non è ancora completa, non
  * fa nulla (nessun errore, va bene richiamarla finché non lo è).
+ *
+ * Usa SEMPRE il client service-role internamente (non accetta un `db` dal
+ * chiamante): tocca tornei di QUALUNQUE organizzatore, non solo quello
+ * dell'account che ha innescato la chiamata (il creator, cliccando 1/X/2
+ * o "Sincronizza ora"). Le policy RLS di tournaments/matchdays/slots
+ * concedono scrittura solo al proprietario del singolo torneo — con il
+ * client normale del creator, ogni torneo altrui verrebbe filtrato in
+ * silenzio (0 righe toccate, nessun errore): stessa categoria di bug
+ * delle policy RLS mancanti trovate oggi, qui causata dal client
+ * sbagliato invece che da una policy mancante. Bug scoperto e corretto
+ * il 2026-09-02, prima di mandare in produzione la funzione di backup
+ * giornate che si aggancia qui.
  */
-export async function tryFinalizeRoundEverywhere(db: DB, round: number) {
+export async function tryFinalizeRoundEverywhere(round: number) {
+  const db = createAdminClient();
   const fixtures = await getFixturesForRound(db, round);
   const { ready, outcomeByTeamName } = computeRoundOutcomes(
     fixtures.map((f) => ({

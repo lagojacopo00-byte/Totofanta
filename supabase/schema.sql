@@ -107,6 +107,12 @@ create table tournaments (
   decisive_matchday integer,
   -- player_id dei vincitori. Più di uno in caso di ex aequo.
   winners jsonb not null default '[]'::jsonb,
+  -- Se true, al termine di ogni giornata viene generato ed esportato in
+  -- automatico un file Excel di backup (squadra scelta + stato per ogni
+  -- slot/giocatore) nel bucket storage "matchday-backups" — vedi
+  -- generateMatchdayBackup in src/lib/matchday-export.ts. Impostabile
+  -- solo alla creazione del torneo (checkbox "Salva giornate").
+  auto_backup_matchdays boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -564,6 +570,44 @@ create policy "authenticated users manage serie a fixtures"
   on serie_a_fixtures for all
   using (auth.uid() is not null)
   with check (auth.uid() is not null);
+
+-- ---------------------------------------------------------------------------
+-- STORAGE — backup Excel delle giornate (tournaments.auto_backup_matchdays)
+-- ---------------------------------------------------------------------------
+-- Bucket privato: un file per giornata, percorso
+-- "<tournament_id>/giornata-<numero>.xlsx" — vedi generateMatchdayBackup
+-- in src/lib/matchday-export.ts. Il primo segmento del percorso è
+-- l'id del torneo: le policy sotto lo estraggono con
+-- storage.foldername(name) per verificare la proprietà.
+insert into storage.buckets (id, name, public)
+values ('matchday-backups', 'matchday-backups', false)
+on conflict (id) do nothing;
+
+create policy "organizer reads own tournament matchday backups"
+  on storage.objects for select
+  using (
+    bucket_id = 'matchday-backups'
+    and public.is_tournament_owner(((storage.foldername(name))[1])::uuid)
+  );
+
+-- Le scritture automatiche (submitMatchdayResults, innescato anche dal
+-- creator per tornei altrui via tryFinalizeRoundEverywhere) passano dal
+-- client service-role, che bypassa le RLS — questa policy serve solo per
+-- l'eventuale scrittura diretta da parte dell'organizzatore stesso con la
+-- propria sessione.
+create policy "organizer writes own tournament matchday backups"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'matchday-backups'
+    and public.is_tournament_owner(((storage.foldername(name))[1])::uuid)
+  );
+
+create policy "organizer replaces own tournament matchday backups"
+  on storage.objects for update
+  using (
+    bucket_id = 'matchday-backups'
+    and public.is_tournament_owner(((storage.foldername(name))[1])::uuid)
+  );
 
 -- ---------------------------------------------------------------------------
 -- SEED — squadre Serie A 2026/2027

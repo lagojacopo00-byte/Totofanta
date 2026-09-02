@@ -54,7 +54,8 @@ export default async function MatchdayPage(
   // per ogni slot ancora vivo, con la scelta attuale (se c'è) e le squadre
   // ancora disponibili per quello slot — l'organizzatore può schierare,
   // cambiare o togliere la scelta di chiunque, senza il vincolo del
-  // giovedì che vale per i giocatori.
+  // scadenza (calcio d'inizio della prima partita) che vale per i
+  // giocatori.
   const managedRows = isOpen
     ? players.flatMap((p) =>
         p.slots
@@ -89,7 +90,8 @@ export default async function MatchdayPage(
             <p className={eyebrow}>Gestisci le scelte</p>
             <p className="mt-1 text-xs text-foreground-soft">
               Schiera, cambia o togli la scelta di ogni giocatore quando
-              vuoi — anche oltre la scadenza di giovedì che vale per loro.
+              vuoi — anche oltre la scadenza (calcio d&apos;inizio della
+              prima partita) che vale per loro.
             </p>
           </div>
           {managedRows.length === 0 ? (

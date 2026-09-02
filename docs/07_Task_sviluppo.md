@@ -394,8 +394,204 @@ richiede prima una decisione di prodotto).
     scoprire una policy che mancava da ENTRAMBI: la policy SELECT per
     invito orfano trovata subito dopo (vedi sopra) era un buco di design
     dello schema stesso, non un drift.
-
-## Da fare — semplice
+- **Sincronizzazione automatica del calendario Serie A da
+  football-data.org**: nuovo bottone "Sincronizza ora" su
+  `/dashboard/fixtures` (solo creator) che scarica data/ora e risultati
+  reali della stagione e li applica a `serie_a_fixtures` — stesso
+  percorso già usato per l'inserimento manuale (`updateFixtureResult` +
+  `tryFinalizeRoundEverywhere`), solo con la sorgente del dato
+  automatica. Non tocca mai `status` (una partita esclusa a mano resta
+  tale). Nuovo modulo
+  [`src/lib/football-api.ts`](../src/lib/football-api.ts) (logica pura,
+  testata) con un confronto nomi squadra tollerante (accenti, maiuscole,
+  prefissi/suffissi societari come "AC"/"FC"/"CFC"/anno di fondazione)
+  invece di un elenco di alias scritto a mano — verificato contro i nomi
+  reali dell'API (es. "FC Internazionale Milano", "Genoa CFC"), zero
+  nomi non riconosciuti nel primo giro reale contro produzione (vedi
+  sotto). I nomi non riconosciuti (se mai capitassero) finiscono nel
+  riepilogo mostrato all'utente e nella console del server, mai persi
+  silenziosamente. Scartata l'automazione via cron (Vercel Cron sul
+  piano Hobby gira al massimo una volta al giorno): il creator clicca il
+  bottone durante la finestra di gioco, come già faceva a mano per i
+  risultati.
+  - **Prima scelta, poi scartata: API-Football**. Piano gratuito
+    verificato con una chiave reale: aggiornamento ogni 15 secondi
+    durante le partite, ma **non copre la stagione in corso** — il free
+    plan permette solo le stagioni 2022-2024, quella 2026/2027 richiede
+    un piano a pagamento (~$19/mese). Scoperto testando direttamente
+    l'API (la ricerca preliminare non l'aveva verificato con
+    precisione), non dopo aver scritto il codice.
+  - **Passato a football-data.org**: piano gratuito registrato (token
+    gratuito, 10 richieste/minuto) che include la stagione in corso.
+    Verificato con una chiamata reale: **gli esiti hanno un ritardo di
+    circa 24-30 ore** (aggiornamento periodico, non partita per
+    partita — tutte le partite già giocate avevano lo stesso identico
+    `lastUpdated`), mentre gli orari (`kickoff_at`) sono sempre corretti
+    da subito (noti in anticipo, non soggetti allo stesso ritardo).
+    Deciso con l'utente: sincronizzare comunque anche i risultati
+    nonostante il ritardo — il creator può sempre inserirne uno a mano
+    prima per chiudere la giornata subito, come faceva già.
+  - **Verificato end-to-end contro produzione** (2026-09-02, solo tornei
+    di test attivi quindi nessun impatto su tornei reali —
+    `tryFinalizeRoundEverywhere` esclude comunque sempre i tornei di
+    test): sincronizzate tutte le 380 partite della stagione con
+    data/ora corrette, applicati i 20 risultati delle giornate 1-2 già
+    giocate, **zero nomi squadra non riconosciuti**.
+- **Bug corretto — `tryFinalizeRoundEverywhere` con l'RLS sbagliata**:
+  trovato preparando il backup delle giornate (punto 6 sotto), prima di
+  mandarlo in produzione. La funzione chiude la giornata su OGNI torneo
+  Serie A attivo, non solo quelli dell'account che l'ha innescata (il
+  creator, cliccando 1/X/2 su `/dashboard/fixtures` o "Sincronizza ora")
+  — ma girava con il client normale del creator, e le policy RLS di
+  `tournaments`/`matchdays`/`slots` concedono scrittura solo al
+  proprietario del singolo torneo. Per ogni torneo NON di proprietà del
+  creator, la scrittura sarebbe stata filtrata in silenzio (0 righe
+  toccate, nessun errore) — stessa categoria dei bug RLS di stamattina,
+  qui causata dal client sbagliato invece che da una policy mancante.
+  Il test end-to-end di oggi non l'aveva mostrato perché c'erano solo
+  tornei di test attivi (esclusi a priori dalla funzione). Corretto
+  facendo usare a `tryFinalizeRoundEverywhere` sempre il client
+  service-role internamente, non più quello di chi la chiama — riguarda
+  sia la sincronizzazione automatica sia l'inserimento manuale 1/X/2
+  (quest'ultimo bacato allo stesso modo ancora prima di oggi).
+- **Backup automatico delle giornate** (checklist completa in
+  "Specifiche funzionali — Aggiornamenti", punti 5 e 6, richiesta
+  dall'utente via messaggi vocali il 2026-09-02; iniziato da questi due
+  perché indicati come priorità):
+  - **Punto 5 (Inserimento manuale dei risultati partita per partita)**:
+    era già implementato da prima (`FixtureResultButtons` su
+    `/dashboard/fixtures`, tre pulsanti 1/X/2 per partita — mai squadra
+    per squadra, quindi nessuna combinazione incoerente possibile) e la
+    sincronizzazione da football-data.org già sostituisce un risultato
+    manuale con quello ufficiale quando arriva. Aggiunta solo
+    un'etichetta esplicita "Anticipa risultati" nella UI.
+  - **Punto 6 (Backup Excel delle giornate)**: nuovo. Checkbox "Salva
+    giornate" alla creazione del torneo (`tournaments.auto_backup_matchdays`,
+    impostabile solo in creazione) — se attivo, ogni volta che
+    `submitMatchdayResults` chiude una giornata (manuale, automatica da
+    API o simulata) genera un file Excel via
+    [`src/lib/matchday-export.ts`](../src/lib/matchday-export.ts) (nuova
+    dipendenza `exceljs`, l'unica libreria che supporta la colorazione
+    delle celle richiesta — un CSV non può rappresentare verde/rosso) e
+    lo carica nel bucket storage privato `matchday-backups` (percorso
+    `<tournament_id>/giornata-<numero>.xlsx`, vedi
+    [`supabase/add_matchday_backups.sql`](../supabase/add_matchday_backups.sql)
+    — **eseguita**, confermato in produzione il 2026-09-02). Colonne =
+    giocatori, righe = tutti gli slot (1..N, N = il massimo tra i
+    giocatori), cella = squadra scelta in quella giornata colorata di
+    verde (slot vivo) o rosso (eliminato). La generazione non blocca mai
+    la chiusura della giornata: un errore di storage finisce solo nei
+    log del server. Sezione "Backup giornate" nella dashboard del
+    torneo con i link di download (scadenza firma 1 ora, si rigenerano
+    ricaricando la pagina). **Verificato end-to-end contro produzione**
+    (torneo di test creato, 5 giocatori finti, giornata simulata, file
+    generato/scaricato/verificato, poi tutto ripulito).
+  - **Bug corretto durante la preparazione**: vedi la voce sopra su
+    `tryFinalizeRoundEverywhere` — trovato proprio agganciando il
+    backup a quella funzione.
+  - **Punto 2 (Chiusura delle formazioni)**: fatto. La scadenza per
+    schierare NON è più un giorno fisso di calendario (era
+    lunedì-giovedì 23:59:59) ma l'orario del calcio d'inizio della PRIMA
+    partita non esclusa della giornata aperta, letto dal calendario
+    Serie A sincronizzato — vedi `computePickDeadline` in
+    [`src/lib/pick-window.ts`](../src/lib/pick-window.ts) (pura,
+    testata: 5 nuovi test). Enforcement sia server-side
+    (`submitPicksAction`) sia visivo (`PickCountdown`, che ora riceve la
+    scadenza calcolata dal server invece di calcolarsela da sé sul
+    giorno della settimana). Se nessuna partita non esclusa ha ancora un
+    orario noto, le scelte restano aperte. Tolto il countdown dalla home
+    "I tuoi tornei": con una scadenza per-giornata (e potenzialmente
+    diversa tra tornei su round diversi), un valore unico lì non sarebbe
+    più corretto — resta solo nella pagina del singolo torneo, dove ha
+    un valore univoco. Aggiornati i testi in "Come funziona",
+    "Regolamento", la pagina di gestione giornata dell'organizzatore e
+    [`docs/02_Regole_gioco.md`](./02_Regole_gioco.md) +
+    [`docs/10_Testi_interfaccia.md`](./10_Testi_interfaccia.md) (colta
+    l'occasione per allineare anche una voce lì già disallineata dal
+    codice prima di oggi).
+  - **Punto 3 (Pagina di recap della giornata)**: fatto. Nuova sezione
+    "Riepilogo giornata" in `/play/[tournamentId]`, sopra al picker —
+    vedi
+    [`matchday-recap.tsx`](../src/app/play/(app)/[tournamentId]/matchday-recap.tsx).
+    Una riga per ogni SLOT schierato dal giocatore in quella giornata
+    (non uno slot già eliminato in una giornata precedente, che qui non
+    ha nulla da mostrare): badge delle due squadre della sua partita,
+    esito, stato dello slot. Deciso con l'utente via l'esempio nello
+    spec: due slot sull'Inter, l'Inter perde 0-2 → entrambi mostrati
+    "Eliminato" separatamente, anche se hanno scelto la stessa squadra —
+    verificato con un piccolo smoke test isolato (render a stringa,
+    nessun bisogno di login) esattamente su questo scenario. Progressivo
+    per costruzione (vedi punto 4): usa la nuova
+    `computeTeamOutcomes` in
+    [`src/lib/game-logic.ts`](../src/lib/game-logic.ts) (2 nuovi test),
+    che — a differenza di `computeRoundOutcomes` usata per
+    l'eliminazione vera e propria — non aspetta che TUTTA la giornata
+    abbia un esito: una partita già finita mostra subito "Eliminato" o
+    lo stato vero, anche se altre partite della stessa giornata sono
+    ancora "In corso". La sezione compare solo quando almeno un
+    risultato è disponibile (niente lista di soli "In corso").
+  - **Punto 4 (Aggiornamento automatico)**: la sincronizzazione è già
+    verificata (vedi sopra, test reale contro produzione). Per
+    l'aggiornamento "quando le API si aggiornano": **non è possibile un
+    vero automatismo lato server** più frequente di una volta al giorno
+    (limite dei cron su Vercel Hobby, già scelto consapevolmente sopra)
+    — resta il creator a innescare la sincronizzazione cliccando
+    "Sincronizza ora" o inserendo un risultato a mano. Coperta invece la
+    metà raggiungibile lato client: nuovo
+    [`src/components/auto-refresh.tsx`](../src/components/auto-refresh.tsx),
+    componente invisibile che richiama `router.refresh()` ogni 60
+    secondi nella pagina torneo del giocatore mentre il torneo è
+    attivo — il riepilogo giornata e lo stato degli slot si aggiornano
+    da soli mentre si guarda la pagina, senza dover ricaricare a mano,
+    non appena il creator sincronizza o inserisce un esito altrove.
+- **Il torneo parte dalla giornata reale giocabile, non sempre dalla 1**:
+  richiesto dall'utente il 2026-09-02. Prima, avviare un torneo creava
+  sempre "giornata 1" del torneo agganciata alla giornata reale 1 —
+  sbagliato se la stagione è già iniziata da settimane (giornata 1 già
+  finita da un pezzo, picker inutilizzabile). Nuova
+  `findCurrentPlayableRound` in
+  [`src/lib/queries.ts`](../src/lib/queries.ts): scorre le giornate
+  Serie A da 1 in su e ritorna la prima il cui primo calcio d'inizio non
+  escluso non è ancora passato (`computePickDeadline` +
+  `isPickingWindowOpen` di `pick-window.ts`, già scritte per il punto 2
+  di oggi) — una giornata non ancora in calendario viene saltata, non
+  considerata "giocabile" per difetto. Usata solo per la PRIMA giornata
+  di un torneo (`createNextMatchday`, ramo `existing.length === 0`): le
+  giornate successive continuano a incrementare normalmente da quella
+  precedente, come sempre. **Verificato contro produzione** il
+  2026-09-02: giornate 1 e 2 già concluse, giornata 3 non ancora
+  iniziata → un torneo di test avviato oggi parte correttamente dalla
+  giornata 3 (non dalla 1).
+- **"Parteciperò anch'io a questo torneo"**: checkbox in
+  `/dashboard/new` (spuntata di default) — aggiunge subito
+  l'organizzatore come giocatore del proprio torneo, già collegato al
+  proprio account (passato `userId` direttamente ad `addPlayer`, che ora
+  lo accetta: non serve più il giro dell'invito per email dato che è già
+  autenticato). Non deve più invitare se stesso a parte. Verificato
+  contro produzione con un torneo di test disposable.
+- **Barra fissa "Slot disponibili" + "Schiera entro" in cima al
+  picker**: richiesto dall'utente il 2026-09-02. Prima il conto alla
+  rovescia era un piccolo testo sotto al titolo del torneo (scorreva via
+  scrollando), separato dal numero grande "Slot ancora disponibili" più
+  in basso. Ora sono uniti in un'unica barra `sticky` in cima al picker
+  (in `team-picker.tsx`, sotto l'header condiviso — offset `top`
+  calcolato sull'altezza effettiva dell'header), stessa dimensione
+  grande per entrambi: sempre visibili scrollando la lista di partite.
+  Nuovo `variant="large"` su `PickCountdown` (in
+  [`src/components/pick-countdown.tsx`](../src/components/pick-countdown.tsx)),
+  riusa la stessa logica di conteggio del variant compatto (rimasto per
+  altri usi futuri).
+- **Bug segnalato — header dashboard organizzatore non fisso su iOS
+  Safari**: il codice (stesso pattern `sticky`/`h-dvh` già in uso e
+  verificato per l'header dell'area giocatore) risultava corretto a
+  revisione, nessuna modifica successiva al fix di stamattina l'aveva
+  toccato. Aggiunto per sicurezza `overflow-x-hidden` sul `<main>` della
+  dashboard (mancava, presente invece nell'area giocatore fin dal primo
+  fix di questo bug) — un residuo di scroll orizzontale è la causa più
+  nota di questa classe di bug su Safari iOS. **Da confermare con
+  l'utente su un dispositivo reale** se il problema persiste dopo questo
+  fix: non riproducibile da qui (nessun accesso a Safari iOS reale, e la
+  pagina richiede login che Claude non può eseguire).
 
 - ~~Contatore "pronostici disponibili" nella UI slot~~ — già coperto
   dall'indicatore esistente "N/M tuoi slot vivi" nella card "La tua
@@ -422,8 +618,9 @@ richiede prima una decisione di prodotto).
 
 ## Bassa priorità (esplicitamente rimandato dall'utente)
 
-- Import automatico dei risultati Serie A (CSV/scraping) al posto
-  dell'inserimento manuale.
+- ~~Import automatico dei risultati Serie A (CSV/scraping) al posto
+  dell'inserimento manuale~~ — fatto, vedi "Sincronizzazione automatica
+  del calendario Serie A da football-data.org" sopra in Fatto.
 
 ## Direzione visiva / UX
 

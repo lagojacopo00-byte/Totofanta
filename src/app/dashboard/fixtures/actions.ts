@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/supabase/require-user";
 import * as queries from "@/lib/queries";
@@ -84,7 +85,53 @@ export async function setFixtureResultAction(
 
   await queries.updateFixtureResult(supabase, fixtureId, result);
   if (result) {
-    await queries.tryFinalizeRoundEverywhere(supabase, round);
+    await queries.tryFinalizeRoundEverywhere(round);
   }
   revalidatePath("/dashboard/fixtures");
+}
+
+/** Scarica date/ora e risultati reali di Serie A da football-data.org e
+ * li applica al calendario condiviso (vedi syncFixturesFromFootballData
+ * in queries.ts) — riservata al creator, come l'inserimento manuale dei
+ * risultati. Richiede la variabile d'ambiente FOOTBALL_API_KEY (token
+ * gratuito da football-data.org): se manca, fallisce con un errore
+ * esplicito invece di far finta di aver sincronizzato qualcosa. */
+export async function syncFixturesFromApiAction() {
+  const { supabase, user } = await requireUser();
+  const role = await queries.getProfileRole(supabase, user.id);
+  if (role !== "creator") {
+    throw new Error("Solo il creator può sincronizzare il calendario");
+  }
+
+  const apiKey = process.env.FOOTBALL_API_KEY;
+  if (!apiKey) {
+    redirect(
+      "/dashboard/fixtures?syncError=" +
+        encodeURIComponent(
+          "Manca la variabile d'ambiente FOOTBALL_API_KEY: registrati su football-data.org (piano free) e impostala su Vercel."
+        )
+    );
+  }
+
+  let summary: Awaited<ReturnType<typeof queries.syncFixturesFromFootballData>>;
+  try {
+    summary = await queries.syncFixturesFromFootballData(supabase, apiKey);
+  } catch (err) {
+    redirect(
+      "/dashboard/fixtures?syncError=" +
+        encodeURIComponent(err instanceof Error ? err.message : "Errore sconosciuto")
+    );
+  }
+
+  if (summary.unmatched.length > 0) {
+    console.warn(
+      "[syncFixturesFromApiAction] partite non riconosciute (nome squadra non combaciante):",
+      summary.unmatched
+    );
+  }
+
+  revalidatePath("/dashboard/fixtures");
+  redirect(
+    `/dashboard/fixtures?syncOk=1&kickoffs=${summary.kickoffsSynced}&results=${summary.resultsSynced}&unmatched=${summary.unmatched.length}`
+  );
 }

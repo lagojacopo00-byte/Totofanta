@@ -5,6 +5,7 @@ import { TeamBadge } from "@/components/team-badge";
 import { button, buttonGhost, card, eyebrow } from "@/components/ui";
 import { maxAssignableForTeam, solveSlotAssignment, type SlotOption } from "@/lib/slot-assignment";
 import type { MatchDayGroup } from "@/lib/match-window";
+import { PickCountdown } from "@/components/pick-countdown";
 import { submitPicksAction } from "./actions";
 
 const dayGroupLabel: Record<MatchDayGroup, string> = {
@@ -90,11 +91,16 @@ interface TeamPickerProps {
   /** Tutte le squadre disponibili nel torneo, per risalire dal nome (delle
    * partite) alla squadra (id) — le partite riportano il nome, non l'id. */
   teams: TeamOption[];
-  /** true quando la finestra di scelta (lunedì-giovedì) è chiusa: il
-   * calendario resta visibile (serve proprio nel weekend, mentre si
-   * gioca), ma i controlli diventano tutti disabilitati e spariscono i
-   * bottoni di conferma. */
+  /** true quando la finestra di scelta è chiusa (dopo il calcio d'inizio
+   * della prima partita della giornata, vedi src/lib/pick-window.ts): il
+   * calendario resta visibile (serve proprio mentre si gioca), ma i
+   * controlli diventano tutti disabilitati e spariscono i bottoni di
+   * conferma. */
   readOnly?: boolean;
+  /** Scadenza per schierare questa giornata (vedi computePickDeadline in
+   * pick-window.ts), per il conto alla rovescia nella barra fissa in
+   * cima — null se non ancora nota. */
+  deadline: string | null;
 }
 
 function initialCounts(slots: PickerSlot[]): Record<string, number> {
@@ -116,6 +122,7 @@ export function TeamPicker({
   excludedTeamNames,
   teams,
   readOnly = false,
+  deadline,
 }: TeamPickerProps) {
   const [counts, setCounts] = useState<Record<string, number>>(() => initialCounts(slots));
   const [error, setError] = useState<string | null>(null);
@@ -334,22 +341,31 @@ export function TeamPicker({
 
   return (
     <>
-      {/* Sempre il primo numero visibile mentre si gioca: quanti slot
-          restano da assegnare, aggiornato a ogni click prima ancora di
-          confermare. */}
-      <section className={`${card} border-accent/30`}>
-        <p className={eyebrow}>Slot ancora disponibili</p>
-        <div className="mt-2 flex items-end justify-between gap-4">
-          <p className="font-display text-4xl font-extrabold leading-none text-foreground">
-            {remainingSlots}
-            <span className="ml-1 text-base font-bold text-foreground-faint">
-              /{totalSlots}
-            </span>
-          </p>
-          {!saved ? (
-            <span className="text-xs text-foreground-faint">Modifiche non salvate</span>
-          ) : null}
+      {/* Fissa in cima mentre si scorre la lista di partite sotto:
+          quanti slot restano da assegnare (aggiornato a ogni click,
+          prima ancora di confermare) e il conto alla rovescia, sempre
+          sott'occhio insieme — deciso con l'utente il 2026-09-02.
+          Sticky sotto l'header condiviso di play/(app)/layout.tsx:
+          l'offset in `top` combacia con la sua altezza effettiva
+          (py-3/sm:py-4 + il logo di 40px + il bordo). */}
+      <section
+        className={`${card} sticky top-[65px] z-[5] border-accent/30 sm:top-[73px]`}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className={eyebrow}>Slot ancora disponibili</p>
+            <p className="mt-1 font-display text-4xl font-extrabold leading-none text-foreground">
+              {remainingSlots}
+              <span className="ml-1 text-base font-bold text-foreground-faint">
+                /{totalSlots}
+              </span>
+            </p>
+          </div>
+          <PickCountdown deadline={deadline} variant="large" />
         </div>
+        {!saved ? (
+          <p className="mt-2 text-xs text-foreground-faint">Modifiche non salvate</p>
+        ) : null}
       </section>
 
       <section className={`${card} flex min-w-0 flex-col gap-4`}>
@@ -360,8 +376,9 @@ export function TeamPicker({
           </p>
           {readOnly ? (
             <p className="mt-1 text-xs text-foreground-faint">
-              Mercato chiuso: si schiera solo da lunedì a giovedì. Qui
-              sotto trovi comunque il programma di ogni squadra.
+              Mercato chiuso: è già iniziata la prima partita della
+              giornata. Qui sotto trovi comunque il programma di ogni
+              squadra.
             </p>
           ) : showCollapsed ? (
             <p className="mt-1 text-xs text-foreground-faint">

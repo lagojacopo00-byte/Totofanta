@@ -45,10 +45,13 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
     notFound();
   }
 
-  const [players, matchdays, undoPreview] = await Promise.all([
+  const [players, matchdays, undoPreview, matchdayBackups] = await Promise.all([
     queries.getPlayersWithSlots(supabase, tournament.id),
     queries.getMatchdays(supabase, tournament.id),
     queries.getUndoLastMatchdayPreview(supabase, tournament.id),
+    tournament.auto_backup_matchdays
+      ? queries.listMatchdayBackups(supabase, tournament.id)
+      : Promise.resolve([]),
   ]);
 
   const winnerNames = players
@@ -323,6 +326,37 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
           </ul>
         </section>
       )}
+
+      {tournament.auto_backup_matchdays ? (
+        <section className={`${cardTight} flex flex-col gap-2`}>
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Backup giornate
+            </p>
+            <p className="text-xs text-foreground-faint">
+              Un file Excel per ogni giornata chiusa (squadra scelta e
+              stato per ogni slot) — per ricostruire il torneo a mano se
+              il sito avesse problemi. I link scadono dopo un&apos;ora:
+              ricarica la pagina per rigenerarli.
+            </p>
+          </div>
+          {matchdayBackups.length === 0 ? (
+            <p className="text-xs text-foreground-faint">
+              Ancora nessuna giornata chiusa.
+            </p>
+          ) : (
+            <ul className="flex flex-wrap gap-1.5">
+              {matchdayBackups.map((f) => (
+                <li key={f.name}>
+                  <a href={f.url} className={buttonGhost} download>
+                    {f.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
       {undoPreview ? (
         <section className={`${cardTight} flex items-center justify-between gap-4 border-dashed`}>

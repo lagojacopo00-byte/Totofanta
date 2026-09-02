@@ -83,6 +83,31 @@ export default async function NewTournamentPage(props: PageProps<"/dashboard/new
           </p>
         </div>
 
+        <label className="flex items-start gap-2.5 rounded-lg border border-line bg-surface-2 px-3 py-2.5 text-sm text-foreground-soft">
+          <input type="checkbox" name="join_as_player" className="mt-0.5" defaultChecked />
+          <span>
+            <span className="font-semibold text-foreground">
+              Parteciperò anch&apos;io a questo torneo
+            </span>{" "}
+            — ti aggiunge subito come giocatore, con gli slot proposti
+            sopra: non serve invitarti da solo. Puoi togliere la spunta
+            se organizzi soltanto.
+          </span>
+        </label>
+
+        <label className="flex items-start gap-2.5 rounded-lg border border-line bg-surface-2 px-3 py-2.5 text-sm text-foreground-soft">
+          <input type="checkbox" name="auto_backup_matchdays" className="mt-0.5" />
+          <span>
+            <span className="font-semibold text-foreground">
+              Salva giornate
+            </span>{" "}
+            — a ogni giornata chiusa, genera in automatico un file Excel
+            di backup (squadra scelta e stato per ogni slot): un modo per
+            ricostruire il torneo a mano se il sito avesse problemi.
+            Impostabile solo ora, non dopo la creazione.
+          </span>
+        </label>
+
         {isCreator ? (
           <label className="flex items-start gap-2.5 rounded-lg border border-line bg-surface-2 px-3 py-2.5 text-sm text-foreground-soft">
             <input type="checkbox" name="is_test" className="mt-0.5" />
