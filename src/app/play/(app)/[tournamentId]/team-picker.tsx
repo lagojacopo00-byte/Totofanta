@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { TeamBadge } from "@/components/team-badge";
 import { button, buttonGhost, card, eyebrow } from "@/components/ui";
 import { maxAssignableForTeam, solveSlotAssignment, type SlotOption } from "@/lib/slot-assignment";
@@ -129,6 +129,23 @@ export function TeamPicker({
   const [saved, setSaved] = useState(true);
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // Altezza reale dell'header condiviso (play/(app)/layout.tsx), misurata
+  // a runtime invece di indovinata in CSS: la barra fissa sotto (slot
+  // disponibili + scadenza) deve attaccarsi esattamente al suo bordo
+  // inferiore, e un valore fisso sbagliava per davvero su schermi reali
+  // (trovato il 2026-09-02). Un ResizeObserver la tiene aggiornata anche
+  // se l'header cambia altezza (breakpoint, testo diverso, ecc.).
+  const [headerHeight, setHeaderHeight] = useState(0);
+  useEffect(() => {
+    const header = document.querySelector("header");
+    if (!header) return;
+    const update = () => setHeaderHeight(header.getBoundingClientRect().height);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
 
   const teamByName = useMemo(() => new Map(teams.map((t) => [t.name, t])), [teams]);
   const excludedSet = useMemo(() => new Set(excludedTeamNames), [excludedTeamNames]);
@@ -344,15 +361,20 @@ export function TeamPicker({
       {/* Fissa in cima mentre si scorre la lista di partite sotto:
           quanti slot restano da assegnare (aggiornato a ogni click,
           prima ancora di confermare) e il conto alla rovescia, sempre
-          sott'occhio insieme — deciso con l'utente il 2026-09-02.
-          Sticky sotto l'header condiviso di play/(app)/layout.tsx:
-          l'offset in `top` combacia con la sua altezza effettiva
-          (py-3/sm:py-4 + il logo di 40px + il bordo). */}
-      <section
-        className={`${card} sticky top-[65px] z-[5] border-accent/30 sm:top-[73px]`}
+          sott'occhio insieme — deciso con l'utente il 2026-09-02. Sticky
+          attaccata subito sotto l'header condiviso (top = la sua altezza
+          reale misurata sopra, non un valore CSS indovinato — un
+          offset fisso sbagliava su schermi reali). Barra piena da bordo
+          a bordo, non una card: -mx-7/px-7 annulla il padding
+          orizzontale di <main> così combacia esattamente con la
+          larghezza dell'header, senza margine né angoli arrotondati che
+          la farebbero sembrare "staccata". */}
+      <div
+        className="sticky z-[5] -mx-7 border-b border-line bg-background px-7 py-3"
+        style={{ top: headerHeight }}
       >
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <p className={eyebrow}>Slot ancora disponibili</p>
             <p className="mt-1 font-display text-4xl font-extrabold leading-none text-foreground">
               {remainingSlots}
@@ -366,7 +388,7 @@ export function TeamPicker({
         {!saved ? (
           <p className="mt-2 text-xs text-foreground-faint">Modifiche non salvate</p>
         ) : null}
-      </section>
+      </div>
 
       <section className={`${card} flex min-w-0 flex-col gap-4`}>
         <div>
