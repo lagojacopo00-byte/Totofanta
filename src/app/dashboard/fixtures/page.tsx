@@ -184,6 +184,16 @@ export default async function FixturesPage(
         </button>
       </form>
 
+      {isCreator ? (
+        <p className="text-xs text-foreground-faint">
+          <strong className="text-foreground-soft">Anticipa risultati</strong>:
+          i tre pulsanti 1/X/2 su ogni partita qui sotto inseriscono l&apos;esito
+          a mano, partita per partita — mai squadra per squadra, per evitare
+          combinazioni incoerenti. Quando arriva il risultato ufficiale da
+          football-data.org, lo sostituisce in automatico.
+        </p>
+      ) : null}
+
       {rounds.length === 0 ? (
         <div className={card}>
           <p className="text-sm text-foreground-soft">

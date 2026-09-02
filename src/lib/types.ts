@@ -20,6 +20,9 @@ export interface Tournament {
   slot_value: number;
   decisive_matchday: number | null;
   winners: string[];
+  // Se true, ogni giornata chiusa genera in automatico un backup Excel —
+  // vedi generateMatchdayBackup in src/lib/matchday-export.ts.
+  auto_backup_matchdays: boolean;
   created_at: string;
 }
 

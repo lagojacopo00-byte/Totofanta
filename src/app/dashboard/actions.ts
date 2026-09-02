@@ -37,6 +37,7 @@ export async function createTournamentAction(formData: FormData) {
   const requestedTest = formData.get("is_test") === "on";
   const role = requestedTest ? await getProfileRole(supabase, user.id) : "player";
   const isTest = requestedTest && role === "creator";
+  const autoBackupMatchdays = formData.get("auto_backup_matchdays") === "on";
 
   const tournament = await createTournament(supabase, user.id, {
     name,
@@ -44,6 +45,7 @@ export async function createTournamentAction(formData: FormData) {
     default_num_slots: defaultNumSlots,
     is_test: isTest,
     slot_value: slotValue,
+    auto_backup_matchdays: autoBackupMatchdays,
   });
   // Chi crea un torneo ne è l'organizzatore/"admin di lega" (owner_id,
   // per quel torneo soltanto) — questo resta self-service per chiunque,
