@@ -362,8 +362,8 @@ export function TeamPicker({
   // altrimenti, con molti slot/partite, dopo una modifica bisognava
   // scorrere parecchio per ritrovare "Schiera e conferma".
   const stickyBar = (
-    <div className="border-t border-line bg-background">
-      <div className="mx-auto w-full max-w-lg px-7 py-3">
+    <div className="bg-background">
+      <div className="mx-auto w-full max-w-lg px-7 pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className={eyebrow}>Slot ancora disponibili</p>
