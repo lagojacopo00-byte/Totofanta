@@ -1,7 +1,8 @@
 // La finestra ufficiale in cui si giocano le partite di una giornata:
 // venerdì, sabato, domenica, lunedì (vedi docs/02_Regole_gioco.md,
-// "Finestra ufficiale delle partite") — distinta dalla finestra di SCELTA
-// lunedì-giovedì di src/lib/pick-window.ts. Usata per due cose:
+// "Finestra ufficiale delle partite") — concetto distinto dalla scadenza
+// di SCELTA di src/lib/pick-window.ts (che segue il calcio d'inizio
+// della prima partita, non un giorno fisso). Usata per due cose:
 // - da getExcludedTeamNames in src/lib/queries.ts, per capire se una
 //   partita rientra o no nella finestra (una rinviata fuori, es. spostata
 //   a un martedì di due settimane dopo, non conta ai fini del gioco);

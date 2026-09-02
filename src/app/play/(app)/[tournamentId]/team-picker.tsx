@@ -401,7 +401,7 @@ export function TeamPicker({
           ) : showCollapsed ? (
             <p className="mt-1 text-xs text-foreground-faint">
               Hai schierato tutti i tuoi slot per questa giornata. Puoi
-              ancora cambiarli fino a giovedì.
+              ancora cambiarli finché non inizia la prima partita.
             </p>
           ) : null}
         </div>
