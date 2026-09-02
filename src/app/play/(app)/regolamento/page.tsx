@@ -62,8 +62,15 @@ export default async function RegolamentoPage() {
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Pareggio o sconfitta significano eliminazione: non conta il
-            piazzamento, non conta quanto ci sei andato vicino. Nel
-            Totofanta conta solo una cosa: il fischio finale.
+            piazzamento, non conta quanto ci sei andato vicino.
+          </p>
+          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
+            <strong className="text-foreground">Esempio:</strong> l&apos;Inter
+            va sotto, la riprende al 90&apos; e finisce 1-1? Slot eliminato lo
+            stesso — qui pareggiare vale come perdere.
+          </p>
+          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
+            Nel Totofanta conta solo una cosa: il fischio finale.
           </p>
         </section>
 
@@ -79,12 +86,14 @@ export default async function RegolamentoPage() {
             considerato sconfitto ed eliminato.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Non esistono scelte automatiche, squadre di riserva o
-            ripescaggi: scegliere in tempo è responsabilità del giocatore.
+            <strong className="text-foreground">Attenzione:</strong> qui non
+            esiste una squadra assegnata automaticamente se te ne dimentichi
+            — niente scelte di riserva, niente ripescaggi. Schierarti in
+            tempo è solo compito tuo.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            L&apos;organizzatore può comunque intervenire manualmente, come
-            spiegato più sotto.
+            L&apos;unica eccezione è l&apos;organizzatore, che può schierare
+            al tuo posto anche dopo la scadenza — vedi più sotto.
           </p>
         </section>
 
@@ -103,6 +112,12 @@ export default async function RegolamentoPage() {
             di quella giornata — non un giorno fisso della settimana: ogni
             giornata ha il proprio orario, letto dal calendario Serie A
             reale.
+          </p>
+          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
+            <strong className="text-foreground">Esempio:</strong> se la
+            giornata apre con Napoli-Cagliari alle 15:00 di sabato, quello è
+            il tuo termine — anche se il resto delle partite si gioca fino a
+            lunedì sera.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Da quel momento il mercato chiude fino alla chiusura della
@@ -130,9 +145,11 @@ export default async function RegolamentoPage() {
             Nessuna squadra può essere scelta due volte sullo stesso slot.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Gli slot restano indipendenti tra loro: la stessa squadra può
-            essere ancora disponibile su un altro slot dello stesso
-            giocatore.
+            <strong className="text-foreground">Esempio:</strong> hai
+            giocato la Roma sullo Slot 1 alla giornata 3? Su quello slot è
+            bruciata per sempre. Ma se hai anche uno Slot 2 che non l&apos;ha
+            mai scelta, lì la Roma è ancora libera — gli slot non si
+            parlano tra loro.
           </p>
         </section>
 
@@ -151,12 +168,20 @@ export default async function RegolamentoPage() {
             Una partita{" "}
             <strong className="text-foreground">rinviata</strong> e{" "}
             <strong className="text-foreground">recuperata</strong> fuori
-            da questa finestra non vale per quella giornata: lo slot resta
-            vivo, non viene assegnata né vittoria né sconfitta e la
-            squadra scelta non viene consumata.
+            da questa finestra non vale per quella giornata.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            La squadra resta quindi disponibile per una scelta futura.
+            <strong className="text-foreground">Attenzione:</strong> non
+            conta né come vittoria né come sconfitta — lo slot resta
+            semplicemente in sospeso, e la squadra scelta non viene
+            consumata.
+          </p>
+          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
+            <strong className="text-foreground">Esempio:</strong> hai
+            schierato l&apos;Atalanta e la sua partita slitta a un martedì
+            di recupero, due settimane dopo? Per quella giornata è come se
+            non l&apos;avessi giocata: lo slot resta vivo e l&apos;Atalanta
+            resta disponibile per una scelta futura.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Una vittoria a{" "}
@@ -204,6 +229,12 @@ export default async function RegolamentoPage() {
             Se invece una giornata elimina contemporaneamente tutti gli
             slot ancora vivi, vincono ex aequo tutti i giocatori che erano
             ancora in corsa prima del turno.
+          </p>
+          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
+            <strong className="text-foreground">Esempio:</strong> siete
+            rimasti in tre, tutti con l&apos;ultimo slot vivo, e la
+            giornata li elimina tutti insieme? Vincete in tre, ex aequo —
+            il torneo finisce lì, senza spareggi.
           </p>
         </section>
 
