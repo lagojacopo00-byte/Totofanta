@@ -29,9 +29,11 @@ export default async function HowItWorksPage(
   await requirePlayer(`/play/how-it-works?next=${encodeURIComponent(next)}`);
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-7 py-8 sm:py-10">
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-7 py-8 sm:py-10 text-center">
       <BackLink href="/play" label="I tuoi tornei" />
-      <Brandbar subtitle="Come funziona" />
+      <div className="flex justify-center">
+        <Brandbar subtitle="Come funziona" />
+      </div>
 
       <div id="il-gioco" className="scroll-mt-6">
         <h1 className="font-display text-3xl font-extrabold leading-tight sm:text-4xl">
@@ -53,7 +55,7 @@ export default async function HowItWorksPage(
       </div>
 
       <section id="premio" className={`${card} scroll-mt-6 border-accent/30`}>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-center gap-2.5">
           <CoinIcon className="h-5 w-5 flex-none text-accent" />
           <p className={eyebrow}>Amici, orgoglio e… soldi</p>
         </div>
@@ -76,7 +78,7 @@ export default async function HowItWorksPage(
 
       <div className="flex flex-col gap-6">
         <section id="slot" className={`${cardTight} scroll-mt-6 p-5`}>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center gap-2.5">
             <HeartIcon className="h-5 w-5 flex-none text-accent" />
             <h2 className="font-display text-lg font-extrabold sm:text-xl">
               Gli slot
@@ -97,7 +99,7 @@ export default async function HowItWorksPage(
         </section>
 
         <section id="vittoria" className={`${cardTight} scroll-mt-6 p-5`}>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center gap-2.5">
             <TrophyIcon className="h-5 w-5 flex-none text-accent" />
             <h2 className="font-display text-lg font-extrabold sm:text-xl">
               Chi vince il torneo
@@ -117,7 +119,7 @@ export default async function HowItWorksPage(
         </section>
 
         <section id="ritmo" className={`${cardTight} scroll-mt-6 p-5`}>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center gap-2.5">
             <CalendarIcon className="h-5 w-5 flex-none text-accent" />
             <h2 className="font-display text-lg font-extrabold sm:text-xl">
               Il ritmo della settimana

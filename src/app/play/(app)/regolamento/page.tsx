@@ -24,7 +24,7 @@ export default async function RegolamentoPage() {
   await requirePlayer();
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 text-center">
       <BackLink href="/play" label="I tuoi tornei" />
 
       <h1 className="font-display text-3xl font-extrabold sm:text-4xl">
@@ -33,14 +33,15 @@ export default async function RegolamentoPage() {
 
       <div className="flex flex-col gap-6">
         <section id="sopravvivere" className={`${cardTight} scroll-mt-24 p-5`}>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center gap-2.5">
             <ShieldIcon className="h-5 w-5 flex-none text-accent" />
             <h2 className="font-display text-lg font-extrabold sm:text-xl">
               Come si sopravvive a una giornata
             </h2>
           </div>
           <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
-            Uno slot resta vivo solo se la squadra scelta vince. Pareggio o
+            Uno slot resta vivo solo se la squadra scelta{" "}
+            <strong className="text-foreground">vince</strong>. Pareggio o
             sconfitta significano eliminazione.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
@@ -50,15 +51,18 @@ export default async function RegolamentoPage() {
         </section>
 
         <section id="scadenze" className={`${cardTight} scroll-mt-24 p-5`}>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center gap-2.5">
             <ClockIcon className="h-5 w-5 flex-none text-accent" />
             <h2 className="font-display text-lg font-extrabold sm:text-xl">
               Scadenze
             </h2>
           </div>
           <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
-            Si schiera fino al calcio d&apos;inizio della prima partita di
-            quella giornata
+            Si schiera fino al{" "}
+            <strong className="text-foreground">
+              calcio d&apos;inizio della prima partita
+            </strong>{" "}
+            di quella giornata
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Da quel momento il mercato chiude fino alla chiusura della
@@ -68,7 +72,7 @@ export default async function RegolamentoPage() {
         </section>
 
         <section id="squadre-usate" className={`${cardTight} scroll-mt-24 p-5`}>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center gap-2.5">
             <RepeatOffIcon className="h-5 w-5 flex-none text-accent" />
             <h2 className="font-display text-lg font-extrabold sm:text-xl">
               Squadre già usate
@@ -92,7 +96,7 @@ export default async function RegolamentoPage() {
         </section>
 
         <section id="vittoria" className={`${cardTight} scroll-mt-24 p-5`}>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center gap-2.5">
             <TrophyIcon className="h-5 w-5 flex-none text-accent" />
             <h2 className="font-display text-lg font-extrabold sm:text-xl">
               Chi vince il torneo
@@ -104,8 +108,10 @@ export default async function RegolamentoPage() {
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Il torneo finisce: ha vinto lui.
           </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Se una giornata elimina tutti i giocatori?
+          <p className="mt-2 text-[15px] leading-relaxed">
+            <strong className="text-foreground">
+              Se una giornata elimina tutti i giocatori?
+            </strong>
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Vincono tutti ex aequo.
@@ -113,7 +119,7 @@ export default async function RegolamentoPage() {
         </section>
 
         <section id="mancata-scelta" className={`${cardTight} scroll-mt-24 p-5`}>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center gap-2.5">
             <UserXIcon className="h-5 w-5 flex-none text-accent" />
             <h2 className="font-display text-lg font-extrabold sm:text-xl">
               Mancata scelta
@@ -121,7 +127,9 @@ export default async function RegolamentoPage() {
           </div>
           <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
             Uno slot senza una squadra scelta entro la scadenza viene
-            considerato sconfitto ed eliminato.
+            considerato{" "}
+            <strong className="text-foreground">sconfitto</strong> ed
+            eliminato.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             Conta solo quello che succede nella finestra ufficiale della
@@ -131,23 +139,29 @@ export default async function RegolamentoPage() {
         </section>
 
         <section id="rinvii" className={`${cardTight} scroll-mt-24 p-5`}>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center gap-2.5">
             <CalendarArrowIcon className="h-5 w-5 flex-none text-accent" />
             <h2 className="font-display text-lg font-extrabold sm:text-xl">
               Partita rinviata
             </h2>
           </div>
           <p className="mt-3 text-[15px] leading-relaxed text-foreground-soft">
-            e recuperata fuori da questa finestra non vale per quella
-            giornata: lo slot resta vivo, non viene assegnata né vittoria
-            né sconfitta e la squadra scelta non viene consumata.
+            e <strong>recuperata</strong> fuori da questa finestra non
+            vale per quella giornata:{" "}
+            <strong className="text-foreground">
+              lo slot resta vivo
+            </strong>
+            , non viene assegnata né vittoria né sconfitta e la squadra
+            scelta non viene consumata.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
             La squadra resta quindi disponibile per una scelta futura.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-foreground-soft">
-            Una vittoria a tavolino invece vale come vinta se il risultato
-            viene utilizzato entro i tempi (lunedì a mezzanotte).
+            Una vittoria a{" "}
+            <strong className="text-foreground">tavolino</strong> invece
+            vale come vinta se il risultato viene utilizzato entro i
+            tempi (lunedì a mezzanotte).
           </p>
         </section>
       </div>
