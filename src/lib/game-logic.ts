@@ -232,3 +232,46 @@ export function teamsAvailableForSlot(
   const used = new Set(usedTeamIds)
   return allTeams.filter((t) => !used.has(t.id))
 }
+
+export interface FinalStandingSlot {
+  status: 'alive' | 'eliminated'
+  eliminatedMatchday: number | null
+}
+
+export interface FinalStandingPlayer {
+  id: string
+  slots: FinalStandingSlot[]
+}
+
+/**
+ * Quota di montepremi di un giocatore a torneo concluso: quanti dei suoi
+ * slot erano ancora in corsa al momento decisivo (l'ultima giornata
+ * giocata) sul totale degli slot dei vincitori in quel momento — non sul
+ * totale slot del torneo, morti in giornate precedenti comprese.
+ *
+ * In una vittoria "normale" gli slot del vincitore sono ancora `alive`
+ * (nessuno è stato eliminato). Nello spareggio ex aequo "zero superstiti"
+ * (vedi `applyMatchdayResults`) anche gli slot dei vincitori risultano
+ * `eliminated`, ma tutti proprio nella giornata decisiva — da qui il
+ * doppio controllo sotto, che li riconosce comunque come "ancora in
+ * corsa" fino a quel momento.
+ */
+export function computeFinalPrizeShare(
+  standings: FinalStandingPlayer[],
+  winnerIds: string[],
+  decisiveMatchday: number | null,
+  playerId: string
+): number | null {
+  const winnerIdSet = new Set(winnerIds)
+  let totalWinningSlots = 0
+  let myWinningSlots = 0
+  for (const p of standings) {
+    if (!winnerIdSet.has(p.id)) continue
+    const count = p.slots.filter(
+      (s) => s.status === 'alive' || s.eliminatedMatchday === decisiveMatchday
+    ).length
+    totalWinningSlots += count
+    if (p.id === playerId) myWinningSlots = count
+  }
+  return totalWinningSlots > 0 ? myWinningSlots / totalWinningSlots : null
+}
