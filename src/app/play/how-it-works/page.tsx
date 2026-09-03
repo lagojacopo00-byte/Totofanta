@@ -31,6 +31,25 @@ export default async function HowItWorksPage(
   return (
     <>
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-7 pb-32 pt-8 text-center sm:pt-10">
+      {/* Spot di presentazione, in cima: parte da solo ad ogni apertura
+          di questa pagina — soprattutto la primissima volta che si entra
+          nel sito, prima ancora del testo sotto. Video senza audio
+          (verificato con ffprobe), quindi `muted` serve solo a
+          soddisfare la policy di autoplay dei browser (Safari iOS
+          richiede sia `muted` sia `playsInline`, altrimenti l'autoplay
+          non parte o il video va a schermo intero). */}
+      <div className="overflow-hidden rounded-2xl border border-line">
+        <video
+          className="w-full"
+          src="/video/spot.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        />
+      </div>
+
       <BackLink href="/play" label="I tuoi tornei" />
       <div className="flex justify-center">
         <Brandbar subtitle="Come funziona" />
