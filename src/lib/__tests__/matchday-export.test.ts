@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import ExcelJS from 'exceljs'
-import { buildMatchdayBackupXlsx } from '../matchday-export'
+import { addMatchdaySheet, buildMatchdayBackupXlsx } from '../matchday-export'
 
 // exceljs porta con sé i tipi di una versione di @types/node più vecchia
 // di quella del progetto, il cui Buffer generico non combacia più
@@ -68,6 +68,34 @@ test('buildMatchdayBackupXlsx: celle vuote (—) e senza colore per slot senza s
   const workbook = await loadWorkbook(buffer)
   const sheet = workbook.getWorksheet('Giornata 1')!
   assert.equal(sheet.getRow(2).getCell(2).value, '—')
+})
+
+test('addMatchdaySheet: giornate diverse finiscono su fogli diversi dello stesso workbook', async () => {
+  const workbook = new ExcelJS.Workbook()
+  addMatchdaySheet(workbook, 1, [
+    { displayName: 'Anna', slots: [{ label: '1', teamName: 'Napoli', status: 'alive' }] },
+  ])
+  addMatchdaySheet(workbook, 2, [
+    { displayName: 'Anna', slots: [{ label: '1', teamName: 'Milan', status: 'eliminated' }] },
+  ])
+  assert.deepEqual(
+    workbook.worksheets.map((s) => s.name),
+    ['Giornata 1', 'Giornata 2']
+  )
+  assert.equal(workbook.getWorksheet('Giornata 1')!.getRow(2).getCell(2).value, 'Napoli')
+  assert.equal(workbook.getWorksheet('Giornata 2')!.getRow(2).getCell(2).value, 'Milan')
+})
+
+test('addMatchdaySheet: rifare la stessa giornata sostituisce il foglio, non lo duplica', async () => {
+  const workbook = new ExcelJS.Workbook()
+  addMatchdaySheet(workbook, 1, [
+    { displayName: 'Anna', slots: [{ label: '1', teamName: 'Napoli', status: 'alive' }] },
+  ])
+  addMatchdaySheet(workbook, 1, [
+    { displayName: 'Anna', slots: [{ label: '1', teamName: 'Roma', status: 'eliminated' }] },
+  ])
+  assert.equal(workbook.worksheets.length, 1)
+  assert.equal(workbook.getWorksheet('Giornata 1')!.getRow(2).getCell(2).value, 'Roma')
 })
 
 test('buildMatchdayBackupXlsx: righe fino al numero massimo di slot tra i giocatori, celle vuote per chi ne ha meno', async () => {

@@ -12,8 +12,9 @@ import { isWithinMatchWindow } from "./match-window";
 import { computePickDeadline, isPickingWindowOpen } from "./pick-window";
 import { fetchSerieAFixtures, matchTeamName } from "./football-api";
 import { createAdminClient } from "./supabase/admin";
+import ExcelJS from "exceljs";
 import {
-  buildMatchdayBackupXlsx,
+  addMatchdaySheet,
   type BackupPlayerSnapshot,
 } from "./matchday-export";
 import type {
@@ -388,6 +389,83 @@ export async function getMatchdayResults(db: DB, matchdayId: string) {
   return assertNoError(res) as MatchdayResult[];
 }
 
+export interface HistorySlotEntry {
+  playerId: string;
+  playerName: string;
+  slotLabel: string;
+  teamName: string | null;
+  outcome: "win" | "draw" | "loss" | "missed_pick" | "exempt";
+}
+
+/** Storico di una giornata già chiusa: per ogni slot che era ancora in
+ * gara ALL'INIZIO di quella giornata (non eliminato prima), la squadra
+ * scelta e l'esito — per la schermata "Storico" dell'area giocatore
+ * (docs/07_Task_sviluppo.md, richiesta il 2026-09-03). Niente slot già
+ * fuori da giornate precedenti: per quella giornata non hanno scelto
+ * nulla, mostrarli sarebbe solo rumore.
+ *
+ * "Esente" ricostruito da getExcludedTeamNames (stato ATTUALE delle
+ * fixture di quel round): se un rinvio viene corretto più avanti, lo
+ * storico di giornate già chiuse rispecchia l'ultimo stato noto, non
+ * necessariamente quello del momento — stessa fonte di verità già usata
+ * ovunque nell'app, non una novità di questa funzione. Array vuoto se la
+ * giornata non esiste o non è ancora chiusa (niente da vedere ancora). */
+export async function getMatchdayHistory(
+  db: DB,
+  tournamentId: string,
+  matchdayNumber: number
+): Promise<HistorySlotEntry[]> {
+  const matchdays = await getMatchdays(db, tournamentId);
+  const matchday = matchdays.find((m) => m.number === matchdayNumber);
+  if (!matchday || matchday.status === "open") return [];
+
+  const [players, picks, results, excludedNames] = await Promise.all([
+    getPlayersWithSlots(db, tournamentId),
+    getPicksForMatchday(db, matchday.id),
+    getMatchdayResults(db, matchday.id),
+    getExcludedTeamNames(db, matchdayNumber),
+  ]);
+
+  const teamIds = Array.from(new Set(picks.map((p) => p.team_id)));
+  const teams = await getTeamsByIds(db, teamIds);
+  const teamNameById = new Map(teams.map((t) => [t.id, t.name]));
+  const pickBySlot = new Map(picks.map((p) => [p.slot_id, p.team_id]));
+  const outcomeByTeam = new Map(results.map((r) => [r.team_id, r.outcome]));
+
+  const entries: HistorySlotEntry[] = [];
+  for (const player of players) {
+    const sortedSlots = player.slots
+      .slice()
+      .sort((a, b) => Number(a.label) - Number(b.label));
+    for (const slot of sortedSlots) {
+      const wasInPlay =
+        slot.status === "alive" || (slot.eliminated_matchday ?? Infinity) >= matchdayNumber;
+      if (!wasInPlay) continue;
+
+      const teamId = pickBySlot.get(slot.id);
+      const teamName = teamId ? (teamNameById.get(teamId) ?? null) : null;
+
+      let outcome: HistorySlotEntry["outcome"];
+      if (!teamId) {
+        outcome = "missed_pick";
+      } else if (teamName && excludedNames.has(teamName)) {
+        outcome = "exempt";
+      } else {
+        outcome = outcomeByTeam.get(teamId) ?? "missed_pick";
+      }
+
+      entries.push({
+        playerId: player.id,
+        playerName: player.display_name,
+        slotLabel: slot.label,
+        teamName,
+        outcome,
+      });
+    }
+  }
+  return entries;
+}
+
 /**
  * Il cuore lato server del regolamento: applica i risultati inseriti
  * dall'organizzatore per una giornata, aggiorna gli slot, e se il torneo
@@ -510,16 +588,27 @@ export async function submitMatchdayResults(
   return result;
 }
 
+/** Percorso nel bucket storage "matchday-backups" del file Excel
+ * cumulativo di backup di un torneo: un solo file per tutto il torneo
+ * (un foglio per giornata al suo interno), non uno separato per ogni
+ * giornata — deciso con l'utente il 2026-09-03: più comodo da tenere
+ * come backup unico, e apre la porta a farlo scaricare anche ai
+ * giocatori (non solo all'organizzatore) senza dover scegliere tra N
+ * file quale sia l'ultimo. */
+function matchdayBackupPath(tournamentId: string): string {
+  return `${tournamentId}/storico.xlsx`;
+}
+
 /**
- * Genera il file Excel di backup di una giornata appena chiusa e lo carica
- * nel bucket storage "matchday-backups" (percorso
- * "<tournament_id>/giornata-<numero>.xlsx", sovrascritto se già esiste —
- * es. dopo "Annulla ultima giornata" + rinserimento). Solo per i tornei
- * con `auto_backup_matchdays` attivo (checkbox "Salva giornate" alla
- * creazione). Non blocca mai la chiusura della giornata: un problema di
- * storage non deve impedire l'aggiornamento del gioco vero, che a questo
- * punto della funzione è già stato applicato — un errore qui finisce solo
- * nei log del server.
+ * Aggiunge (o sostituisce, vedi addMatchdaySheet) il foglio della
+ * giornata appena chiusa nel file Excel cumulativo di backup del
+ * torneo: scarica il file esistente da storage (se già ce n'è uno),
+ * aggiunge/sostituisce il foglio di questa giornata, e lo ricarica.
+ * Solo per i tornei con `auto_backup_matchdays` attivo (checkbox
+ * "Salva giornate" alla creazione). Non blocca mai la chiusura della
+ * giornata: un problema di storage non deve impedire l'aggiornamento
+ * del gioco vero, che a questo punto della funzione è già stato
+ * applicato — un errore qui finisce solo nei log del server.
  */
 async function generateMatchdayBackup(
   db: DB,
@@ -552,8 +641,19 @@ async function generateMatchdayBackup(
         }),
     }));
 
-    const buffer = await buildMatchdayBackupXlsx(matchday.number, snapshot);
-    const path = `${tournament.id}/giornata-${matchday.number}.xlsx`;
+    const path = matchdayBackupPath(tournament.id);
+    const workbook = new ExcelJS.Workbook();
+    const existing = await db.storage.from("matchday-backups").download(path);
+    if (existing.data) {
+      const existingBuffer = Buffer.from(await existing.data.arrayBuffer());
+      await workbook.xlsx.load(
+        existingBuffer as unknown as Parameters<typeof workbook.xlsx.load>[0]
+      );
+    }
+    addMatchdaySheet(workbook, matchday.number, snapshot);
+    const arrayBuffer = await workbook.xlsx.writeBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
     const res = await db.storage.from("matchday-backups").upload(path, buffer, {
       contentType:
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -573,26 +673,19 @@ async function generateMatchdayBackup(
   }
 }
 
-/** Elenca i backup Excel già generati per un torneo (vedi
- * generateMatchdayBackup), più recenti prima, con un link di download
- * firmato valido un'ora — per la sezione "Backup giornate" della
- * dashboard organizzatore. */
-export async function listMatchdayBackups(db: DB, tournamentId: string) {
-  const list = await db.storage.from("matchday-backups").list(tournamentId);
-  if (list.error || !list.data) return [];
-
-  const withUrls = await Promise.all(
-    list.data.map(async (file) => {
-      const signed = await db.storage
-        .from("matchday-backups")
-        .createSignedUrl(`${tournamentId}/${file.name}`, 3600);
-      return { name: file.name, url: signed.data?.signedUrl ?? null };
-    })
-  );
-
-  return withUrls
-    .filter((f): f is { name: string; url: string } => f.url !== null)
-    .sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true }));
+/** Link di download firmato (valido un'ora) del file Excel cumulativo di
+ * backup di un torneo (vedi generateMatchdayBackup) — null se il torneo
+ * non ha ancora chiuso nessuna giornata con auto_backup_matchdays
+ * attivo. Usata sia dalla dashboard organizzatore sia, se il torneo è
+ * stato creato con l'opzione, dalla pagina del giocatore. */
+export async function getMatchdayBackupUrl(
+  db: DB,
+  tournamentId: string
+): Promise<string | null> {
+  const signed = await db.storage
+    .from("matchday-backups")
+    .createSignedUrl(matchdayBackupPath(tournamentId), 3600);
+  return signed.data?.signedUrl ?? null;
 }
 
 function lastCompletedMatchday(matchdays: Matchday[]): Matchday | null {
