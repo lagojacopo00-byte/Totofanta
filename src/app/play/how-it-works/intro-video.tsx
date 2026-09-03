@@ -40,19 +40,23 @@ export function WatchSpotButton() {
  * subito — niente loop qui: un video a schermo intero che non finisce
  * mai bloccherebbe la pagina.
  *
- * `h-dvh` (non solo `inset-0`, che da solo assume il 100% del viewport
- * "di riposo") + padding-top con la safe area: su Safari iOS la barra
- * degli indirizzi può sovrapporsi a un elemento `fixed` ancorato al
- * bordo superiore reale dello schermo invece di lasciargli lo spazio
- * sotto di sé — tagliando il logo/titolo vicino all'inizio del video
- * (bug segnalato dall'utente il 2026-09-03). `h-dvh` segue lo spazio
- * DAVVERO visibile quando la barra è mostrata; il padding aggiunge un
- * margine extra per i casi in cui Safari si sovrapponga comunque. */
+ * `object-contain`, non `object-cover`: il primo tentativo di fix per
+ * lo scarto della barra di Safari (padding-top con la safe area, tolto
+ * qui) ha ristretto il riquadro del video — con `object-cover` (ritaglia
+ * per riempire tutto lo spazio) quel riquadro più basso tagliava via
+ * proprio la fascia superiore con logo/titolo (bug scoperto dall'utente
+ * il 2026-09-03, verificato via screenshot). `object-contain` non
+ * ritaglia mai: se le proporzioni non combaciano perfettamente restano
+ * bande dello sfondo dell'app sopra/sotto o ai lati, invece di perdere
+ * pezzi di video — comunque quasi invisibili, lo sfondo del video è
+ * scuro quanto `bg-background`. `h-dvh` (non solo `inset-0`, che da
+ * solo assume il 100% del viewport "di riposo") segue lo spazio DAVVERO
+ * visibile quando la barra di Safari è mostrata. */
 function FullscreenVideo({ onDone }: { onDone: () => void }) {
   return (
-    <div className="fixed inset-x-0 top-0 z-50 flex h-dvh flex-col bg-background pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="fixed inset-x-0 top-0 z-50 flex h-dvh flex-col bg-background">
       <video
-        className="min-h-0 w-full flex-1 object-cover"
+        className="min-h-0 w-full flex-1 object-contain"
         src="/video/spot.mp4"
         autoPlay
         muted
