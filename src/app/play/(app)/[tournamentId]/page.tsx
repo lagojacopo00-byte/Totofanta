@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
 import { card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
@@ -53,14 +54,19 @@ export default async function PlayerTournamentPage(
     return a.label.localeCompare(b.label);
   });
 
-  const [matchdays, allPicks, availableTeams, standings] = await Promise.all([
-    queries.getMatchdays(supabase, tournament.id),
-    queries.getAllPicksForTournamentSlots(supabase, slots.map((s) => s.id)),
-    queries.getAvailableTeams(supabase, tournament.id, tournament.competition),
-    queries.getTournamentStandings(supabase, tournament.id),
-  ]);
+  const [matchdays, allPicks, availableTeams, standings, matchdayBackupUrl] =
+    await Promise.all([
+      queries.getMatchdays(supabase, tournament.id),
+      queries.getAllPicksForTournamentSlots(supabase, slots.map((s) => s.id)),
+      queries.getAvailableTeams(supabase, tournament.id, tournament.competition),
+      queries.getTournamentStandings(supabase, tournament.id),
+      tournament.auto_backup_matchdays
+        ? queries.getMatchdayBackupUrl(supabase, tournament.id)
+        : Promise.resolve(null),
+    ]);
 
   const openMatchday = matchdays.find((m) => m.status === "open");
+  const hasStorico = matchdays.some((m) => m.status === "completed");
 
   // Accoppiamenti reali di Serie A per la giornata aperta (giornata N del
   // torneo = giornata reale N) — vedi src/app/dashboard/fixtures.
@@ -599,6 +605,28 @@ export default async function PlayerTournamentPage(
             })}
           </ul>
         </section>
+      ) : null}
+
+      {hasStorico ? (
+        <Link
+          href={`/play/${tournament.id}/storico`}
+          className={`${cardTight} flex items-center justify-between gap-2 transition-colors hover:border-accent`}
+        >
+          <span className="text-sm font-semibold text-foreground">
+            Storico del torneo
+          </span>
+          <span className="text-xs text-foreground-faint">
+            Chi ha schierato cosa, giornata per giornata →
+          </span>
+        </Link>
+      ) : null}
+
+      {matchdayBackupUrl ? (
+        <p className="text-center text-xs text-foreground-faint">
+          <a href={matchdayBackupUrl} className="underline hover:text-accent" download>
+            Scarica Excel del torneo
+          </a>
+        </p>
       ) : null}
     </div>
   );

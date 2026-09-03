@@ -644,6 +644,17 @@ richiede prima una decisione di prodotto).
   per gli account già esistenti, creati prima di questa funzione.
   Dettagli tecnici, incluso un bug di RLS trovato e corretto nello
   stesso passaggio, in [06_Database.md](./06_Database.md).
+- **Backup Excel consolidato in un solo file per torneo** (un foglio per
+  giornata, invece di un file separato per ognuna) e **schermata
+  Storico** per i giocatori: giornata per giornata, chi ha schierato
+  cosa e con che esito, tutti i giocatori non solo il proprio (a
+  `/play/[tournamentId]/storico`, linkata dalla pagina del torneo).
+  L'Excel resta riservato all'organizzatore (backup di disastro, per
+  ricostruire a mano se il sito si rompe) ma ora scaricabile anche dai
+  giocatori dalla loro pagina del torneo, se il torneo ha
+  `auto_backup_matchdays` attivo — deciso con l'utente il 2026-09-03:
+  Excel = backup, Storico in-app = consultazione, due scopi diversi con
+  due soluzioni diverse.
 
 ## Da fare — complessa
 
