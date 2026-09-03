@@ -2,27 +2,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
-import { card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
-import { TeamBadge } from "@/components/team-badge";
+import { eyebrow } from "@/components/ui";
 import { GiornataPicker } from "./giornata-picker";
+import { PlayerHistoryList, type PlayerHistoryGroup } from "./player-history-list";
 import type { HistorySlotEntry } from "@/lib/queries";
-
-const pillPending =
-  "inline-flex items-center rounded-full border border-line bg-surface-2 px-2.5 py-1 font-mono text-xs text-foreground-faint";
-
-const outcomeLabel: Record<HistorySlotEntry["outcome"], string> = {
-  win: "Vinta",
-  draw: "Pareggio",
-  loss: "Persa",
-  missed_pick: "Nessuna scelta",
-  exempt: "Esente",
-};
-
-function outcomePillClass(outcome: HistorySlotEntry["outcome"]): string {
-  if (outcome === "win" || outcome === "exempt") return pillAlive;
-  if (outcome === "loss" || outcome === "missed_pick") return pillOut;
-  return pillPending;
-}
 
 /**
  * Storico del torneo per il giocatore: giornata per giornata, chi ha
@@ -73,10 +56,23 @@ export default async function StoricoPage(
     group.slots.push(entry);
     byPlayer.set(entry.playerId, group);
   }
-  const groups = Array.from(byPlayer.entries()).map(([playerId, g]) => ({
-    playerId,
-    ...g,
-  }));
+  // Squadre uguali vicine, dentro allo stesso giocatore (richiesto
+  // dall'utente): ordinate per nome squadra invece che per numero slot.
+  // "￿" (fuori dall'alfabeto) tiene in fondo chi non ha scelto nulla,
+  // invece di mescolarli in mezzo alle squadre vere.
+  const groups: PlayerHistoryGroup[] = Array.from(byPlayer.entries()).map(
+    ([playerId, g]) => ({
+      playerId,
+      ...g,
+      slots: g.slots.slice().sort((a, b) => {
+        const teamCompare = (a.teamName ?? "￿").localeCompare(
+          b.teamName ?? "￿"
+        );
+        if (teamCompare !== 0) return teamCompare;
+        return Number(a.slotLabel) - Number(b.slotLabel);
+      }),
+    })
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -119,38 +115,7 @@ export default async function StoricoPage(
               Nessuno slot era ancora in gara in questa giornata.
             </p>
           ) : (
-            <div className="flex flex-col gap-4">
-              {groups.map((g) => (
-                <section key={g.playerId} className={`${card} flex flex-col gap-2`}>
-                  <p className="font-display text-base font-bold">
-                    {g.playerName}
-                  </p>
-                  <ul className="flex flex-col gap-2">
-                    {g.slots.map((slot, i) => (
-                      <li
-                        key={`${g.playerId}-${slot.slotLabel}-${i}`}
-                        className={`${cardTight} flex items-center justify-between gap-3`}
-                      >
-                        <div className="flex min-w-0 flex-1 items-center gap-2">
-                          <span className="flex-none rounded-full border border-line bg-surface-2 px-2 py-0.5 font-mono text-[10px] text-foreground-faint">
-                            {slot.slotLabel}
-                          </span>
-                          {slot.teamName ? (
-                            <TeamBadge name={slot.teamName} size="sm" />
-                          ) : null}
-                          <span className="min-w-0 truncate text-xs text-foreground-soft">
-                            {slot.teamName ?? "—"}
-                          </span>
-                        </div>
-                        <span className={`flex-none ${outcomePillClass(slot.outcome)}`}>
-                          {outcomeLabel[slot.outcome]}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
+            <PlayerHistoryList groups={groups} />
           )}
         </>
       )}
