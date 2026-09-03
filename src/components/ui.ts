@@ -14,8 +14,14 @@ export const button =
 export const buttonGhost =
   "inline-flex items-center justify-center gap-2 rounded-full border border-line px-4 py-2 font-display text-sm font-bold text-foreground transition-colors hover:border-accent hover:text-accent";
 
+// text-base (16px) sotto sm, non text-sm: un font-size più piccolo di
+// 16px su un input fa scattare lo zoom automatico di Safari iOS al
+// focus (per leggere comodamente il testo digitato) — zoom che poi
+// resta "appiccicato" anche dopo un redirect (es. dopo il login),
+// facendo sembrare zoomata la schermata successiva. Da sm in su
+// (desktop) torna a text-sm, dove il problema non si pone.
 export const input =
-  "w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-accent";
+  "w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-base sm:text-sm text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-accent";
 
 export const label =
   "font-display text-xs font-bold uppercase tracking-wide text-foreground-soft";

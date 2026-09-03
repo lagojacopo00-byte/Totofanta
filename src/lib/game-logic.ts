@@ -243,11 +243,18 @@ export interface FinalStandingPlayer {
   slots: FinalStandingSlot[]
 }
 
+export interface FinalPrizeShare {
+  playerId: string
+  /** Frazione del montepremi (0-1), non percentuale. */
+  share: number
+}
+
 /**
- * Quota di montepremi di un giocatore a torneo concluso: quanti dei suoi
- * slot erano ancora in corsa al momento decisivo (l'ultima giornata
- * giocata) sul totale degli slot dei vincitori in quel momento — non sul
- * totale slot del torneo, morti in giornate precedenti comprese.
+ * Quota di montepremi di OGNI vincitore a torneo concluso: quanti slot
+ * aveva ciascuno ancora in corsa al momento decisivo (l'ultima giornata
+ * giocata) sul totale degli slot di TUTTI i vincitori in quel momento —
+ * non sul totale slot del torneo, morti in giornate precedenti comprese.
+ * In caso di vittoria singola c'è una sola entry con share 1.
  *
  * In una vittoria "normale" gli slot del vincitore sono ancora `alive`
  * (nessuno è stato eliminato). Nello spareggio ex aequo "zero superstiti"
@@ -256,22 +263,25 @@ export interface FinalStandingPlayer {
  * doppio controllo sotto, che li riconosce comunque come "ancora in
  * corsa" fino a quel momento.
  */
-export function computeFinalPrizeShare(
+export function computeFinalPrizeShares(
   standings: FinalStandingPlayer[],
   winnerIds: string[],
-  decisiveMatchday: number | null,
-  playerId: string
-): number | null {
+  decisiveMatchday: number | null
+): FinalPrizeShare[] {
   const winnerIdSet = new Set(winnerIds)
+  const winningSlotsByPlayer = new Map<string, number>()
   let totalWinningSlots = 0
-  let myWinningSlots = 0
   for (const p of standings) {
     if (!winnerIdSet.has(p.id)) continue
     const count = p.slots.filter(
       (s) => s.status === 'alive' || s.eliminatedMatchday === decisiveMatchday
     ).length
+    winningSlotsByPlayer.set(p.id, count)
     totalWinningSlots += count
-    if (p.id === playerId) myWinningSlots = count
   }
-  return totalWinningSlots > 0 ? myWinningSlots / totalWinningSlots : null
+  if (totalWinningSlots === 0) return []
+  return Array.from(winningSlotsByPlayer.entries()).map(([playerId, count]) => ({
+    playerId,
+    share: count / totalWinningSlots,
+  }))
 }

@@ -1,10 +1,16 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/require-user";
 import * as queries from "@/lib/queries";
-import { button, buttonGhost, card, cardTight, eyebrow, input, pillAlive, pillOut } from "@/components/ui";
+import { buttonGhost, cardTight, eyebrow, input, pillAlive, pillOut } from "@/components/ui";
 import { TeamLabel } from "@/components/team-badge";
 import { BackLink } from "@/components/back-link";
-import { organizerClearPickAction, organizerSetPickAction, submitResultsAction } from "./actions";
+import { groupFixturesByDay } from "@/lib/match-window";
+import { organizerClearPickAction, organizerSetPickAction } from "./actions";
+import {
+  MatchdayResultsForm,
+  type OtherResultTeam,
+  type ResultDayGroup,
+} from "./matchday-results-form";
 
 const outcomeLabel = { win: "Vinta", draw: "Pareggiata", loss: "Persa" } as const;
 
@@ -49,6 +55,61 @@ export default async function MatchdayPage(
   const isOpen = matchday.status === "open";
   const results = isOpen ? [] : await queries.getMatchdayResults(supabase, matchday.id);
   const resultByTeam = new Map(results.map((r) => [r.team_id, r.outcome]));
+
+  // Inserimento risultati partita per partita (non più squadra per
+  // squadra): serve sapere quale coppia casa/trasferta corrisponde a
+  // ciascuna squadra scelta questa giornata — vedi matchday-results-form.tsx.
+  // Il match tra fixture (che riportano il NOME) e teamId avviene per
+  // nome, come nel picker dei giocatori (team-picker.tsx).
+  let resultDayGroups: ResultDayGroup[] = [];
+  let otherResultTeams: OtherResultTeam[] = [];
+  if (isOpen && teamIds.length > 0) {
+    const fixtures = await queries.getFixturesForRound(supabase, matchday.number);
+    const teamIdByName = new Map(availableTeams.map((t) => [t.name, t.id]));
+    const pickedTeamIdSet = new Set(teamIds);
+
+    const relevantFixtures = fixtures.filter((f) => {
+      const homeId = teamIdByName.get(f.home_team);
+      const awayId = teamIdByName.get(f.away_team);
+      return (
+        (homeId && pickedTeamIdSet.has(homeId)) || (awayId && pickedTeamIdSet.has(awayId))
+      );
+    });
+    const matchedTeamIds = new Set(
+      relevantFixtures.flatMap((f) => {
+        const homeId = teamIdByName.get(f.home_team);
+        const awayId = teamIdByName.get(f.away_team);
+        return [homeId, awayId].filter((x): x is string => Boolean(x));
+      })
+    );
+
+    resultDayGroups = groupFixturesByDay(relevantFixtures).map(({ group, fixtures: fs }) => ({
+      group,
+      fixtures: fs.map((f) => {
+        const homeId = teamIdByName.get(f.home_team) ?? null;
+        const awayId = teamIdByName.get(f.away_team) ?? null;
+        return {
+          id: f.id,
+          homeTeamId: homeId,
+          homeTeamName: f.home_team,
+          awayTeamId: awayId,
+          awayTeamName: f.away_team,
+          homePickers: homeId ? (pickersByTeam.get(homeId) ?? []) : [],
+          awayPickers: awayId ? (pickersByTeam.get(awayId) ?? []) : [],
+          defaultResult: f.result,
+          isExcluded: excludedTeamNames.has(f.home_team) || excludedTeamNames.has(f.away_team),
+        };
+      }),
+    }));
+
+    otherResultTeams = teamIds
+      .filter((tid) => !matchedTeamIds.has(tid))
+      .map((tid) => ({
+        id: tid,
+        name: teamName.get(tid) ?? tid,
+        pickers: pickersByTeam.get(tid) ?? [],
+      }));
+  }
 
   // Righe per la gestione manuale delle scelte (solo giornata aperta): una
   // per ogni slot ancora vivo, con la scelta attuale (se c'è) e le squadre
@@ -182,53 +243,23 @@ export default async function MatchdayPage(
           Nessuno ha ancora scelto una squadra per questa giornata.
         </p>
       ) : isOpen ? (
-        <form
-          action={submitResultsAction.bind(null, id, matchday.id)}
-          className="flex flex-col gap-3"
-        >
-          {teamIds.map((teamId) => {
-            const isExcluded = excludedTeamNames.has(teamName.get(teamId) ?? "");
-            return (
-              <div key={teamId} className={`${card} flex items-center justify-between gap-4`}>
-                <div>
-                  <p className="font-display font-bold">
-                    <TeamLabel name={teamName.get(teamId) ?? teamId} size="md" />
-                  </p>
-                  <p className="text-xs text-foreground-faint">
-                    {pickersByTeam.get(teamId)?.join(", ")}
-                  </p>
-                </div>
-                {isExcluded ? (
-                  <p className="max-w-[10rem] text-right text-xs text-foreground-faint">
-                    Partita esclusa: chi l&apos;ha scelta resta in gara,
-                    nessun risultato da inserire.
-                  </p>
-                ) : (
-                  <div className="flex gap-1 rounded-full border border-line p-1">
-                    {(["win", "draw", "loss"] as const).map((o) => (
-                      <label
-                        key={o}
-                        className="cursor-pointer rounded-full px-3 py-1.5 text-xs font-bold has-[:checked]:bg-accent has-[:checked]:text-accent-ink"
-                      >
-                        <input
-                          type="radio"
-                          name={`outcome_${teamId}`}
-                          value={o}
-                          required
-                          className="sr-only"
-                        />
-                        {outcomeLabel[o]}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          <button className={`${button} mt-2`} type="submit">
-            Applica i risultati e via alla prossima giornata
-          </button>
-        </form>
+        <section className="flex flex-col gap-3">
+          <div>
+            <p className={eyebrow}>Carica risultati</p>
+            <p className="mt-1 text-xs text-foreground-soft">
+              Partita per partita, come nella scelta dei giocatori — se
+              l&apos;esito è già noto da{" "}
+              <strong className="text-foreground-soft">Anticipa risultati</strong>{" "}
+              o dalla sincronizzazione automatica, è già selezionato.
+            </p>
+          </div>
+          <MatchdayResultsForm
+            tournamentId={id}
+            matchdayId={matchday.id}
+            dayGroups={resultDayGroups}
+            otherTeams={otherResultTeams}
+          />
+        </section>
       ) : (
         <ul className="flex flex-col gap-2">
           {teamIds.map((teamId) => {
