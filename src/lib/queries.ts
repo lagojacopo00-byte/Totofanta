@@ -1295,6 +1295,70 @@ export async function getProfileRole(db: DB, userId: string): Promise<ProfileRol
   return row?.role ?? "player";
 }
 
+export interface AdminProfileRow {
+  id: string;
+  email: string;
+  role: ProfileRole;
+  createdAt: string;
+  displayName: string | null;
+  firstName: string | null;
+  lastName: string | null;
+}
+
+/** Tutti gli account della piattaforma, per la pagina /dashboard/accounts
+ * (solo creator — controllato lì, non qui: questa funzione da sola
+ * bypassa la RLS di `profiles`, va richiamata solo dopo aver verificato
+ * il ruolo). Pensata per far compilare al creator nome/cognome (o il
+ * nome pubblico) per conto di chi non lo farebbe mai da solo — non
+ * un pannello di amministrazione account più ampio. */
+export async function getAllProfiles(): Promise<AdminProfileRow[]> {
+  const admin = createAdminClient();
+  const res = await admin
+    .from("profiles")
+    .select("id, email, role, created_at, display_name, first_name, last_name")
+    .order("created_at", { ascending: true });
+  const rows = assertNoError(res) as {
+    id: string;
+    email: string;
+    role: ProfileRole;
+    created_at: string;
+    display_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
+  }[];
+  return rows.map((r) => ({
+    id: r.id,
+    email: r.email,
+    role: r.role,
+    createdAt: r.created_at,
+    displayName: r.display_name,
+    firstName: r.first_name,
+    lastName: r.last_name,
+  }));
+}
+
+/** Il creator imposta nome pubblico/nome/cognome per conto di un ALTRO
+ * account (vedi getAllProfiles sopra) — serve il client admin perché la
+ * RLS di `profiles` lascia scrivere solo la propria riga. Il controllo
+ * "chi chiama è creator" è responsabilità del chiamante (Server Action),
+ * non di questa funzione. */
+export async function adminUpdateProfileName(
+  targetUserId: string,
+  input: { displayName: string; firstName: string; lastName: string }
+) {
+  const admin = createAdminClient();
+  assertNoError(
+    await admin
+      .from("profiles")
+      .update({
+        display_name: input.displayName || null,
+        first_name: input.firstName || null,
+        last_name: input.lastName || null,
+      })
+      .eq("id", targetUserId)
+  );
+}
+
 /**
  * Aggiunge N giocatori finti a un torneo DI TEST (nome ed email generati,
  * stesso numero di slot di default del torneo): serve a popolare in

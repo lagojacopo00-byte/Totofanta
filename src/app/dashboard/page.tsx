@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/require-user";
-import { getOrganizerTournaments } from "@/lib/queries";
-import { button, card, eyebrow, pillAlive, pillOut } from "@/components/ui";
+import { getOrganizerTournaments, getProfileRole } from "@/lib/queries";
+import { button, buttonGhost, card, eyebrow, pillAlive, pillOut } from "@/components/ui";
 
 const statusLabel: Record<string, string> = {
   draft: "Non ancora iniziato",
@@ -11,7 +11,10 @@ const statusLabel: Record<string, string> = {
 
 export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
-  const tournaments = await getOrganizerTournaments(supabase, user.id);
+  const [tournaments, role] = await Promise.all([
+    getOrganizerTournaments(supabase, user.id),
+    getProfileRole(supabase, user.id),
+  ]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -22,9 +25,16 @@ export default async function DashboardPage() {
             Dashboard
           </h1>
         </div>
-        <Link href="/dashboard/new" className={button}>
-          + Nuovo torneo
-        </Link>
+        <div className="flex items-center gap-2">
+          {role === "creator" ? (
+            <Link href="/dashboard/accounts" className={buttonGhost}>
+              Account
+            </Link>
+          ) : null}
+          <Link href="/dashboard/new" className={button}>
+            + Nuovo torneo
+          </Link>
+        </div>
       </div>
 
       {tournaments.length === 0 ? (
