@@ -5,6 +5,7 @@ import { TeamBadge } from "@/components/team-badge";
 import { BackLink } from "@/components/back-link";
 import type { Fixture, FixtureResult } from "@/lib/types";
 import { FixtureResultButtons } from "./result-buttons";
+import { RoundPicker } from "./round-picker";
 import {
   addFixtureAction,
   deleteFixtureAction,
@@ -61,6 +62,17 @@ export default async function FixturesPage(
     byRound.set(f.round, [...(byRound.get(f.round) ?? []), f]);
   }
   const rounds = [...byRound.keys()].sort((a, b) => a - b);
+
+  // Giornata selezionata dal menu invece di scorrere tutto il calendario:
+  // di default quella con qualche partita ancora senza risultato (la
+  // prossima da seguire), non semplicemente la prima in assoluto.
+  const requestedRound = typeof params.round === "string" ? Number(params.round) : NaN;
+  const defaultRound =
+    rounds.find((r) =>
+      (byRound.get(r) ?? []).some((f) => !f.result && f.status !== "excluded")
+    ) ?? rounds[0];
+  const selectedRound = rounds.includes(requestedRound) ? requestedRound : defaultRound;
+  const selectedFixtures = selectedRound !== undefined ? (byRound.get(selectedRound) ?? []) : [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -201,91 +213,90 @@ export default async function FixturesPage(
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          {rounds.map((round) => (
-            <section key={round} className={cardTight}>
-              <p className="font-display font-bold">Giornata {round}</p>
-              <ul className="mt-2 flex flex-col gap-2">
-                {(byRound.get(round) ?? []).map((f) => {
-                  const isExcluded = f.status === "excluded";
-                  return (
-                    <li
-                      key={f.id}
-                      className={`flex flex-col gap-2 rounded-lg border border-line px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between ${isExcluded ? "opacity-60" : ""}`}
-                    >
-                      <div className="flex flex-col gap-1">
-                        <span className="flex flex-wrap items-center gap-1.5 text-sm">
-                          <TeamBadge name={f.home_team} size="xs" />
-                          <span>{f.home_team}</span>
-                          <span className="text-foreground-faint">–</span>
-                          <TeamBadge name={f.away_team} size="xs" />
-                          <span>{f.away_team}</span>
-                          {isExcluded ? (
-                            <span className="inline-flex items-center rounded-full border border-lose/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-lose">
-                              Esclusa
-                            </span>
-                          ) : null}
-                          {f.result ? (
-                            <span className="inline-flex items-center rounded-full border border-accent/40 bg-win-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-accent">
-                              {resultLabel[f.result](f)}
-                            </span>
-                          ) : null}
+        <div className="flex flex-col gap-3">
+          <RoundPicker rounds={rounds} selected={selectedRound} />
+          <section className={cardTight}>
+            <p className="font-display font-bold">Giornata {selectedRound}</p>
+            <ul className="mt-2 flex flex-col gap-2">
+              {selectedFixtures.map((f) => {
+                const isExcluded = f.status === "excluded";
+                return (
+                  <li
+                    key={f.id}
+                    className={`flex flex-col gap-2 rounded-lg border border-line px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between ${isExcluded ? "opacity-60" : ""}`}
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="flex flex-wrap items-center gap-1.5 text-sm">
+                        <TeamBadge name={f.home_team} size="xs" />
+                        <span>{f.home_team}</span>
+                        <span className="text-foreground-faint">–</span>
+                        <TeamBadge name={f.away_team} size="xs" />
+                        <span>{f.away_team}</span>
+                        {isExcluded ? (
+                          <span className="inline-flex items-center rounded-full border border-lose/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-lose">
+                            Esclusa
+                          </span>
+                        ) : null}
+                        {f.result ? (
+                          <span className="inline-flex items-center rounded-full border border-accent/40 bg-win-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-accent">
+                            {resultLabel[f.result](f)}
+                          </span>
+                        ) : null}
+                      </span>
+                      {f.kickoff_at ? (
+                        <span className="text-xs text-foreground-faint">
+                          {dayLabel.format(new Date(f.kickoff_at))}
                         </span>
-                        {f.kickoff_at ? (
-                          <span className="text-xs text-foreground-faint">
-                            {dayLabel.format(new Date(f.kickoff_at))}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-foreground-faint">
-                            Data/ora non ancora inserita
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {isCreator ? <FixtureResultButtons fixture={f} /> : null}
-                        <form
-                          action={setFixtureKickoffAction.bind(null, f.id)}
-                          className="flex items-center gap-1.5"
+                      ) : (
+                        <span className="text-xs text-foreground-faint">
+                          Data/ora non ancora inserita
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {isCreator ? <FixtureResultButtons fixture={f} /> : null}
+                      <form
+                        action={setFixtureKickoffAction.bind(null, f.id)}
+                        className="flex items-center gap-1.5"
+                      >
+                        <input
+                          className={`${input} w-auto py-1 text-xs`}
+                          type="datetime-local"
+                          name="kickoff_at"
+                          defaultValue={toDatetimeLocalValue(f.kickoff_at)}
+                        />
+                        <button
+                          className={`${buttonGhost} px-2 py-1 text-xs`}
+                          type="submit"
                         >
-                          <input
-                            className={`${input} w-auto py-1 text-xs`}
-                            type="datetime-local"
-                            name="kickoff_at"
-                            defaultValue={toDatetimeLocalValue(f.kickoff_at)}
-                          />
-                          <button
-                            className={`${buttonGhost} px-2 py-1 text-xs`}
-                            type="submit"
-                          >
-                            Salva ora
-                          </button>
-                        </form>
-                        <form
-                          action={toggleFixtureStatusAction.bind(null, f.id, f.status)}
+                          Salva ora
+                        </button>
+                      </form>
+                      <form
+                        action={toggleFixtureStatusAction.bind(null, f.id, f.status)}
+                      >
+                        <button
+                          className={`${buttonGhost} px-2 py-1 text-xs`}
+                          type="submit"
+                          title="Una partita esclusa non conta ai fini del gioco per questa giornata"
                         >
-                          <button
-                            className={`${buttonGhost} px-2 py-1 text-xs`}
-                            type="submit"
-                            title="Una partita esclusa non conta ai fini del gioco per questa giornata"
-                          >
-                            {isExcluded ? "Includi di nuovo" : "Escludi"}
-                          </button>
-                        </form>
-                        <form action={deleteFixtureAction.bind(null, f.id)}>
-                          <button
-                            className={`${buttonGhost} px-2 py-1 text-xs border-lose/40 text-lose hover:border-lose hover:text-lose`}
-                            type="submit"
-                          >
-                            Elimina
-                          </button>
-                        </form>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
+                          {isExcluded ? "Includi di nuovo" : "Escludi"}
+                        </button>
+                      </form>
+                      <form action={deleteFixtureAction.bind(null, f.id)}>
+                        <button
+                          className={`${buttonGhost} px-2 py-1 text-xs border-lose/40 text-lose hover:border-lose hover:text-lose`}
+                          type="submit"
+                        >
+                          Elimina
+                        </button>
+                      </form>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         </div>
       )}
     </div>
