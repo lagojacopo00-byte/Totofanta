@@ -635,6 +635,15 @@ richiede prima una decisione di prodotto).
   vedi già la tabella di mapping in
   [06_Database.md](./06_Database.md), da eventualmente promuovere a
   pagina/sezione a parte se serve anche fuori dal codice.
+- **Nome e cognome sul profilo**, distinti dal nome pubblico (nickname a
+  scelta libera): mostrati vicino al nome pubblico nella classifica di
+  ogni torneo, per capire chi è qualcuno anche se sceglie un nickname
+  strano. Nuova pagina `/dashboard/accounts` (solo creator): elenco di
+  tutti gli account con la possibilità di compilare nome pubblico/nome/
+  cognome per conto di chi non lo farebbe mai da solo — pensata proprio
+  per gli account già esistenti, creati prima di questa funzione.
+  Dettagli tecnici, incluso un bug di RLS trovato e corretto nello
+  stesso passaggio, in [06_Database.md](./06_Database.md).
 
 ## Da fare — complessa
 

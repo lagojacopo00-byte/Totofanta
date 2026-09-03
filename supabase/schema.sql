@@ -38,7 +38,13 @@ create table profiles (
   -- players.display_name che l'organizzatore ha messo per quel singolo
   -- torneo (vedi resolveDisplayName in src/lib/queries.ts). null = non
   -- ancora scelto, si usa players.display_name come prima.
-  display_name text
+  display_name text,
+  -- Nome e cognome, distinti dal nome pubblico (che resta un nickname a
+  -- scelta libera): mostrati vicino al nome pubblico nella classifica di
+  -- ogni torneo, così se qualcuno sceglie un nickname strano gli altri
+  -- capiscono comunque chi è. Nessuno dei due obbligatorio.
+  first_name text,
+  last_name text
 );
 
 alter table profiles enable row level security;

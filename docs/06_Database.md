@@ -9,7 +9,7 @@ esistente — ogni file indica quali eseguire prima).
 
 | Tabella | A cosa serve |
 |---|---|
-| `profiles` | un profilo per utente Supabase Auth; oggi porta solo `tutorial_seen_at` |
+| `profiles` | un profilo per utente Supabase Auth: `tutorial_seen_at`, `role`, e l'identità pubblica facoltativa `display_name`/`first_name`/`last_name` (vedi sotto) |
 | `tournaments` | un torneo: nome, competizione, organizzatore (`owner_id`), stato (`draft`/`active`/`finished`), vincitori, `is_test` (torneo di prova), `slot_value` (valore in € di ogni slot — 0 = nessun premio, vedi sotto) |
 | `teams` | squadre selezionabili: quelle di riferimento condivise (`tournament_id` nullo, es. Serie A precaricata) o custom di un singolo torneo |
 | `players` | un giocatore *in un torneo* (email, nome, account collegato se già registrato) |
@@ -54,6 +54,30 @@ un organizzatore su questa piattaforma", non ancora a cambiare
 comportamento dell'app — quello arriverà con le funzioni che lo
 useranno davvero (es. tornei di test, vedi
 [07_Task_sviluppo.md](./07_Task_sviluppo.md)).
+
+## Identità pubblica facoltativa (`profiles.display_name`/`first_name`/`last_name`)
+
+Tre colonne facoltative, tutte `null` di default:
+
+- `display_name`: nickname a scelta libera, valido su tutti i tornei —
+  quando impostato sovrascrive ovunque il `players.display_name` che
+  l'organizzatore ha messo per quel singolo torneo.
+- `first_name`/`last_name`: distinti dal nickname, pensati per il caso
+  in cui qualcuno scelga un `display_name` che non fa capire chi è —
+  mostrati vicino al nome pubblico nella classifica di ogni torneo
+  (`docs/07_Task_sviluppo.md`, richiesto il 2026-09-03).
+
+**Bug trovato e corretto lo stesso giorno**: la RLS di `profiles` ("a
+user reads and updates their own profile") lascia leggere solo la
+PROPRIA riga. La funzione che risolve questi override per TUTTI i
+giocatori di un torneo (`getProfileOverrides` in `src/lib/queries.ts`,
+usata da `getPlayersWithSlots`/`getTournamentStandings`) veniva
+chiamata col client dell'utente che sta guardando — RLS filtra riga per
+riga senza restituire errore, quindi la query tornava sempre e solo la
+riga di CHI GUARDA, mai quelle degli altri giocatori: il nome pubblico
+personalizzato di un altro giocatore (e ora nome/cognome) non si
+vedevano mai. Corretto usando sempre il client admin in quella
+funzione, che legge solo le tre colonne sopra (mai l'email o altro).
 
 ## Tornei di test (`tournaments.is_test`)
 

@@ -554,15 +554,25 @@ export default async function PlayerTournamentPage(
                     <span className="font-mono text-xs text-foreground-faint">
                       {s.rank}°
                     </span>
-                    <span
-                      className={
-                        isMe
-                          ? "truncate font-display font-bold text-foreground"
-                          : "truncate text-foreground-soft"
-                      }
-                    >
-                      {s.display_name}
-                      {isMe ? " (tu)" : ""}
+                    <span className="min-w-0">
+                      <span
+                        className={
+                          isMe
+                            ? "block truncate font-display font-bold text-foreground"
+                            : "block truncate text-foreground-soft"
+                        }
+                      >
+                        {s.display_name}
+                        {isMe ? " (tu)" : ""}
+                      </span>
+                      {/* Nome e cognome, se impostati: utili quando
+                          qualcuno sceglie un nome pubblico che non fa
+                          capire subito chi è. */}
+                      {s.full_name ? (
+                        <span className="block truncate text-[11px] text-foreground-faint">
+                          {s.full_name}
+                        </span>
+                      ) : null}
                     </span>
                   </span>
                   {tournament.status === "finished" ? (
