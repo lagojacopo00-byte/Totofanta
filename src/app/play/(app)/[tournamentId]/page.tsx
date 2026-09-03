@@ -6,7 +6,7 @@ import { TeamBadge } from "@/components/team-badge";
 import { TrophyIcon } from "@/components/rule-icons";
 import { computePickDeadline, isPickingWindowOpen } from "@/lib/pick-window";
 import { groupFixturesByDay } from "@/lib/match-window";
-import { computeFinalPrizeShare, computeTeamOutcomes } from "@/lib/game-logic";
+import { computeFinalPrizeShares, computeTeamOutcomes } from "@/lib/game-logic";
 import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
 import { MatchdayRecap, type RecapSlot } from "./matchday-recap";
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -143,33 +143,41 @@ export default async function PlayerTournamentPage(
     (t) => (teamAliveBurnCount.get(t.id) ?? 0) > 0
   );
 
+  // Ripartizione del montepremi a fine torneo: la quota di OGNI vincitore
+  // (non solo la mia), per il riepilogo "chi ha vinto quanto" nella card
+  // Game over — vedi computeFinalPrizeShares in game-logic.ts per i
+  // dettagli, incluso il caso ex aequo "zero superstiti". In una vittoria
+  // singola c'è una sola entry con share 1 (nessun riepilogo mostrato:
+  // basta il numero grande già in evidenza).
   let winnerNames: string[] = [];
+  let prizeBreakdown: { playerId: string; name: string; share: number }[] = [];
   if (tournament.status === "finished" && tournament.winners.length > 0) {
     const allPlayers = await queries.getPlayersWithSlots(supabase, tournament.id);
+    const nameById = new Map(allPlayers.map((p) => [p.id, p.display_name]));
     winnerNames = allPlayers
       .filter((p) => tournament.winners.includes(p.id))
       .map((p) => p.display_name);
+
+    prizeBreakdown = computeFinalPrizeShares(
+      standings.map((s) => ({
+        id: s.id,
+        slots: s.slots.map((sl) => ({
+          status: sl.status,
+          eliminatedMatchday: sl.eliminated_matchday,
+        })),
+      })),
+      tournament.winners,
+      tournament.decisive_matchday
+    )
+      .map(({ playerId, share }) => ({
+        playerId,
+        name: nameById.get(playerId) ?? "?",
+        share,
+      }))
+      .sort((a, b) => b.share - a.share);
   }
   const isWinner = tournament.winners.includes(player.id);
-
-  // Quota di premio a fine torneo (solo per chi ha vinto) — vedi
-  // computeFinalPrizeShare in game-logic.ts per i dettagli, incluso il
-  // caso ex aequo "zero superstiti".
-  const myPrizeShare =
-    tournament.status === "finished" && isWinner
-      ? computeFinalPrizeShare(
-          standings.map((s) => ({
-            id: s.id,
-            slots: s.slots.map((sl) => ({
-              status: sl.status,
-              eliminatedMatchday: sl.eliminated_matchday,
-            })),
-          })),
-          tournament.winners,
-          tournament.decisive_matchday,
-          player.id
-        )
-      : null;
+  const myPrizeShare = prizeBreakdown.find((s) => s.playerId === player.id)?.share ?? null;
   // Scadenza per schierare = orario del primo calcio d'inizio non escluso
   // di QUESTA giornata (non più un giorno fisso di calendario) — vedi
   // src/lib/pick-window.ts.
@@ -299,6 +307,48 @@ export default async function PlayerTournamentPage(
                 })}
                 % del montepremi
               </span>
+            </div>
+          ) : null}
+
+          {/* Chi ha vinto quanto: mostrata solo nel vero ex aequo (più di
+              un vincitore) — con un solo vincitore basta già il numero
+              grande sopra, ripeterlo qui sarebbe ridondante. Visibile
+              anche a chi non ha vinto: è la ripartizione finale del
+              montepremi, un'informazione di tutti. `w-full text-left`
+              contro il `text-center` della card quando sono io il
+              vincitore. */}
+          {prizeBreakdown.length > 1 ? (
+            <div className="mt-4 flex w-full flex-col gap-1.5 text-left">
+              {prizeBreakdown.map(({ playerId, name, share }) => (
+                <div
+                  key={playerId}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
+                >
+                  <span
+                    className={
+                      playerId === player.id
+                        ? "truncate font-bold text-foreground"
+                        : "truncate text-foreground-soft"
+                    }
+                  >
+                    {name}
+                    {playerId === player.id ? " (tu)" : ""}
+                  </span>
+                  <span className="flex flex-none items-center gap-2">
+                    <span className="font-mono text-xs text-foreground-faint">
+                      {(share * 100).toLocaleString("it-IT", {
+                        maximumFractionDigits: 1,
+                      })}
+                      %
+                    </span>
+                    {tournament.slot_value > 0 ? (
+                      <span className="font-mono text-sm font-bold text-accent">
+                        {prizeFormat.format(tournament.slot_value * totalSlots * share)}
+                      </span>
+                    ) : null}
+                  </span>
+                </div>
+              ))}
             </div>
           ) : null}
         </div>
