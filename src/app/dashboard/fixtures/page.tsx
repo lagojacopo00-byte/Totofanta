@@ -1,13 +1,12 @@
 import { requireUser } from "@/lib/supabase/require-user";
 import * as queries from "@/lib/queries";
-import { button, buttonGhost, card, cardTight, eyebrow, input, label } from "@/components/ui";
+import { buttonGhost, card, cardTight, eyebrow, input } from "@/components/ui";
 import { TeamBadge } from "@/components/team-badge";
 import { BackLink } from "@/components/back-link";
 import type { Fixture, FixtureResult } from "@/lib/types";
 import { FixtureResultButtons } from "./result-buttons";
 import { RoundPicker } from "./round-picker";
 import {
-  addFixtureAction,
   deleteFixtureAction,
   setFixtureKickoffAction,
   syncFixturesFromApiAction,
@@ -44,9 +43,8 @@ export default async function FixturesPage(
   const { supabase, user } = await requireUser();
   const params = await props.searchParams;
 
-  const [fixtures, teams, role] = await Promise.all([
+  const [fixtures, role] = await Promise.all([
     queries.getAllFixtures(supabase),
-    queries.getReferenceTeams(supabase, "Serie A"),
     queries.getProfileRole(supabase, user.id),
   ]);
   const isCreator = role === "creator";
@@ -72,7 +70,17 @@ export default async function FixturesPage(
       (byRound.get(r) ?? []).some((f) => !f.result && f.status !== "excluded")
     ) ?? rounds[0];
   const selectedRound = rounds.includes(requestedRound) ? requestedRound : defaultRound;
-  const selectedFixtures = selectedRound !== undefined ? (byRound.get(selectedRound) ?? []) : [];
+  // Ordine cronologico (chi non ha ancora un orario in fondo, nell'ordine
+  // in cui arriva) invece dell'ordine alfabetico per squadra in casa
+  // della query: più utile per seguire la giornata mentre si gioca.
+  const selectedFixtures = (selectedRound !== undefined ? (byRound.get(selectedRound) ?? []) : [])
+    .slice()
+    .sort((a, b) => {
+      if (!a.kickoff_at && !b.kickoff_at) return 0;
+      if (!a.kickoff_at) return 1;
+      if (!b.kickoff_at) return -1;
+      return new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime();
+    });
 
   return (
     <div className="flex flex-col gap-8">
@@ -85,10 +93,9 @@ export default async function FixturesPage(
         <p className="mt-2 max-w-lg text-sm text-foreground-soft">
           La giornata N di un torneo corrisponde alla giornata N del
           campionato vero: qui tieni aggiornato chi gioca contro chi, così
-          i tuoi giocatori lo vedono al momento della scelta. Le giornate
-          1–25 sono già precompilate (fonte: ricerca web — ricontrolla
-          soprattutto quelle più lontane e correggi se una partita è stata
-          spostata dalle tv); le altre le aggiungi tu.
+          i tuoi giocatori lo vedono al momento della scelta. Il
+          calendario arriva dalla sincronizzazione con football-data.org
+          — usa &quot;Sincronizza ora&quot; per aggiornarlo.
         </p>
       </div>
 
@@ -130,71 +137,6 @@ export default async function FixturesPage(
           </p>
         </div>
       ) : null}
-
-      <form
-        action={addFixtureAction}
-        className={`${card} flex flex-col gap-3 sm:flex-row sm:items-end`}
-      >
-        <div className="flex flex-col gap-1.5">
-          <label className={label} htmlFor="round">
-            Giornata
-          </label>
-          <input
-            className={`${input} sm:w-24`}
-            id="round"
-            name="round"
-            type="number"
-            min={1}
-            max={38}
-            required
-          />
-        </div>
-        <div className="flex flex-1 flex-col gap-1.5">
-          <label className={label} htmlFor="home_team">
-            Squadra in casa
-          </label>
-          <input
-            className={input}
-            id="home_team"
-            name="home_team"
-            list="serie-a-teams"
-            required
-            placeholder="Es. Napoli"
-          />
-        </div>
-        <div className="flex flex-1 flex-col gap-1.5">
-          <label className={label} htmlFor="away_team">
-            Squadra in trasferta
-          </label>
-          <input
-            className={input}
-            id="away_team"
-            name="away_team"
-            list="serie-a-teams"
-            required
-            placeholder="Es. Milan"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className={label} htmlFor="kickoff_at">
-            Data/ora (opzionale)
-          </label>
-          <input
-            className={`${input} sm:w-56`}
-            id="kickoff_at"
-            name="kickoff_at"
-            type="datetime-local"
-          />
-        </div>
-        <datalist id="serie-a-teams">
-          {teams.map((t) => (
-            <option key={t.id} value={t.name} />
-          ))}
-        </datalist>
-        <button className={button} type="submit">
-          Salva
-        </button>
-      </form>
 
       {isCreator ? (
         <p className="text-xs text-foreground-faint">

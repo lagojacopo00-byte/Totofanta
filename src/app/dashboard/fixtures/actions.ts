@@ -15,22 +15,6 @@ function parseKickoff(raw: FormDataEntryValue | null): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-export async function addFixtureAction(formData: FormData) {
-  const { supabase } = await requireUser();
-
-  const round = Math.max(1, Math.min(38, Number(formData.get("round") ?? 0) || 0));
-  const homeTeam = String(formData.get("home_team") ?? "").trim();
-  const awayTeam = String(formData.get("away_team") ?? "").trim();
-  const kickoffAt = parseKickoff(formData.get("kickoff_at"));
-
-  if (!round || !homeTeam || !awayTeam || homeTeam === awayTeam) {
-    return;
-  }
-
-  await queries.upsertFixture(supabase, { round, homeTeam, awayTeam, kickoffAt });
-  revalidatePath("/dashboard/fixtures");
-}
-
 export async function deleteFixtureAction(fixtureId: string) {
   const { supabase } = await requireUser();
   await queries.deleteFixture(supabase, fixtureId);
