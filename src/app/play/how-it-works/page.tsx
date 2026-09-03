@@ -10,6 +10,7 @@ import {
   TrophyIcon,
   CalendarIcon,
 } from "@/components/rule-icons";
+import { IntroVideo } from "./intro-video";
 import { markTutorialSeenAction } from "./actions";
 
 const sections: ScrollDotSection[] = [
@@ -30,26 +31,13 @@ export default async function HowItWorksPage(
 
   return (
     <>
+    {/* Spot di presentazione a schermo intero, sopra a tutta la pagina:
+        parte da solo ad ogni apertura — soprattutto la primissima volta
+        che si entra nel sito — e quando finisce si toglie rivelando la
+        pagina vera e propria (già montata sotto). "Salta" nel footer
+        dell'overlay fa la stessa cosa subito. Vedi intro-video.tsx. */}
+    <IntroVideo />
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-7 pb-32 pt-8 text-center sm:pt-10">
-      {/* Spot di presentazione, in cima: parte da solo ad ogni apertura
-          di questa pagina — soprattutto la primissima volta che si entra
-          nel sito, prima ancora del testo sotto. Video senza audio
-          (verificato con ffprobe), quindi `muted` serve solo a
-          soddisfare la policy di autoplay dei browser (Safari iOS
-          richiede sia `muted` sia `playsInline`, altrimenti l'autoplay
-          non parte o il video va a schermo intero). */}
-      <div className="overflow-hidden rounded-2xl border border-line">
-        <video
-          className="w-full"
-          src="/video/spot.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-        />
-      </div>
-
       <BackLink href="/play" label="I tuoi tornei" />
       <div className="flex justify-center">
         <Brandbar subtitle="Come funziona" />
