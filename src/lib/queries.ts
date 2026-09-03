@@ -129,8 +129,12 @@ export async function getPlayersWithSlots(db: DB, tournamentId: string) {
     .eq("tournament_id", tournamentId)
     .order("created_at", { ascending: true });
   const players = assertNoError(res) as (Player & { slots: Slot[] })[];
-  const overrides = await getProfileDisplayNames(db, players.map((p) => p.user_id));
-  return players.map((p) => ({ ...p, display_name: resolveDisplayName(p, overrides) }));
+  const overrides = await getProfileOverrides(players.map((p) => p.user_id));
+  return players.map((p) => ({
+    ...p,
+    display_name: resolveDisplayName(p, overrides),
+    full_name: resolveFullName(p, overrides),
+  }));
 }
 
 export async function getMatchdays(db: DB, tournamentId: string) {
@@ -835,8 +839,12 @@ export async function getTournamentStandings(db: DB, tournamentId: string) {
     user_id: string | null;
     slots: { status: "alive" | "eliminated"; eliminated_matchday: number | null }[];
   }[];
-  const overrides = await getProfileDisplayNames(db, rows.map((r) => r.user_id));
-  return rows.map((r) => ({ ...r, display_name: resolveDisplayName(r, overrides) }));
+  const overrides = await getProfileOverrides(rows.map((r) => r.user_id));
+  return rows.map((r) => ({
+    ...r,
+    display_name: resolveDisplayName(r, overrides),
+    full_name: resolveFullName(r, overrides),
+  }));
 }
 
 /**
@@ -1159,39 +1167,114 @@ export async function updateProfileDisplayName(db: DB, userId: string, displayNa
   );
 }
 
-/** Nomi pubblici scelti dagli utenti per gli account passati (solo quelli
- * che l'hanno impostato). Usata per sovrascrivere, ovunque si mostrano i
- * giocatori di un torneo, il players.display_name che l'organizzatore ha
- * messo per quel torneo — stessa persona, stesso nome in ogni torneo.
+/** Nome e cognome del proprio profilo (profiles.first_name/last_name),
+ * distinti dal nome pubblico — vedi supabase/add_profile_full_name.sql.
+ * Nessuno dei due obbligatorio: entrambi null finché non impostati (o se
+ * quella migrazione non è ancora stata eseguita). */
+export async function getProfileFullName(
+  db: DB,
+  userId: string
+): Promise<{ firstName: string | null; lastName: string | null }> {
+  const res = await db
+    .from("profiles")
+    .select("first_name, last_name")
+    .eq("id", userId)
+    .maybeSingle();
+  if (res.error) return { firstName: null, lastName: null };
+  const row = res.data as { first_name: string | null; last_name: string | null } | null;
+  return { firstName: row?.first_name ?? null, lastName: row?.last_name ?? null };
+}
+
+export async function updateProfileFullName(
+  db: DB,
+  userId: string,
+  firstName: string,
+  lastName: string
+) {
+  assertNoError(
+    await db
+      .from("profiles")
+      .update({ first_name: firstName || null, last_name: lastName || null })
+      .eq("id", userId)
+  );
+}
+
+interface ProfileOverride {
+  displayName: string | null;
+  firstName: string | null;
+  lastName: string | null;
+}
+
+/** Nome pubblico, nome e cognome scelti dagli utenti per gli account
+ * passati. Usata per sovrascrivere, ovunque si mostrano i giocatori di
+ * un torneo, il players.display_name che l'organizzatore ha messo per
+ * quel torneo (stessa persona, stesso nome in ogni torneo) e per
+ * mostrare nome/cognome accanto — così se qualcuno sceglie un nome
+ * pubblico strano, gli altri capiscono comunque chi è.
+ *
+ * Usa SEMPRE il client admin, mai il `db` del chiamante: la RLS di
+ * `profiles` ("a user reads and updates their own profile") lascia
+ * leggere solo la PROPRIA riga — con un client normale questa query,
+ * chiamata per i profili di TUTTI i giocatori di un torneo, tornava
+ * silenziosamente vuota per chiunque non fosse l'account che sta
+ * guardando (nessun errore: RLS filtra riga per riga, non nega l'intera
+ * query), quindi il nome pubblico/nome/cognome di un altro giocatore non
+ * si vedeva mai (bug trovato e corretto qui il 2026-09-03). Sicuro anche
+ * così: legge solo queste tre colonne, mai l'email o altro.
  *
  * Difensiva di proposito (a differenza delle altre funzioni qui, che
  * usano assertNoError e quindi propagano l'errore): questa viene
  * chiamata da getPlayersWithSlots e getTournamentStandings, già in uso
- * su pagine esistenti — se la migrazione add_profile_display_name.sql
- * non è ancora stata eseguita sul DB di produzione (profiles.display_name
- * non esiste), quelle pagine non devono rompersi solo perché manca un
+ * su pagine esistenti — se le migrazioni add_profile_display_name.sql o
+ * add_profile_full_name.sql non sono ancora state eseguite sul DB di
+ * produzione, quelle pagine non devono rompersi solo perché manca un
  * arricchimento facoltativo: si ripiega sui nomi già in players. */
-async function getProfileDisplayNames(
-  db: DB,
+async function getProfileOverrides(
   userIds: (string | null)[]
-): Promise<Map<string, string>> {
+): Promise<Map<string, ProfileOverride>> {
   const ids = Array.from(new Set(userIds.filter((id): id is string => Boolean(id))));
   if (ids.length === 0) return new Map();
-  const res = await db
+  const admin = createAdminClient();
+  const res = await admin
     .from("profiles")
-    .select("id, display_name")
-    .in("id", ids)
-    .not("display_name", "is", null);
+    .select("id, display_name, first_name, last_name")
+    .in("id", ids);
   if (res.error) return new Map();
-  const rows = res.data as { id: string; display_name: string }[];
-  return new Map(rows.map((r) => [r.id, r.display_name]));
+  const rows = res.data as {
+    id: string;
+    display_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
+  }[];
+  return new Map(
+    rows.map((r) => [
+      r.id,
+      { displayName: r.display_name, firstName: r.first_name, lastName: r.last_name },
+    ])
+  );
 }
 
 function resolveDisplayName(
   player: { display_name: string; user_id: string | null },
-  overrides: Map<string, string>
+  overrides: Map<string, ProfileOverride>
 ): string {
-  return (player.user_id && overrides.get(player.user_id)) || player.display_name;
+  const override = player.user_id ? overrides.get(player.user_id) : undefined;
+  return override?.displayName || player.display_name;
+}
+
+/** Nome e cognome dell'account dietro un giocatore, se li ha impostati —
+ * null altrimenti (nessuno dei due obbligatorio, e i tornei/giocatori
+ * senza un account collegato — invito non ancora accettato — non ce
+ * l'hanno per definizione). */
+function resolveFullName(
+  player: { user_id: string | null },
+  overrides: Map<string, ProfileOverride>
+): string | null {
+  const override = player.user_id ? overrides.get(player.user_id) : undefined;
+  const parts = [override?.firstName, override?.lastName].filter(
+    (p): p is string => Boolean(p && p.trim())
+  );
+  return parts.length > 0 ? parts.join(" ") : null;
 }
 
 export type ProfileRole = "player" | "creator";

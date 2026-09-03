@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getOrganizerTournaments, updateProfileDisplayName } from "@/lib/queries";
+import {
+  getOrganizerTournaments,
+  updateProfileDisplayName,
+  updateProfileFullName,
+} from "@/lib/queries";
 
 export async function updateDisplayNameAction(formData: FormData) {
   const { supabase, user } = await requirePlayer();
@@ -19,6 +23,19 @@ export async function updateDisplayNameAction(formData: FormData) {
   // quando richiudersi dopo un salvataggio riuscito — un redirect è una
   // navigazione vera, che rimonta il componente da zero.
   redirect("/play/profile?savedName=1");
+}
+
+/** Nome e cognome, distinti dal nome pubblico: niente collassa/rivela
+ * come le altre sezioni sopra, un form sempre aperto e diretto — vedi
+ * updateProfileFullName in queries.ts. Entrambi facoltativi: si può
+ * salvare anche vuoti (per svuotarli di nuovo). */
+export async function updateFullNameAction(formData: FormData) {
+  const { supabase, user } = await requirePlayer();
+  const firstName = String(formData.get("first_name") ?? "").trim();
+  const lastName = String(formData.get("last_name") ?? "").trim();
+
+  await updateProfileFullName(supabase, user.id, firstName, lastName);
+  revalidatePath("/play", "layout");
 }
 
 /** Cambia la password da loggati: a differenza del recupero via email,

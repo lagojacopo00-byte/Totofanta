@@ -1,15 +1,25 @@
 import { requirePlayer } from "@/lib/supabase/require-player";
-import { getOrganizerTournaments, getProfileDisplayName } from "@/lib/queries";
-import { card, cardTight, eyebrow } from "@/components/ui";
+import {
+  getOrganizerTournaments,
+  getProfileDisplayName,
+  getProfileFullName,
+} from "@/lib/queries";
+import { card, cardTight, eyebrow, input, label, button } from "@/components/ui";
 import { DeleteAccountButton } from "./delete-account-button";
 import { EditableField } from "./editable-field";
 import { ChangePasswordField } from "./change-password-field";
-import { updateDisplayNameAction, updateEmailAction, updatePasswordAction } from "./actions";
+import {
+  updateDisplayNameAction,
+  updateEmailAction,
+  updateFullNameAction,
+  updatePasswordAction,
+} from "./actions";
 
 export default async function ProfilePage(props: PageProps<"/play/profile">) {
   const { supabase, user } = await requirePlayer();
-  const [displayName, ownedTournaments] = await Promise.all([
+  const [displayName, fullName, ownedTournaments] = await Promise.all([
     getProfileDisplayName(supabase, user.id),
+    getProfileFullName(supabase, user.id),
     getOrganizerTournaments(supabase, user.id),
   ]);
   const params = await props.searchParams;
@@ -36,6 +46,45 @@ export default async function ProfilePage(props: PageProps<"/play/profile">) {
           name="display_name"
           big
         />
+      </section>
+
+      <section className={`${card} flex flex-col gap-2`}>
+        <p className={label}>Nome e cognome</p>
+        <p className="text-xs text-foreground-faint">
+          Diverso dal nome pubblico: se scegli un nickname, questo resta
+          visibile agli altri giocatori nella classifica di ogni torneo,
+          così capiscono comunque chi sei. Facoltativo.
+        </p>
+        <form
+          action={updateFullNameAction}
+          className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end"
+        >
+          <div className="flex flex-1 flex-col gap-1.5">
+            <label className={label} htmlFor="first_name">
+              Nome
+            </label>
+            <input
+              className={input}
+              id="first_name"
+              name="first_name"
+              defaultValue={fullName.firstName ?? ""}
+            />
+          </div>
+          <div className="flex flex-1 flex-col gap-1.5">
+            <label className={label} htmlFor="last_name">
+              Cognome
+            </label>
+            <input
+              className={input}
+              id="last_name"
+              name="last_name"
+              defaultValue={fullName.lastName ?? ""}
+            />
+          </div>
+          <button className={button} type="submit">
+            Salva
+          </button>
+        </form>
       </section>
 
       <section className={`${card} flex flex-col gap-2`}>
