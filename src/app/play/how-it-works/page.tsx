@@ -10,7 +10,7 @@ import {
   TrophyIcon,
   CalendarIcon,
 } from "@/components/rule-icons";
-import { IntroVideo } from "./intro-video";
+import { IntroVideoRoot, WatchSpotButton } from "./intro-video";
 import { markTutorialSeenAction } from "./actions";
 
 const sections: ScrollDotSection[] = [
@@ -30,17 +30,19 @@ export default async function HowItWorksPage(
   await requirePlayer(`/play/how-it-works?next=${encodeURIComponent(next)}`);
 
   return (
-    <>
-    {/* Spot di presentazione a schermo intero, sopra a tutta la pagina:
-        parte da solo ad ogni apertura — soprattutto la primissima volta
-        che si entra nel sito — e quando finisce si toglie rivelando la
-        pagina vera e propria (già montata sotto). "Salta" nel footer
-        dell'overlay fa la stessa cosa subito. Vedi intro-video.tsx. */}
-    <IntroVideo />
+    // Racchiude tutta la pagina (non solo <main>): il bottone "Guarda
+    // spot" qui sotto vive nel contenuto della pagina, ma deve poter
+    // far ripartire l'overlay a schermo intero — serve lo stesso
+    // contesto React, quindi lo stesso IntroVideoRoot. Vedi intro-video.tsx.
+    <IntroVideoRoot>
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-7 pb-32 pt-8 text-center sm:pt-10">
       <BackLink href="/play" label="I tuoi tornei" />
       <div className="flex justify-center">
         <Brandbar subtitle="Come funziona" />
+      </div>
+
+      <div className="flex justify-center">
+        <WatchSpotButton />
       </div>
 
       <div id="il-gioco" className="scroll-mt-6">
@@ -180,6 +182,6 @@ export default async function HowItWorksPage(
         </Link>
       </div>
     </form>
-    </>
+    </IntroVideoRoot>
   );
 }
