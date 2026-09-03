@@ -76,20 +76,69 @@ export default async function PlayerTournamentPage(
   );
   const teamById = new Map(availableTeams.map((t) => [t.id, t.name]));
 
-  // Classifica ordinata per slot vivi (decrescente), con posizione in
-  // classifica calcolata gestendo i pari merito: chi ha lo stesso numero
-  // di slot vivi condivide la stessa posizione.
+  // Ripartizione del montepremi a fine torneo: la quota di OGNI vincitore
+  // (non solo la mia), per il riepilogo "chi ha vinto quanto" nella card
+  // Game over e nella classifica sotto — vedi computeFinalPrizeShares in
+  // game-logic.ts per i dettagli, incluso il caso ex aequo "zero
+  // superstiti". In una vittoria singola c'è una sola entry con share 1.
+  let winnerNames: string[] = [];
+  let prizeBreakdown: { playerId: string; name: string; share: number }[] = [];
+  if (tournament.status === "finished" && tournament.winners.length > 0) {
+    const allPlayers = await queries.getPlayersWithSlots(supabase, tournament.id);
+    const nameById = new Map(allPlayers.map((p) => [p.id, p.display_name]));
+    winnerNames = allPlayers
+      .filter((p) => tournament.winners.includes(p.id))
+      .map((p) => p.display_name);
+
+    prizeBreakdown = computeFinalPrizeShares(
+      standings.map((s) => ({
+        id: s.id,
+        slots: s.slots.map((sl) => ({
+          status: sl.status,
+          eliminatedMatchday: sl.eliminated_matchday,
+        })),
+      })),
+      tournament.winners,
+      tournament.decisive_matchday
+    )
+      .map(({ playerId, share }) => ({
+        playerId,
+        name: nameById.get(playerId) ?? "?",
+        share,
+      }))
+      .sort((a, b) => b.share - a.share);
+  }
+  const isWinner = tournament.winners.includes(player.id);
+  const myPrizeShare = prizeBreakdown.find((s) => s.playerId === player.id)?.share ?? null;
+  const prizeShareByPlayer = new Map(prizeBreakdown.map((s) => [s.playerId, s.share]));
+
+  // Classifica ordinata per slot vivi (decrescente) mentre il torneo è
+  // ancora attivo; a torneo concluso ordinata invece per quota di
+  // montepremi (decrescente) — coi soli slot vivi, in uno spareggio ex
+  // aequo "zero superstiti" anche i vincitori risultano a 0 (i loro slot
+  // sono `eliminated`, vedi computeFinalPrizeShares), che appiattirebbe
+  // tutti alla stessa posizione proprio quando la classifica finale conta
+  // di più. Pari merito quando la chiave di ordinamento coincide.
   const rankedStandings = standings
     .map((s) => ({
       ...s,
       alive: s.slots.filter((sl) => sl.status === "alive").length,
+      prizeShare: prizeShareByPlayer.get(s.id) ?? 0,
     }))
-    .sort((a, b) => b.alive - a.alive);
+    .sort((a, b) =>
+      tournament.status === "finished" ? b.prizeShare - a.prizeShare : b.alive - a.alive
+    );
   const withRank = rankedStandings.reduce<
     ((typeof rankedStandings)[number] & { rank: number })[]
   >((acc, s, idx) => {
     const previous = acc[idx - 1];
-    const rank = previous && previous.alive === s.alive ? previous.rank : idx + 1;
+    const tieKey = tournament.status === "finished" ? s.prizeShare : s.alive;
+    const previousTieKey = previous
+      ? tournament.status === "finished"
+        ? previous.prizeShare
+        : previous.alive
+      : undefined;
+    const rank = previous && previousTieKey === tieKey ? previous.rank : idx + 1;
     acc.push({ ...s, rank });
     return acc;
   }, []);
@@ -143,41 +192,6 @@ export default async function PlayerTournamentPage(
     (t) => (teamAliveBurnCount.get(t.id) ?? 0) > 0
   );
 
-  // Ripartizione del montepremi a fine torneo: la quota di OGNI vincitore
-  // (non solo la mia), per il riepilogo "chi ha vinto quanto" nella card
-  // Game over — vedi computeFinalPrizeShares in game-logic.ts per i
-  // dettagli, incluso il caso ex aequo "zero superstiti". In una vittoria
-  // singola c'è una sola entry con share 1 (nessun riepilogo mostrato:
-  // basta il numero grande già in evidenza).
-  let winnerNames: string[] = [];
-  let prizeBreakdown: { playerId: string; name: string; share: number }[] = [];
-  if (tournament.status === "finished" && tournament.winners.length > 0) {
-    const allPlayers = await queries.getPlayersWithSlots(supabase, tournament.id);
-    const nameById = new Map(allPlayers.map((p) => [p.id, p.display_name]));
-    winnerNames = allPlayers
-      .filter((p) => tournament.winners.includes(p.id))
-      .map((p) => p.display_name);
-
-    prizeBreakdown = computeFinalPrizeShares(
-      standings.map((s) => ({
-        id: s.id,
-        slots: s.slots.map((sl) => ({
-          status: sl.status,
-          eliminatedMatchday: sl.eliminated_matchday,
-        })),
-      })),
-      tournament.winners,
-      tournament.decisive_matchday
-    )
-      .map(({ playerId, share }) => ({
-        playerId,
-        name: nameById.get(playerId) ?? "?",
-        share,
-      }))
-      .sort((a, b) => b.share - a.share);
-  }
-  const isWinner = tournament.winners.includes(player.id);
-  const myPrizeShare = prizeBreakdown.find((s) => s.playerId === player.id)?.share ?? null;
   // Scadenza per schierare = orario del primo calcio d'inizio non escluso
   // di QUESTA giornata (non più un giorno fisso di calendario) — vedi
   // src/lib/pick-window.ts.
@@ -551,9 +565,25 @@ export default async function PlayerTournamentPage(
                       {isMe ? " (tu)" : ""}
                     </span>
                   </span>
-                  <span className={s.alive > 0 ? pillAlive : pillOut}>
-                    {s.alive}/{s.slots.length} vivi
-                  </span>
+                  {tournament.status === "finished" ? (
+                    tournament.winners.includes(s.id) ? (
+                      <span className={pillAlive}>
+                        {(s.prizeShare * 100).toLocaleString("it-IT", {
+                          maximumFractionDigits: 1,
+                        })}
+                        %
+                        {tournament.slot_value > 0
+                          ? ` · ${prizeFormat.format(tournament.slot_value * totalSlots * s.prizeShare)}`
+                          : ""}
+                      </span>
+                    ) : (
+                      <span className={pillOut}>eliminato</span>
+                    )
+                  ) : (
+                    <span className={s.alive > 0 ? pillAlive : pillOut}>
+                      {s.alive}/{s.slots.length} vivi
+                    </span>
+                  )}
                 </li>
               );
             })}
