@@ -596,6 +596,16 @@ create policy "organizer reads own tournament matchday backups"
     and public.is_tournament_owner(((storage.foldername(name))[1])::uuid)
   );
 
+-- Anche i giocatori (non solo l'organizzatore) possono leggere il
+-- backup del proprio torneo: pulsantino "Scarica Excel del torneo"
+-- nella pagina del giocatore (deciso il 2026-09-03).
+create policy "player reads own tournament matchday backups"
+  on storage.objects for select
+  using (
+    bucket_id = 'matchday-backups'
+    and public.is_tournament_player(((storage.foldername(name))[1])::uuid)
+  );
+
 -- Le scritture automatiche (submitMatchdayResults, innescato anche dal
 -- creator per tornei altrui via tryFinalizeRoundEverywhere) passano dal
 -- client service-role, che bypassa le RLS — questa policy serve solo per
