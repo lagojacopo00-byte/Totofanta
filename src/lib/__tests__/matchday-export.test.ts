@@ -1,116 +1,110 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import ExcelJS from 'exceljs'
-import { addMatchdaySheet, buildMatchdayBackupXlsx } from '../matchday-export'
+import { buildStoricoSheet, type StoricoPlayerHistory } from '../matchday-export'
 
 // exceljs porta con sé i tipi di una versione di @types/node più vecchia
 // di quella del progetto, il cui Buffer generico non combacia più
 // strutturalmente: cast isolato qui invece che a ogni chiamata di load().
-async function loadWorkbook(buffer: Buffer): Promise<ExcelJS.Workbook> {
+async function buildAndLoad(
+  matchdayNumbers: number[],
+  players: StoricoPlayerHistory[]
+): Promise<ExcelJS.Worksheet> {
   const workbook = new ExcelJS.Workbook()
-  await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0])
-  return workbook
+  buildStoricoSheet(workbook, matchdayNumbers, players)
+  const buffer = Buffer.from(await workbook.xlsx.writeBuffer())
+  const reloaded = new ExcelJS.Workbook()
+  await reloaded.xlsx.load(buffer as unknown as Parameters<typeof reloaded.xlsx.load>[0])
+  return reloaded.getWorksheet('Storico')!
 }
 
-test('buildMatchdayBackupXlsx: intestazione con "Slot" + nomi giocatori', async () => {
-  const buffer = await buildMatchdayBackupXlsx(3, [
-    { displayName: 'Anna', slots: [{ label: '1', teamName: 'Napoli', status: 'alive' }] },
-    { displayName: 'Beppe', slots: [{ label: '1', teamName: 'Inter', status: 'eliminated' }] },
+test('buildStoricoSheet: intestazione con giocatore, slot e una colonna per giornata', async () => {
+  const sheet = await buildAndLoad([1, 2], [
+    { displayName: 'Anna', slots: [{ label: '1', eliminatedMatchday: null, picksByMatchday: new Map([[1, 'Napoli'], [2, 'Inter']]) }] },
   ])
-  const workbook = await loadWorkbook(buffer)
-  const sheet = workbook.getWorksheet('Giornata 3')!
   const row = sheet.getRow(1)
-  assert.equal(row.getCell(1).value, 'Slot')
-  assert.equal(row.getCell(2).value, 'Anna')
-  assert.equal(row.getCell(3).value, 'Beppe')
+  assert.equal(row.getCell(1).value, 'giocatore')
+  assert.equal(row.getCell(2).value, 'slot')
+  assert.equal(row.getCell(3).value, 'giornata 1')
+  assert.equal(row.getCell(4).value, 'giornata 2')
 })
 
-test('buildMatchdayBackupXlsx: una riga per ogni slot, celle con la squadra scelta', async () => {
-  const buffer = await buildMatchdayBackupXlsx(1, [
+test('buildStoricoSheet: una riga per slot, nome giocatore solo sulla prima', async () => {
+  const sheet = await buildAndLoad([1], [
     {
       displayName: 'Anna',
       slots: [
-        { label: '1', teamName: 'Napoli', status: 'alive' },
-        { label: '2', teamName: 'Inter', status: 'eliminated' },
+        { label: '1', eliminatedMatchday: null, picksByMatchday: new Map([[1, 'Napoli']]) },
+        { label: '2', eliminatedMatchday: 1, picksByMatchday: new Map([[1, 'Inter']]) },
       ],
     },
   ])
-  const workbook = await loadWorkbook(buffer)
-  const sheet = workbook.getWorksheet('Giornata 1')!
-  assert.equal(sheet.getRow(2).getCell(1).value, 1)
-  assert.equal(sheet.getRow(2).getCell(2).value, 'Napoli')
-  assert.equal(sheet.getRow(3).getCell(1).value, 2)
-  assert.equal(sheet.getRow(3).getCell(2).value, 'Inter')
+  assert.equal(sheet.getRow(2).getCell(1).value, 'Anna')
+  assert.equal(sheet.getRow(2).getCell(2).value, 1)
+  assert.equal(sheet.getRow(2).getCell(3).value, 'Napoli')
+  assert.equal(sheet.getRow(3).getCell(1).value, '')
+  assert.equal(sheet.getRow(3).getCell(2).value, 2)
+  assert.equal(sheet.getRow(3).getCell(3).value, 'Inter')
 })
 
-test('buildMatchdayBackupXlsx: colora verde uno slot vivo e rosso uno eliminato', async () => {
-  const buffer = await buildMatchdayBackupXlsx(1, [
+test('buildStoricoSheet: colora verde uno slot vivo e rosso la giornata in cui viene eliminato', async () => {
+  const sheet = await buildAndLoad([1], [
     {
       displayName: 'Anna',
       slots: [
-        { label: '1', teamName: 'Napoli', status: 'alive' },
-        { label: '2', teamName: 'Inter', status: 'eliminated' },
+        { label: '1', eliminatedMatchday: null, picksByMatchday: new Map([[1, 'Napoli']]) },
+        { label: '2', eliminatedMatchday: 1, picksByMatchday: new Map([[1, 'Inter']]) },
       ],
     },
   ])
-  const workbook = await loadWorkbook(buffer)
-  const sheet = workbook.getWorksheet('Giornata 1')!
-  const aliveCell = sheet.getRow(2).getCell(2)
-  const eliminatedCell = sheet.getRow(3).getCell(2)
+  const aliveCell = sheet.getRow(2).getCell(3)
+  const eliminatedCell = sheet.getRow(3).getCell(3)
   assert.equal((aliveCell.fill as ExcelJS.FillPattern).fgColor?.argb, 'FFC6EFCE')
   assert.equal((eliminatedCell.fill as ExcelJS.FillPattern).fgColor?.argb, 'FFFFC7CE')
 })
 
-test('buildMatchdayBackupXlsx: celle vuote (—) e senza colore per slot senza scelta', async () => {
-  const buffer = await buildMatchdayBackupXlsx(1, [
-    { displayName: 'Anna', slots: [{ label: '1', teamName: null, status: 'eliminated' }] },
-  ])
-  const workbook = await loadWorkbook(buffer)
-  const sheet = workbook.getWorksheet('Giornata 1')!
-  assert.equal(sheet.getRow(2).getCell(2).value, '—')
-})
-
-test('addMatchdaySheet: giornate diverse finiscono su fogli diversi dello stesso workbook', async () => {
-  const workbook = new ExcelJS.Workbook()
-  addMatchdaySheet(workbook, 1, [
-    { displayName: 'Anna', slots: [{ label: '1', teamName: 'Napoli', status: 'alive' }] },
-  ])
-  addMatchdaySheet(workbook, 2, [
-    { displayName: 'Anna', slots: [{ label: '1', teamName: 'Milan', status: 'eliminated' }] },
-  ])
-  assert.deepEqual(
-    workbook.worksheets.map((s) => s.name),
-    ['Giornata 1', 'Giornata 2']
-  )
-  assert.equal(workbook.getWorksheet('Giornata 1')!.getRow(2).getCell(2).value, 'Napoli')
-  assert.equal(workbook.getWorksheet('Giornata 2')!.getRow(2).getCell(2).value, 'Milan')
-})
-
-test('addMatchdaySheet: rifare la stessa giornata sostituisce il foglio, non lo duplica', async () => {
-  const workbook = new ExcelJS.Workbook()
-  addMatchdaySheet(workbook, 1, [
-    { displayName: 'Anna', slots: [{ label: '1', teamName: 'Napoli', status: 'alive' }] },
-  ])
-  addMatchdaySheet(workbook, 1, [
-    { displayName: 'Anna', slots: [{ label: '1', teamName: 'Roma', status: 'eliminated' }] },
-  ])
-  assert.equal(workbook.worksheets.length, 1)
-  assert.equal(workbook.getWorksheet('Giornata 1')!.getRow(2).getCell(2).value, 'Roma')
-})
-
-test('buildMatchdayBackupXlsx: righe fino al numero massimo di slot tra i giocatori, celle vuote per chi ne ha meno', async () => {
-  const buffer = await buildMatchdayBackupXlsx(1, [
+test('buildStoricoSheet: le giornate dopo l\'eliminazione restano bianche, senza dato', async () => {
+  const sheet = await buildAndLoad([1, 2, 3], [
     {
       displayName: 'Anna',
-      slots: [
-        { label: '1', teamName: 'Napoli', status: 'alive' },
-        { label: '2', teamName: 'Roma', status: 'alive' },
-      ],
+      slots: [{ label: '1', eliminatedMatchday: 1, picksByMatchday: new Map([[1, 'Inter']]) }],
     },
-    { displayName: 'Beppe', slots: [{ label: '1', teamName: 'Inter', status: 'alive' }] },
   ])
-  const workbook = await loadWorkbook(buffer)
-  const sheet = workbook.getWorksheet('Giornata 1')!
-  assert.equal(sheet.rowCount, 3) // intestazione + 2 righe slot
-  assert.equal(sheet.getRow(3).getCell(3).value, '') // Beppe non ha lo slot 2
+  const row = sheet.getRow(2)
+  assert.equal(row.getCell(3).value, 'Inter') // giornata 1: eliminato qui
+  assert.equal(row.getCell(4).value, '') // giornata 2: già fuori, niente
+  assert.equal(row.getCell(5).value, '') // giornata 3: già fuori, niente
+  assert.equal(row.getCell(4).fill, undefined)
+})
+
+test('buildStoricoSheet: giornata senza scelta mostra "—" colorato secondo lo stato', async () => {
+  const sheet = await buildAndLoad([1], [
+    { displayName: 'Anna', slots: [{ label: '1', eliminatedMatchday: 1, picksByMatchday: new Map([[1, null]]) }] },
+  ])
+  const cell = sheet.getRow(2).getCell(3)
+  assert.equal(cell.value, '—')
+  assert.equal((cell.fill as ExcelJS.FillPattern).fgColor?.argb, 'FFFFC7CE')
+})
+
+test('buildStoricoSheet: una riga vuota separa i giocatori', async () => {
+  const sheet = await buildAndLoad([1], [
+    { displayName: 'Anna', slots: [{ label: '1', eliminatedMatchday: null, picksByMatchday: new Map([[1, 'Napoli']]) }] },
+    { displayName: 'Beppe', slots: [{ label: '1', eliminatedMatchday: null, picksByMatchday: new Map([[1, 'Roma']]) }] },
+  ])
+  assert.equal(sheet.getRow(2).getCell(1).value, 'Anna')
+  assert.equal(sheet.getRow(3).getCell(1).value, null)
+  assert.equal(sheet.getRow(3).getCell(2).value, null)
+  assert.equal(sheet.getRow(4).getCell(1).value, 'Beppe')
+})
+
+test('buildStoricoSheet: rigenerare sostituisce il foglio Storico, non lo duplica', () => {
+  const workbook = new ExcelJS.Workbook()
+  buildStoricoSheet(workbook, [1], [
+    { displayName: 'Anna', slots: [{ label: '1', eliminatedMatchday: null, picksByMatchday: new Map([[1, 'Napoli']]) }] },
+  ])
+  buildStoricoSheet(workbook, [1, 2], [
+    { displayName: 'Anna', slots: [{ label: '1', eliminatedMatchday: null, picksByMatchday: new Map([[1, 'Napoli'], [2, 'Milan']]) }] },
+  ])
+  assert.deepEqual(workbook.worksheets.map((s) => s.name), ['Storico'])
+  assert.equal(workbook.getWorksheet('Storico')!.getRow(2).getCell(4).value, 'Milan')
 })

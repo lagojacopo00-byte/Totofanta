@@ -13,10 +13,7 @@ import { computePickDeadline, isPickingWindowOpen } from "./pick-window";
 import { fetchSerieAFixtures, matchTeamName } from "./football-api";
 import { createAdminClient } from "./supabase/admin";
 import ExcelJS from "exceljs";
-import {
-  addMatchdaySheet,
-  type BackupPlayerSnapshot,
-} from "./matchday-export";
+import { buildStoricoSheet, type StoricoPlayerHistory } from "./matchday-export";
 import type {
   Fixture,
   FixtureResult,
@@ -513,11 +510,10 @@ export async function submitMatchdayResults(
     teamId: p.team_id,
   }));
 
-  // Squadre scelte in questa giornata (serve sia per le partite escluse
-  // sotto, sia per il backup Excel più in fondo).
+  // Squadre scelte in questa giornata, per capire chi ha giocato una
+  // partita esclusa (sotto).
   const pickedTeamIds = Array.from(new Set(picks.map((p) => p.team_id)));
   const pickedTeams = await getTeamsByIds(db, pickedTeamIds);
-  const teamNameById = new Map(pickedTeams.map((t) => [t.id, t.name]));
 
   // Partite segnate "escluse" per questa giornata (rinvio fuori finestra,
   // tavolino non ancora deciso, ecc.): chi le aveva scelte resta vivo senza
@@ -599,83 +595,96 @@ export async function submitMatchdayResults(
   }
 
   if (tournament.auto_backup_matchdays) {
-    await generateMatchdayBackup(db, tournament, matchday, {
-      players,
-      picks,
-      teamNameById,
-      eliminatedSlotIds: new Set(eliminatedSlotIds),
-    });
+    await generateMatchdayBackup(db, tournament, matchday);
   }
 
   return result;
 }
 
-/** Percorso nel bucket storage "matchday-backups" del file Excel
- * cumulativo di backup di un torneo: un solo file per tutto il torneo
- * (un foglio per giornata al suo interno), non uno separato per ogni
- * giornata — deciso con l'utente il 2026-09-03: più comodo da tenere
- * come backup unico, e apre la porta a farlo scaricare anche ai
- * giocatori (non solo all'organizzatore) senza dover scegliere tra N
- * file quale sia l'ultimo. */
+/** Percorso nel bucket storage "matchday-backups" del file Excel di
+ * backup di un torneo: un solo file per tutto il torneo, col foglio
+ * "Storico" (vedi buildStoricoSheet) — deciso con l'utente il
+ * 2026-09-03: più comodo da tenere come backup unico, e apre la porta a
+ * farlo scaricare anche ai giocatori (non solo all'organizzatore) senza
+ * dover scegliere tra N file quale sia l'ultimo. */
 function matchdayBackupPath(tournamentId: string): string {
   return `${tournamentId}/storico.xlsx`;
 }
 
 /**
- * Aggiunge (o sostituisce, vedi addMatchdaySheet) il foglio della
- * giornata appena chiusa nel file Excel cumulativo di backup del
- * torneo: scarica il file esistente da storage (se già ce n'è uno),
- * aggiunge/sostituisce il foglio di questa giornata, e lo ricarica.
- * Solo per i tornei con `auto_backup_matchdays` attivo (checkbox
- * "Salva giornate" alla creazione). Non blocca mai la chiusura della
- * giornata: un problema di storage non deve impedire l'aggiornamento
- * del gioco vero, che a questo punto della funzione è già stato
- * applicato — un errore qui finisce solo nei log del server.
+ * Rigenera da zero il foglio "Storico" del backup Excel del torneo dopo
+ * la chiusura di una giornata: una riga per slot con la sua intera
+ * storia (una colonna per ogni giornata già chiusa), non un foglio
+ * separato per ogni giornata come nella versione precedente — deciso
+ * con l'utente il 2026-09-04, per vedere tutto lo storico di uno slot
+ * su una riga sola. Costruito sempre da capo leggendo lo stato attuale
+ * del database (tutti gli slot, tutte le loro scelte passate): più
+ * semplice e sempre coerente che aggiornare in-place il file
+ * precedente. Solo per i tornei con `auto_backup_matchdays` attivo
+ * (checkbox "Salva giornate" alla creazione). Non blocca mai la
+ * chiusura della giornata: un problema di storage non deve impedire
+ * l'aggiornamento del gioco vero, che a questo punto della funzione è
+ * già stato applicato — un errore qui finisce solo nei log del server.
  */
 async function generateMatchdayBackup(
   db: DB,
   tournament: Tournament,
-  matchday: Matchday,
-  data: {
-    players: (Player & { slots: Slot[] })[];
-    picks: Pick[];
-    teamNameById: Map<string, string>;
-    eliminatedSlotIds: Set<string>;
-  }
+  matchday: Matchday
 ) {
   try {
-    const pickBySlot = new Map(data.picks.map((p) => [p.slot_id, p.team_id]));
-    const snapshot: BackupPlayerSnapshot[] = data.players.map((player) => ({
+    const [players, matchdays] = await Promise.all([
+      getPlayersWithSlots(db, tournament.id),
+      getMatchdays(db, tournament.id),
+    ]);
+    const completedNumbers = matchdays
+      .filter((m) => m.status === "completed")
+      .map((m) => m.number)
+      .sort((a, b) => a - b);
+    const matchdayNumberById = new Map(matchdays.map((m) => [m.id, m.number]));
+
+    const allSlotIds = players.flatMap((p) => p.slots.map((s) => s.id));
+    const allPicks = await getAllPicksForTournamentSlots(db, allSlotIds);
+    const teamIds = Array.from(new Set(allPicks.map((p) => p.team_id)));
+    const teamNameById = new Map(
+      (await getTeamsByIds(db, teamIds)).map((t) => [t.id, t.name])
+    );
+
+    // matchdayId+slotId -> nome squadra scelta, per popolare le colonne
+    // giornata per giornata di ogni slot senza rifiltrare allPicks ad
+    // ogni riga.
+    const teamNameBySlotAndMatchday = new Map<string, string | null>();
+    for (const pick of allPicks) {
+      const matchdayNumber = matchdayNumberById.get(pick.matchday_id);
+      if (matchdayNumber === undefined) continue;
+      teamNameBySlotAndMatchday.set(
+        `${pick.slot_id}:${matchdayNumber}`,
+        teamNameById.get(pick.team_id) ?? null
+      );
+    }
+
+    const storicoPlayers: StoricoPlayerHistory[] = players.map((player) => ({
       displayName: player.display_name,
       slots: player.slots
         .slice()
         .sort((a, b) => Number(a.label) - Number(b.label))
-        .map((slot) => {
-          const teamId = pickBySlot.get(slot.id);
-          const eliminatedNow = data.eliminatedSlotIds.has(slot.id);
-          const status: "alive" | "eliminated" =
-            slot.status === "eliminated" || eliminatedNow ? "eliminated" : "alive";
-          return {
-            label: slot.label,
-            teamName: teamId ? (data.teamNameById.get(teamId) ?? null) : null,
-            status,
-          };
-        }),
+        .map((slot) => ({
+          label: slot.label,
+          eliminatedMatchday: slot.eliminated_matchday,
+          picksByMatchday: new Map(
+            completedNumbers.map((n) => [
+              n,
+              teamNameBySlotAndMatchday.get(`${slot.id}:${n}`) ?? null,
+            ])
+          ),
+        })),
     }));
 
-    const path = matchdayBackupPath(tournament.id);
     const workbook = new ExcelJS.Workbook();
-    const existing = await db.storage.from("matchday-backups").download(path);
-    if (existing.data) {
-      const existingBuffer = Buffer.from(await existing.data.arrayBuffer());
-      await workbook.xlsx.load(
-        existingBuffer as unknown as Parameters<typeof workbook.xlsx.load>[0]
-      );
-    }
-    addMatchdaySheet(workbook, matchday.number, snapshot);
+    buildStoricoSheet(workbook, completedNumbers, storicoPlayers);
     const arrayBuffer = await workbook.xlsx.writeBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    const path = matchdayBackupPath(tournament.id);
     const res = await db.storage.from("matchday-backups").upload(path, buffer, {
       contentType:
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
