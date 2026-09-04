@@ -118,6 +118,20 @@ export async function undoLastMatchdayAction(tournamentId: string) {
   revalidatePath(`/dashboard/${tournamentId}`);
 }
 
+/** Rigenera a mano il backup Excel del torneo, senza aspettare la
+ * prossima giornata chiusa: serve soprattutto subito dopo un cambiamento
+ * di formato del file (vedi generateMatchdayBackup in queries.ts) — un
+ * torneo la cui ultima giornata era già stata chiusa PRIMA del
+ * cambiamento resterebbe altrimenti con il file vecchio finché non ne
+ * chiude un'altra. */
+export async function regenerateBackupAction(tournamentId: string) {
+  const { supabase, tournament } = await ownedTournament(tournamentId);
+  if (!tournament.auto_backup_matchdays) return;
+
+  await queries.generateMatchdayBackup(supabase, tournament);
+  revalidatePath(`/dashboard/${tournamentId}`);
+}
+
 /** Verifica, oltre a essere l'organizzatore, che il torneo sia
  * effettivamente "di test": le funzioni di test (giocatori finti,
  * simulazione) non vanno mai usate su un torneo vero, quindi lo

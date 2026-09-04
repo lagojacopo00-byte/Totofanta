@@ -19,6 +19,7 @@ import {
   addPlayerAction,
   addTestPlayersAction,
   editPlayerSlotsAction,
+  regenerateBackupAction,
   removePlayerAction,
   simulateMatchdayAction,
   startTournamentAction,
@@ -342,19 +343,24 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
               Backup del torneo
             </p>
             <p className="text-xs text-foreground-faint">
-              Un unico file Excel, un foglio per ogni giornata chiusa
-              (squadra scelta e stato per ogni slot) — per ricostruire il
-              torneo a mano se il sito avesse problemi. Il link scade
-              dopo un&apos;ora: ricarica la pagina per rigenerarlo.
-              Scaricabile anche dai giocatori, dalla loro pagina del
-              torneo.
+              Un unico file Excel con lo storico completo (una riga per
+              slot, una colonna per ogni giornata chiusa) — per
+              ricostruire il torneo a mano se il sito avesse problemi. Il
+              link scade dopo un&apos;ora: ricarica la pagina per
+              rigenerarlo. Scaricabile anche dai giocatori, dalla loro
+              pagina del torneo.
             </p>
           </div>
           {matchdayBackupUrl ? (
-            <div>
+            <div className="flex flex-wrap items-center gap-2">
               <a href={matchdayBackupUrl} className={buttonGhost} download>
                 Scarica Excel
               </a>
+              <form action={regenerateBackupAction.bind(null, tournament.id)}>
+                <button className={buttonGhost} type="submit">
+                  Rigenera adesso
+                </button>
+              </form>
             </div>
           ) : (
             <p className="text-xs text-foreground-faint">

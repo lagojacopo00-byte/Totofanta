@@ -595,7 +595,7 @@ export async function submitMatchdayResults(
   }
 
   if (tournament.auto_backup_matchdays) {
-    await generateMatchdayBackup(db, tournament, matchday);
+    await generateMatchdayBackup(db, tournament);
   }
 
   return result;
@@ -612,25 +612,24 @@ function matchdayBackupPath(tournamentId: string): string {
 }
 
 /**
- * Rigenera da zero il foglio "Storico" del backup Excel del torneo dopo
- * la chiusura di una giornata: una riga per slot con la sua intera
- * storia (una colonna per ogni giornata già chiusa), non un foglio
- * separato per ogni giornata come nella versione precedente — deciso
- * con l'utente il 2026-09-04, per vedere tutto lo storico di uno slot
- * su una riga sola. Costruito sempre da capo leggendo lo stato attuale
- * del database (tutti gli slot, tutte le loro scelte passate): più
- * semplice e sempre coerente che aggiornare in-place il file
- * precedente. Solo per i tornei con `auto_backup_matchdays` attivo
- * (checkbox "Salva giornate" alla creazione). Non blocca mai la
- * chiusura della giornata: un problema di storage non deve impedire
- * l'aggiornamento del gioco vero, che a questo punto della funzione è
- * già stato applicato — un errore qui finisce solo nei log del server.
+ * Rigenera da zero il foglio "Storico" del backup Excel del torneo:
+ * una riga per slot con la sua intera storia (una colonna per ogni
+ * giornata già chiusa), non un foglio separato per ogni giornata come
+ * nella versione precedente — deciso con l'utente il 2026-09-04, per
+ * vedere tutto lo storico di uno slot su una riga sola. Costruito
+ * sempre da capo leggendo lo stato attuale del database (tutti gli
+ * slot, tutte le loro scelte passate), non aggiornato in-place: più
+ * semplice e sempre coerente, e permette anche di rigenerare il file di
+ * un torneo la cui ultima giornata era già stata chiusa PRIMA di un
+ * cambiamento di formato come questo (vedi regenerateBackupAction in
+ * src/app/dashboard/[id]/actions.ts) — chiamata sia da qui, dopo ogni
+ * giornata chiusa con `auto_backup_matchdays` attivo, sia a mano
+ * dall'organizzatore. Non blocca mai la chiusura della giornata: un
+ * problema di storage non deve impedire l'aggiornamento del gioco vero,
+ * che a questo punto della funzione è già stato applicato — un errore
+ * qui finisce solo nei log del server.
  */
-async function generateMatchdayBackup(
-  db: DB,
-  tournament: Tournament,
-  matchday: Matchday
-) {
+export async function generateMatchdayBackup(db: DB, tournament: Tournament) {
   try {
     const [players, matchdays] = await Promise.all([
       getPlayersWithSlots(db, tournament.id),
@@ -698,7 +697,7 @@ async function generateMatchdayBackup(
     }
   } catch (err) {
     console.error(
-      `[generateMatchdayBackup] errore generando il backup per il torneo ${tournament.id}, giornata ${matchday.number}:`,
+      `[generateMatchdayBackup] errore generando il backup per il torneo ${tournament.id}:`,
       err
     );
   }
