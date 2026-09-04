@@ -3,18 +3,17 @@ import Link from "next/link";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
 import { eyebrow } from "@/components/ui";
-import { GiornataPicker } from "./giornata-picker";
-import { PlayerHistoryList, type PlayerHistoryGroup } from "./player-history-list";
-import type { HistorySlotEntry } from "@/lib/queries";
+import { PlayerPicker } from "./player-picker";
+import { PlayerSlotHistoryTable } from "./player-slot-history-table";
 
 /**
- * Storico del torneo per il giocatore: giornata per giornata, chi ha
- * schierato cosa e con che esito — tutti i giocatori, non solo il
- * proprio (a differenza di MatchdayRecap nella pagina principale, che è
- * solo "le mie scelte" della giornata aperta). Richiesta esplicita
- * dell'utente il 2026-09-03. Solo le giornate già chiuse (con un
- * risultato applicato) compaiono nel menu: quella aperta non ha ancora
- * nulla da ripercorrere, e c'è già la pagina principale per quella.
+ * Storico del torneo per il giocatore: per il giocatore selezionato (di
+ * default se stesso), tutti i suoi slot su una riga con una colonna per
+ * ogni giornata già chiusa — stessa logica del foglio Excel "Storico"
+ * (vedi getTournamentSlotHistory in src/lib/queries.ts), qui in app.
+ * Prima versione (2026-09-03) era organizzata per giornata invece che
+ * per giocatore; cambiata il 2026-09-04 su richiesta esplicita
+ * dell'utente per rispecchiare il nuovo formato dell'export Excel.
  */
 export default async function StoricoPage(
   props: PageProps<"/play/[tournamentId]/storico">
@@ -31,48 +30,28 @@ export default async function StoricoPage(
   if (!player) notFound();
 
   const tournament = player.tournaments;
-  const matchdays = await queries.getMatchdays(supabase, tournament.id);
-  const closedNumbers = matchdays
-    .filter((m) => m.status === "completed")
-    .map((m) => m.number)
-    .sort((a, b) => b - a);
+  const history = await queries.getTournamentSlotHistory(supabase, tournament.id);
 
   const params = await props.searchParams;
-  const requested =
-    typeof params.giornata === "string" ? Number(params.giornata) : NaN;
-  const selected = closedNumbers.includes(requested) ? requested : closedNumbers[0];
+  const requested = typeof params.giocatore === "string" ? params.giocatore : null;
+  const selectedPlayerId =
+    requested && history.players.some((p) => p.playerId === requested)
+      ? requested
+      : player.id;
 
-  const entries =
-    selected !== undefined
-      ? await queries.getMatchdayHistory(supabase, tournament.id, selected)
-      : [];
+  // Il giocatore stesso sempre in cima al menu ("(tu)"), poi gli altri
+  // nell'ordine restituito da getTournamentSlotHistory (created_at
+  // crescente) — richiesto dall'utente: si apre di default sul proprio
+  // storico, gli altri sono un click di distanza se servono.
+  const pickerPlayers = [
+    ...history.players.filter((p) => p.playerId === player.id),
+    ...history.players.filter((p) => p.playerId !== player.id),
+  ].map((p) => ({
+    id: p.playerId,
+    label: p.playerId === player.id ? `${p.displayName} (tu)` : p.displayName,
+  }));
 
-  const byPlayer = new Map<string, { playerName: string; slots: HistorySlotEntry[] }>();
-  for (const entry of entries) {
-    const group = byPlayer.get(entry.playerId) ?? {
-      playerName: entry.playerName,
-      slots: [],
-    };
-    group.slots.push(entry);
-    byPlayer.set(entry.playerId, group);
-  }
-  // Squadre uguali vicine, dentro allo stesso giocatore (richiesto
-  // dall'utente): ordinate per nome squadra invece che per numero slot.
-  // "￿" (fuori dall'alfabeto) tiene in fondo chi non ha scelto nulla,
-  // invece di mescolarli in mezzo alle squadre vere.
-  const groups: PlayerHistoryGroup[] = Array.from(byPlayer.entries()).map(
-    ([playerId, g]) => ({
-      playerId,
-      ...g,
-      slots: g.slots.slice().sort((a, b) => {
-        const teamCompare = (a.teamName ?? "￿").localeCompare(
-          b.teamName ?? "￿"
-        );
-        if (teamCompare !== 0) return teamCompare;
-        return Number(a.slotLabel) - Number(b.slotLabel);
-      }),
-    })
-  );
+  const selected = history.players.find((p) => p.playerId === selectedPlayerId);
 
   return (
     <div className="flex flex-col gap-6">
@@ -97,25 +76,28 @@ export default async function StoricoPage(
         <h1 className="mt-1 font-display text-2xl font-extrabold">Storico</h1>
       </div>
 
-      {closedNumbers.length === 0 ? (
+      {history.matchdayNumbers.length === 0 ? (
         <p className="text-sm text-foreground-soft">
           Nessuna giornata ancora chiusa: lo storico si popola quando
           l&apos;organizzatore carica il primo risultato.
         </p>
       ) : (
         <>
-          <GiornataPicker
+          <PlayerPicker
             tournamentId={tournamentId}
-            numbers={closedNumbers}
-            selected={selected}
+            players={pickerPlayers}
+            selectedPlayerId={selectedPlayerId}
           />
 
-          {groups.length === 0 ? (
-            <p className="text-sm text-foreground-soft">
-              Nessuno slot era ancora in gara in questa giornata.
-            </p>
+          {selected && selected.slots.length > 0 ? (
+            <PlayerSlotHistoryTable
+              matchdayNumbers={history.matchdayNumbers}
+              slots={selected.slots}
+            />
           ) : (
-            <PlayerHistoryList groups={groups} />
+            <p className="text-sm text-foreground-soft">
+              Questo giocatore non ha slot in questo torneo.
+            </p>
           )}
         </>
       )}

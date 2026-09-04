@@ -408,81 +408,83 @@ export async function getMatchdayResults(db: DB, matchdayId: string) {
   return assertNoError(res) as MatchdayResult[];
 }
 
-export interface HistorySlotEntry {
+export interface TournamentSlotHistoryPlayer {
   playerId: string;
-  playerName: string;
-  slotLabel: string;
-  teamName: string | null;
-  outcome: "win" | "draw" | "loss" | "missed_pick" | "exempt";
+  displayName: string;
+  slots: {
+    label: string;
+    eliminatedMatchday: number | null;
+    picksByMatchday: Map<number, string | null>;
+  }[];
 }
 
-/** Storico di una giornata già chiusa: per ogni slot che era ancora in
- * gara ALL'INIZIO di quella giornata (non eliminato prima), la squadra
- * scelta e l'esito — per la schermata "Storico" dell'area giocatore
- * (docs/07_Task_sviluppo.md, richiesta il 2026-09-03). Niente slot già
- * fuori da giornate precedenti: per quella giornata non hanno scelto
- * nulla, mostrarli sarebbe solo rumore.
- *
- * "Esente" ricostruito da getExcludedTeamNames (stato ATTUALE delle
- * fixture di quel round): se un rinvio viene corretto più avanti, lo
- * storico di giornate già chiuse rispecchia l'ultimo stato noto, non
- * necessariamente quello del momento — stessa fonte di verità già usata
- * ovunque nell'app, non una novità di questa funzione. Array vuoto se la
- * giornata non esiste o non è ancora chiusa (niente da vedere ancora). */
-export async function getMatchdayHistory(
+export interface TournamentSlotHistory {
+  matchdayNumbers: number[];
+  players: TournamentSlotHistoryPlayer[];
+}
+
+/** Storico completo di un torneo — una entry per slot per giornata già
+ * chiusa (squadra scelta, o null se nessuna scelta), più la giornata in
+ * cui ogni slot è stato eventualmente eliminato — usato sia dal foglio
+ * Excel "Storico" (vedi generateMatchdayBackup più sotto) sia dalla
+ * pagina "Storico" per giocatore dell'area giocatore
+ * (play/[tournamentId]/storico): stessa forma di dati, due presentazioni
+ * diverse. Le giornate dopo l'eliminazione di uno slot non hanno
+ * un'entry in picksByMatchday: lo slot non gioca più. */
+export async function getTournamentSlotHistory(
   db: DB,
-  tournamentId: string,
-  matchdayNumber: number
-): Promise<HistorySlotEntry[]> {
-  const matchdays = await getMatchdays(db, tournamentId);
-  const matchday = matchdays.find((m) => m.number === matchdayNumber);
-  if (!matchday || matchday.status === "open") return [];
-
-  const [players, picks, results, excludedNames] = await Promise.all([
+  tournamentId: string
+): Promise<TournamentSlotHistory> {
+  const [players, matchdays] = await Promise.all([
     getPlayersWithSlots(db, tournamentId),
-    getPicksForMatchday(db, matchday.id),
-    getMatchdayResults(db, matchday.id),
-    getExcludedTeamNames(db, matchdayNumber),
+    getMatchdays(db, tournamentId),
   ]);
+  const matchdayNumbers = matchdays
+    .filter((m) => m.status === "completed")
+    .map((m) => m.number)
+    .sort((a, b) => a - b);
+  const matchdayNumberById = new Map(matchdays.map((m) => [m.id, m.number]));
 
-  const teamIds = Array.from(new Set(picks.map((p) => p.team_id)));
-  const teams = await getTeamsByIds(db, teamIds);
-  const teamNameById = new Map(teams.map((t) => [t.id, t.name]));
-  const pickBySlot = new Map(picks.map((p) => [p.slot_id, p.team_id]));
-  const outcomeByTeam = new Map(results.map((r) => [r.team_id, r.outcome]));
+  const allSlotIds = players.flatMap((p) => p.slots.map((s) => s.id));
+  const allPicks = await getAllPicksForTournamentSlots(db, allSlotIds);
+  const teamIds = Array.from(new Set(allPicks.map((p) => p.team_id)));
+  const teamNameById = new Map(
+    (await getTeamsByIds(db, teamIds)).map((t) => [t.id, t.name])
+  );
 
-  const entries: HistorySlotEntry[] = [];
-  for (const player of players) {
-    const sortedSlots = player.slots
-      .slice()
-      .sort((a, b) => Number(a.label) - Number(b.label));
-    for (const slot of sortedSlots) {
-      const wasInPlay =
-        slot.status === "alive" || (slot.eliminated_matchday ?? Infinity) >= matchdayNumber;
-      if (!wasInPlay) continue;
-
-      const teamId = pickBySlot.get(slot.id);
-      const teamName = teamId ? (teamNameById.get(teamId) ?? null) : null;
-
-      let outcome: HistorySlotEntry["outcome"];
-      if (!teamId) {
-        outcome = "missed_pick";
-      } else if (teamName && excludedNames.has(teamName)) {
-        outcome = "exempt";
-      } else {
-        outcome = outcomeByTeam.get(teamId) ?? "missed_pick";
-      }
-
-      entries.push({
-        playerId: player.id,
-        playerName: player.display_name,
-        slotLabel: slot.label,
-        teamName,
-        outcome,
-      });
-    }
+  // slotId+matchdayNumber -> nome squadra scelta, per popolare le
+  // colonne giornata per giornata di ogni slot senza rifiltrare
+  // allPicks per ogni riga.
+  const teamNameBySlotAndMatchday = new Map<string, string | null>();
+  for (const pick of allPicks) {
+    const matchdayNumber = matchdayNumberById.get(pick.matchday_id);
+    if (matchdayNumber === undefined) continue;
+    teamNameBySlotAndMatchday.set(
+      `${pick.slot_id}:${matchdayNumber}`,
+      teamNameById.get(pick.team_id) ?? null
+    );
   }
-  return entries;
+
+  return {
+    matchdayNumbers,
+    players: players.map((player) => ({
+      playerId: player.id,
+      displayName: player.display_name,
+      slots: player.slots
+        .slice()
+        .sort((a, b) => Number(a.label) - Number(b.label))
+        .map((slot) => ({
+          label: slot.label,
+          eliminatedMatchday: slot.eliminated_matchday,
+          picksByMatchday: new Map(
+            matchdayNumbers.map((n) => [
+              n,
+              teamNameBySlotAndMatchday.get(`${slot.id}:${n}`) ?? null,
+            ])
+          ),
+        })),
+    })),
+  };
 }
 
 /**
@@ -631,55 +633,13 @@ function matchdayBackupPath(tournamentId: string): string {
  */
 export async function generateMatchdayBackup(db: DB, tournament: Tournament) {
   try {
-    const [players, matchdays] = await Promise.all([
-      getPlayersWithSlots(db, tournament.id),
-      getMatchdays(db, tournament.id),
-    ]);
-    const completedNumbers = matchdays
-      .filter((m) => m.status === "completed")
-      .map((m) => m.number)
-      .sort((a, b) => a - b);
-    const matchdayNumberById = new Map(matchdays.map((m) => [m.id, m.number]));
-
-    const allSlotIds = players.flatMap((p) => p.slots.map((s) => s.id));
-    const allPicks = await getAllPicksForTournamentSlots(db, allSlotIds);
-    const teamIds = Array.from(new Set(allPicks.map((p) => p.team_id)));
-    const teamNameById = new Map(
-      (await getTeamsByIds(db, teamIds)).map((t) => [t.id, t.name])
+    const history = await getTournamentSlotHistory(db, tournament.id);
+    const storicoPlayers: StoricoPlayerHistory[] = history.players.map(
+      ({ displayName, slots }) => ({ displayName, slots })
     );
 
-    // matchdayId+slotId -> nome squadra scelta, per popolare le colonne
-    // giornata per giornata di ogni slot senza rifiltrare allPicks ad
-    // ogni riga.
-    const teamNameBySlotAndMatchday = new Map<string, string | null>();
-    for (const pick of allPicks) {
-      const matchdayNumber = matchdayNumberById.get(pick.matchday_id);
-      if (matchdayNumber === undefined) continue;
-      teamNameBySlotAndMatchday.set(
-        `${pick.slot_id}:${matchdayNumber}`,
-        teamNameById.get(pick.team_id) ?? null
-      );
-    }
-
-    const storicoPlayers: StoricoPlayerHistory[] = players.map((player) => ({
-      displayName: player.display_name,
-      slots: player.slots
-        .slice()
-        .sort((a, b) => Number(a.label) - Number(b.label))
-        .map((slot) => ({
-          label: slot.label,
-          eliminatedMatchday: slot.eliminated_matchday,
-          picksByMatchday: new Map(
-            completedNumbers.map((n) => [
-              n,
-              teamNameBySlotAndMatchday.get(`${slot.id}:${n}`) ?? null,
-            ])
-          ),
-        })),
-    }));
-
     const workbook = new ExcelJS.Workbook();
-    buildStoricoSheet(workbook, completedNumbers, storicoPlayers);
+    buildStoricoSheet(workbook, history.matchdayNumbers, storicoPlayers);
     const arrayBuffer = await workbook.xlsx.writeBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
