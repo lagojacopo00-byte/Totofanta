@@ -406,17 +406,17 @@ export default async function PlayerTournamentPage(
         <section className={`${card} border-accent/30`}>
           <p className={eyebrow}>Premio</p>
           <div className="mt-2 flex items-end justify-between gap-4">
-            <p className="font-display text-3xl font-extrabold leading-none text-foreground">
+            <p className="font-display text-5xl font-extrabold leading-none text-foreground">
               {prizeFormatWhole.format(tournament.slot_value * totalSlots)}
             </p>
             <span className="text-right">
-              <span className="block font-mono text-lg font-bold text-accent">
+              <span className="block font-mono text-xl font-bold text-accent">
                 {((myAliveSlots / aliveSlots) * 100).toLocaleString("it-IT", {
                   maximumFractionDigits: 1,
                 })}
                 %
               </span>
-              <span className="block font-mono text-sm font-bold text-foreground">
+              <span className="block font-mono text-base font-bold text-foreground">
                 {prizeFormatWhole.format(
                   (myAliveSlots / aliveSlots) * tournament.slot_value * totalSlots
                 )}
