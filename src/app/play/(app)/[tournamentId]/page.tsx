@@ -18,6 +18,16 @@ const prizeFormat = new Intl.NumberFormat("it-IT", {
   maximumFractionDigits: 2,
 });
 
+// Stessa valuta ma senza decimali: per la sezione "Premio" mentre il
+// torneo è in corso (montepremi, quota attuale, prezzo a slot), dove
+// l'utente ha chiesto cifre tonde — non per la ripartizione finale a
+// torneo concluso, che resta con i centesimi (prizeFormat sopra).
+const prizeFormatWhole = new Intl.NumberFormat("it-IT", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
+
 function InfoIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -397,7 +407,7 @@ export default async function PlayerTournamentPage(
           <p className={eyebrow}>Premio</p>
           <div className="mt-2 flex items-end justify-between gap-4">
             <p className="font-display text-3xl font-extrabold leading-none text-foreground">
-              {prizeFormat.format(tournament.slot_value * totalSlots)}
+              {prizeFormatWhole.format(tournament.slot_value * totalSlots)}
             </p>
             <span className="text-right">
               <span className="block font-mono text-lg font-bold text-accent">
@@ -406,15 +416,35 @@ export default async function PlayerTournamentPage(
                 })}
                 %
               </span>
-              <span className="block text-[10px] text-foreground-faint">
-                tua quota attuale
+              <span className="block font-mono text-sm font-bold text-foreground">
+                {prizeFormatWhole.format(
+                  (myAliveSlots / aliveSlots) * tournament.slot_value * totalSlots
+                )}
               </span>
             </span>
           </div>
-          <p className="mt-1.5 text-xs text-foreground-faint">
-            {myAliveSlots}/{aliveSlots} slot ancora vivi nel torneo sono
-            tuoi ({prizeFormat.format(tournament.slot_value)} a slot).
-          </p>
+
+          {/* Spiegazione della quota, a comparsa: non ovvio a colpo
+              d'occhio perché è calcolata sugli slot ANCORA VIVI (non sul
+              totale venduti) — vedi il commento sopra questa sezione. */}
+          <details className="mt-1.5">
+            <summary className="flex cursor-pointer list-none items-center justify-end gap-1 text-[10px] text-foreground-faint [&::-webkit-details-marker]:hidden">
+              tua quota attuale
+              <InfoIcon className="h-3 w-3 flex-none" />
+            </summary>
+            <p className="mt-2 rounded-lg border border-line bg-surface-2 p-2.5 text-[11px] leading-relaxed text-foreground-soft">
+              Se in questa giornata restassero vivi zero slot (eliminati
+              tutti insieme, spareggio ex aequo) o il campionato finisse
+              ora, questa è la quota di montepremi che ti spetterebbe.
+            </p>
+          </details>
+
+          <div className="mt-1.5 flex items-center justify-between text-[11px] text-foreground-faint">
+            <span>
+              {myAliveSlots}/{aliveSlots}
+            </span>
+            <span>prezzo slot = {prizeFormatWhole.format(tournament.slot_value)}</span>
+          </div>
         </section>
       ) : null}
 
