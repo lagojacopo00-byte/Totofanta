@@ -5,10 +5,11 @@ import { cardTight } from "@/components/ui";
 import { PlayerSlotHistoryTable } from "@/components/player-slot-history-table";
 import type { TournamentSlotHistoryPlayer } from "@/lib/queries";
 
-/** Lo storico degli ALTRI giocatori, sotto al proprio (sempre aperto):
- * solo i nomi, un click apre lo storico di quel giocatore, un secondo
- * click lo richiude — stesso pattern già usato in passato per lo storico
- * per giornata. Chiuso di default: con molti giocatori una lista di soli
+/** Lo storico degli ALTRI giocatori, sotto al proprio: solo i nomi con a
+ * fianco quanti slot ha ancora vivi su quanti aveva all'inizio (verde/
+ * grigio, non un'icona +/− — richiesto dall'utente il 2026-09-04), un
+ * click apre lo storico di quel giocatore, un secondo click lo
+ * richiude. Chiuso di default: con molti giocatori una lista di soli
  * nomi si legge a colpo d'occhio, i dettagli si aprono solo per chi
  * interessa davvero. */
 export function OtherPlayersHistory({
@@ -24,6 +25,7 @@ export function OtherPlayersHistory({
     <div className="flex flex-col gap-2">
       {players.map((p) => {
         const isOpen = p.playerId === openPlayerId;
+        const alive = p.slots.filter((s) => s.eliminatedMatchday === null).length;
         return (
           <div key={p.playerId} className={cardTight}>
             <button
@@ -35,8 +37,9 @@ export function OtherPlayersHistory({
               <span className="font-display text-sm font-bold text-foreground">
                 {p.displayName}
               </span>
-              <span className="flex-none font-display text-lg font-bold text-foreground-faint">
-                {isOpen ? "−" : "+"}
+              <span className="flex-none font-mono text-sm font-bold">
+                <span className="text-accent">{alive}</span>
+                <span className="text-foreground-faint">/{p.slots.length}</span>
               </span>
             </button>
             {isOpen ? (
