@@ -1,15 +1,16 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
 import { card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { TeamBadge } from "@/components/team-badge";
 import { TrophyIcon } from "@/components/rule-icons";
+import { PlayerSlotHistoryTable } from "@/components/player-slot-history-table";
 import { computePickDeadline, isPickingWindowOpen } from "@/lib/pick-window";
 import { groupFixturesByDay } from "@/lib/match-window";
 import { computeFinalPrizeShares, computeTeamOutcomes } from "@/lib/game-logic";
 import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
 import { MatchdayRecap, type RecapSlot } from "./matchday-recap";
+import { OtherPlayersHistory } from "./other-players-history";
 import { AutoRefresh } from "@/components/auto-refresh";
 
 const prizeFormat = new Intl.NumberFormat("it-IT", {
@@ -64,7 +65,7 @@ export default async function PlayerTournamentPage(
     return a.label.localeCompare(b.label);
   });
 
-  const [matchdays, allPicks, availableTeams, standings, matchdayBackupUrl] =
+  const [matchdays, allPicks, availableTeams, standings, matchdayBackupUrl, slotHistory] =
     await Promise.all([
       queries.getMatchdays(supabase, tournament.id),
       queries.getAllPicksForTournamentSlots(supabase, slots.map((s) => s.id)),
@@ -73,10 +74,12 @@ export default async function PlayerTournamentPage(
       tournament.auto_backup_matchdays
         ? queries.getMatchdayBackupUrl(supabase, tournament.id)
         : Promise.resolve(null),
+      queries.getTournamentSlotHistory(supabase, tournament.id),
     ]);
 
   const openMatchday = matchdays.find((m) => m.status === "open");
-  const hasStorico = matchdays.some((m) => m.status === "completed");
+  const myHistory = slotHistory.players.find((p) => p.playerId === player.id);
+  const otherHistories = slotHistory.players.filter((p) => p.playerId !== player.id);
 
   // Accoppiamenti reali di Serie A per la giornata aperta (giornata N del
   // torneo = giornata reale N) — vedi src/app/dashboard/fixtures.
@@ -510,6 +513,32 @@ export default async function PlayerTournamentPage(
         </div>
       </div>
 
+      {/* Storico: direttamente in pagina, niente click per aprirlo (richiesto
+          dall'utente il 2026-09-04 — prima era una pagina a parte). Il
+          proprio storico è sempre visibile; quello degli altri giocatori è
+          un elenco apribile/chiudibile, uno alla volta, sotto. Solo se
+          almeno una giornata è già chiusa: prima non c'è niente da vedere. */}
+      {slotHistory.matchdayNumbers.length > 0 && myHistory && myHistory.slots.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <p className={eyebrow}>Storico</p>
+          <div>
+            <p className="mb-2 font-display text-sm font-bold text-foreground">
+              {player.display_name} (tu)
+            </p>
+            <PlayerSlotHistoryTable
+              matchdayNumbers={slotHistory.matchdayNumbers}
+              slots={myHistory.slots}
+            />
+          </div>
+          {otherHistories.length > 0 ? (
+            <OtherPlayersHistory
+              matchdayNumbers={slotHistory.matchdayNumbers}
+              players={otherHistories}
+            />
+          ) : null}
+        </section>
+      ) : null}
+
       {burnedTeams.length > 0 ? (
         <section className={cardTight}>
           <details>
@@ -635,20 +664,6 @@ export default async function PlayerTournamentPage(
             })}
           </ul>
         </section>
-      ) : null}
-
-      {hasStorico ? (
-        <Link
-          href={`/play/${tournament.id}/storico`}
-          className={`${cardTight} flex items-center justify-between gap-2 transition-colors hover:border-accent`}
-        >
-          <span className="text-sm font-semibold text-foreground">
-            Storico del torneo
-          </span>
-          <span className="text-xs text-foreground-faint">
-            Chi ha schierato cosa, giornata per giornata →
-          </span>
-        </Link>
       ) : null}
 
       {matchdayBackupUrl ? (
