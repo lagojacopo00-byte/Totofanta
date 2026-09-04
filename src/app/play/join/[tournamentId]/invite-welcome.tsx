@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Brandbar } from "@/components/brandbar";
-import { button, buttonGhost, card, cardTight, eyebrow } from "@/components/ui";
+import { button, card } from "@/components/ui";
 
 /**
  * Prima schermata per chi arriva da un link di invito e non ha ancora un
@@ -14,15 +14,13 @@ import { button, buttonGhost, card, cardTight, eyebrow } from "@/components/ui";
 export function InviteWelcome({ tournamentId }: { tournamentId: string }) {
   const joinPath = `/play/join/${tournamentId}`;
   const signupHref = `/play/signup?next=${encodeURIComponent(joinPath)}`;
-  const loginHref = `/play/login?next=${encodeURIComponent(joinPath)}`;
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-7 py-16">
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-6 px-7 py-16 text-center">
       <Brandbar subtitle="Ti hanno sfidato" />
 
       <div>
-        <p className={eyebrow}>Ricevuto: una sfida</p>
-        <h1 className="mt-1 font-display text-2xl font-extrabold leading-tight">
+        <h1 className="font-display text-4xl font-extrabold leading-tight">
           Un torneo ti aspetta. Tu ci stai o no?
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-foreground-soft">
@@ -32,22 +30,9 @@ export function InviteWelcome({ tournamentId }: { tournamentId: string }) {
         </p>
       </div>
 
-      <section className={`${cardTight}`}>
-        <p className={eyebrow}>Ultimo passo</p>
-        <p className="mt-1.5 text-sm text-foreground-soft">
-          Crea l&apos;account con la{" "}
-          <strong className="text-foreground">stessa email</strong> a cui
-          è arrivato l&apos;invito: sei dentro al torneo all&apos;istante,
-          pronto a schierare la prima squadra.
-        </p>
-      </section>
-
-      <div className={`${card} flex flex-col gap-3`}>
-        <Link href={signupHref} className={button}>
+      <div className={`${card} w-full`}>
+        <Link href={signupHref} className={`${button} w-full`}>
           Accetta la sfida
-        </Link>
-        <Link href={loginHref} className={buttonGhost}>
-          Ho già un account, entro
         </Link>
       </div>
     </main>

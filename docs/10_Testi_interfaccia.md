@@ -81,14 +81,12 @@ File: `src/app/play/(auth)/signup/actions.ts` (messaggi di errore)
 
 File: `src/app/play/join/[tournamentId]/invite-welcome.tsx`
 
-- `[INVITO-BENVENUTO-SOTTOTITOLO]`: "Invito al torneo"
-- `[INVITO-BENVENUTO-EYEBROW]`: "Sei stato invitato"
-- `[INVITO-BENVENUTO-TITOLO]`: "Qualcuno ti aspetta in un torneo di Totofanta"
-- `[INVITO-BENVENUTO-INTRO]`: "Ogni giornata scegli una squadra di Serie A. Vince davvero? Resti in corsa. Pareggia o perde? Sei fuori. Chi resiste più a lungo vince il torneo."
-- `[INVITO-BENVENUTO-PROSSIMO-PASSO-TITOLO]`: "Prossimo passo"
-- `[INVITO-BENVENUTO-PROSSIMO-PASSO-TESTO]`: "Crea un account con la stessa email a cui è arrivato l'invito: ti agganciamo subito al torneo, pronto per scegliere la tua prima squadra."
-- `[INVITO-BENVENUTO-BTN-SIGNUP]`: "Crea il tuo account"
-- `[INVITO-BENVENUTO-BTN-LOGIN]`: "Ho già un account"
+- `[INVITO-BENVENUTO-SOTTOTITOLO]`: "Ti hanno sfidato"
+- `[INVITO-BENVENUTO-TITOLO]`: "Un torneo ti aspetta. Tu ci stai o no?"
+- `[INVITO-BENVENUTO-INTRO]`: "Ogni giornata scegli una squadra di Serie A. Vince? Resti in gara. Pareggia o perde? Fuori, senza sconti. Chi sopravvive più a lungo si porta a casa tutto."
+- `[INVITO-BENVENUTO-BTN-SIGNUP]`: "Accetta la sfida"
+
+Nota: la scelta "hai già un account?" non è più su questa schermata — si fa dopo, nel form di signup/login a cui porta il pulsante.
 
 ## Modulo iscrizione al torneo (chi ha già un account) — `/play/join/[id]`
 
