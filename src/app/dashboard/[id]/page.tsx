@@ -33,6 +33,8 @@ const matchdayStatusLabel: Record<string, string> = {
 
 export default async function TournamentPage(props: PageProps<"/dashboard/[id]">) {
   const { id } = await props.params;
+  const params = await props.searchParams;
+  const playerError = typeof params.playerError === "string" ? params.playerError : null;
   const { supabase, user } = await requireUser();
 
   let tournament;
@@ -210,6 +212,12 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
             })}
           </ul>
         )}
+
+        {playerError ? (
+          <div className={`${cardTight} border-lose/40`}>
+            <p className="text-sm text-lose">{playerError}</p>
+          </div>
+        ) : null}
 
         <form
           action={addPlayerAction.bind(null, tournament.id)}

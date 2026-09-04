@@ -672,6 +672,20 @@ richiede prima una decisione di prodotto).
   `confirm()` che li elenca) — `tournaments.owner_id` ha comunque `on
   delete cascade`, quindi cancella anche quelli con i dati di tutti gli
   altri giocatori.
+- **Bug corretto — re-invitare un giocatore già presente falliva con un
+  errore poco chiaro**: segnalato dall'utente dopo aver usato la nuova
+  eliminazione account sopra — cancellare l'account di un giocatore
+  NON tocca la sua riga in `players` (resta "In attesa che si registri",
+  di proposito: vedi la nota su `adminDeleteUser`), quindi provare a
+  reinvitarlo con "Invita" sulla stessa email falliva contro il vincolo
+  `unique (tournament_id, email)` con un errore Postgres grezzo invece
+  di spiegare che non serviva reinvitarlo. Nuovo `getPlayerByEmail` in
+  [queries.ts](../src/lib/queries.ts): `addPlayerAction` ora controlla
+  prima se quell'email è già un giocatore del torneo e, se sì, rimanda
+  alla stessa pagina con un messaggio chiaro invece di chiamare
+  `addPlayer` — due varianti a seconda che l'invito sia ancora orfano
+  (basta che si registri di nuovo con quella email, si riaggancia da
+  solo) o già agganciato a un account (già dentro, niente da fare).
 
 ## Da fare — complessa
 

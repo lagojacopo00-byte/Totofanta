@@ -14,6 +14,15 @@ async function ownedTournament(tournamentId: string) {
   return { supabase, tournament };
 }
 
+/** Se questa email è già un giocatore di questo torneo (es. un invito
+ * ancora orfano — "In attesa che si registri" nella UI — lasciato da un
+ * account cancellato dal creator: la cancellazione toglie l'account, non
+ * la riga giocatore, apposta, così chi si registra di nuovo con la
+ * stessa email si riaggancia da solo), non serve re-invitarlo: basta che
+ * apra di nuovo Totofanta con quell'email. Senza questo controllo,
+ * `queries.addPlayer` fallirebbe con un errore Postgres di chiave
+ * duplicata (unique (tournament_id, email)) poco chiaro per
+ * l'organizzatore — qui invece si spiega perché non serve reinvitare. */
 export async function addPlayerAction(tournamentId: string, formData: FormData) {
   const { supabase, tournament } = await ownedTournament(tournamentId);
   const displayName = String(formData.get("display_name") ?? "").trim();
@@ -23,6 +32,18 @@ export async function addPlayerAction(tournamentId: string, formData: FormData) 
     Math.min(100, Number(formData.get("num_slots") ?? tournament.default_num_slots) || 1)
   );
   if (!displayName || !email) return;
+
+  const existing = await queries.getPlayerByEmail(supabase, tournamentId, email);
+  if (existing) {
+    redirect(
+      `/dashboard/${tournamentId}?playerError=` +
+        encodeURIComponent(
+          existing.user_id
+            ? `${email} è già un giocatore di questo torneo, non serve invitarlo di nuovo.`
+            : `${email} è già stato invitato: non serve reinvitarlo, basta che si registri (o acceda) su Totofanta con questa stessa email per essere agganciato in automatico.`
+        )
+    );
+  }
 
   await queries.addPlayer(supabase, tournament, { displayName, email, numSlots });
   revalidatePath(`/dashboard/${tournamentId}`);

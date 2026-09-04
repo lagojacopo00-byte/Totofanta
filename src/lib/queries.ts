@@ -193,6 +193,28 @@ export async function getAvailableTeams(
   return assertNoError(res) as Team[];
 }
 
+/** La riga giocatore già esistente per QUESTA email in QUESTO torneo, se
+ * c'è (unique (tournament_id, email) in schema.sql) — serve a
+ * addPlayerAction per distinguere un vero nuovo invito da un
+ * re-invito su un'email già presente (es. un account cancellato
+ * dal creator, che lascia orfano — non cancella — il suo invito:
+ * vedi adminDeleteUser). Senza questo controllo, un secondo invito
+ * con la stessa email fallisce con un errore Postgres di chiave
+ * duplicata poco chiaro per l'organizzatore. */
+export async function getPlayerByEmail(
+  db: DB,
+  tournamentId: string,
+  email: string
+) {
+  const res = await db
+    .from("players")
+    .select("*")
+    .eq("tournament_id", tournamentId)
+    .eq("email", email.trim().toLowerCase())
+    .maybeSingle();
+  return assertNoError(res) as Player | null;
+}
+
 export async function addPlayer(
   db: DB,
   tournament: Tournament,
