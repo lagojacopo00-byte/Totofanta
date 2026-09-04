@@ -655,6 +655,23 @@ richiede prima una decisione di prodotto).
   `auto_backup_matchdays` attivo — deciso con l'utente il 2026-09-03:
   Excel = backup, Storico in-app = consultazione, due scopi diversi con
   due soluzioni diverse.
+- **Il creator può eliminare l'account di un altro utente**: richiesto
+  esplicitamente dall'utente ("da creatore devo avere la possibilità di
+  eliminare un account") — `/dashboard/accounts` dichiarava finora
+  apertamente "niente eliminazione account... da qui", una scelta ormai
+  superata. Nuovo `adminDeleteUser` in
+  [queries.ts](../src/lib/queries.ts) (client service-role,
+  `auth.admin.deleteUser`) e `adminDeleteUserAction` in
+  `dashboard/accounts/actions.ts`, che verifica lato server che chi
+  chiama sia creator e non stia cancellando se stesso — per il proprio
+  account resta il flusso dedicato in `/play/profile`
+  (`deleteAccountAction`). A differenza di quello, qui NON ci si blocca
+  se l'account possiede ancora dei tornei: `getAllProfiles` ora riporta
+  anche `ownedTournamentNames` per riga, così il creator vede subito
+  l'impatto prima di confermare (bottone "Elimina account" con
+  `confirm()` che li elenca) — `tournaments.owner_id` ha comunque `on
+  delete cascade`, quindi cancella anche quelli con i dati di tutti gli
+  altri giocatori.
 
 ## Da fare — complessa
 

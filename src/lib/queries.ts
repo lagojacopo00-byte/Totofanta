@@ -1396,21 +1396,25 @@ export interface AdminProfileRow {
   displayName: string | null;
   firstName: string | null;
   lastName: string | null;
+  ownedTournamentNames: string[];
 }
 
 /** Tutti gli account della piattaforma, per la pagina /dashboard/accounts
  * (solo creator — controllato lì, non qui: questa funzione da sola
  * bypassa la RLS di `profiles`, va richiamata solo dopo aver verificato
- * il ruolo). Pensata per far compilare al creator nome/cognome (o il
- * nome pubblico) per conto di chi non lo farebbe mai da solo — non
- * un pannello di amministrazione account più ampio. */
+ * il ruolo). Include anche i tornei posseduti da ciascuno (solo nomi):
+ * serve al creator per capire l'impatto prima di eliminare un account
+ * (vedi adminDeleteUser sotto), non solo per compilare nome/cognome. */
 export async function getAllProfiles(): Promise<AdminProfileRow[]> {
   const admin = createAdminClient();
-  const res = await admin
-    .from("profiles")
-    .select("id, email, role, created_at, display_name, first_name, last_name")
-    .order("created_at", { ascending: true });
-  const rows = assertNoError(res) as {
+  const [profilesRes, tournamentsRes] = await Promise.all([
+    admin
+      .from("profiles")
+      .select("id, email, role, created_at, display_name, first_name, last_name")
+      .order("created_at", { ascending: true }),
+    admin.from("tournaments").select("owner_id, name"),
+  ]);
+  const rows = assertNoError(profilesRes) as {
     id: string;
     email: string;
     role: ProfileRole;
@@ -1419,6 +1423,19 @@ export async function getAllProfiles(): Promise<AdminProfileRow[]> {
     first_name: string | null;
     last_name: string | null;
   }[];
+  const tournaments = assertNoError(tournamentsRes) as {
+    owner_id: string;
+    name: string;
+  }[];
+
+  const tournamentsByOwner = new Map<string, string[]>();
+  for (const t of tournaments) {
+    tournamentsByOwner.set(t.owner_id, [
+      ...(tournamentsByOwner.get(t.owner_id) ?? []),
+      t.name,
+    ]);
+  }
+
   return rows.map((r) => ({
     id: r.id,
     email: r.email,
@@ -1427,6 +1444,7 @@ export async function getAllProfiles(): Promise<AdminProfileRow[]> {
     displayName: r.display_name,
     firstName: r.first_name,
     lastName: r.last_name,
+    ownedTournamentNames: tournamentsByOwner.get(r.id) ?? [],
   }));
 }
 
@@ -1450,6 +1468,23 @@ export async function adminUpdateProfileName(
       })
       .eq("id", targetUserId)
   );
+}
+
+/** Cancella per sempre l'account di un ALTRO utente — potere riservato
+ * al creator (verificato dal chiamante, vedi adminDeleteUserAction in
+ * dashboard/accounts/actions.ts), a differenza di deleteAccountAction
+ * (profile/actions.ts) che ogni utente usa solo su se stesso. A
+ * differenza di quella, qui NON si blocca se il target possiede ancora
+ * dei tornei: il creator vede già l'elenco in `/dashboard/accounts`
+ * (ownedTournamentNames sopra) ed è una scelta consapevole —
+ * `tournaments.owner_id` ha `on delete cascade`, quindi cancella anche
+ * quelli con i dati di tutti gli altri giocatori che ci giocano. */
+export async function adminDeleteUser(targetUserId: string) {
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(targetUserId);
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 /**
