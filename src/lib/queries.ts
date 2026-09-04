@@ -963,6 +963,26 @@ export async function getTournamentStandings(db: DB, tournamentId: string) {
 }
 
 /**
+ * Solo i totali slot dell'intero torneo (vivi e complessivi, su tutti i
+ * giocatori) — versione leggera di getTournamentStandings per la home
+ * giocatore, dove serve solo il montepremi e la quota attuale di ognuno,
+ * non nomi o classifica.
+ */
+export async function getTournamentSlotCounts(db: DB, tournamentId: string) {
+  const res = await db
+    .from("players")
+    .select("slots(status)")
+    .eq("tournament_id", tournamentId);
+  const rows = assertNoError(res) as { slots: { status: "alive" | "eliminated" }[] }[];
+  const totalSlots = rows.reduce((sum, r) => sum + r.slots.length, 0);
+  const aliveSlots = rows.reduce(
+    (sum, r) => sum + r.slots.filter((s) => s.status === "alive").length,
+    0
+  );
+  return { totalSlots, aliveSlots };
+}
+
+/**
  * Gli accoppiamenti reali di Serie A per una giornata (round). La
  * giornata N del torneo corrisponde alla giornata reale N: l'organizzatore
  * tiene aggiornati gli accoppiamenti da /dashboard/fixtures.

@@ -12,20 +12,7 @@
 // rendering del server).
 
 import { useEffect, useState } from "react";
-
-/** Giorni, ore e minuti sempre insieme (non solo giorni+ore come prima):
- * deciso con l'utente il 2026-09-02, che voleva vedere anche i minuti
- * quando mancano ancora giorni interi. */
-function formatRemaining(ms: number) {
-  if (ms <= 0) return "a momenti";
-  const totalMinutes = Math.floor(ms / 60000);
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-  const minutes = totalMinutes % 60;
-  if (days > 0) return `${days}g ${hours}h ${minutes}m`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
-}
+import { formatRemaining } from "@/lib/format-remaining";
 
 interface PickCountdownProps {
   deadline: string | null;

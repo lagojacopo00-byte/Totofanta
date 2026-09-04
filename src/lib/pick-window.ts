@@ -46,3 +46,24 @@ export function isPickingWindowOpen(
   if (!deadline) return true;
   return now.getTime() < deadline.getTime();
 }
+
+/**
+ * Approssimazione di quando riapre lo schieramento per la prossima
+ * giornata, per il conto alla rovescia mostrato nella home mentre si
+ * aspettano i risultati (vedi src/components/matchday-reopen-countdown.tsx):
+ * la mezzanotte di lunedì di chiusura della giornata in corso, cioè le
+ * 00:00 del martedì successivo alla scadenza di schieramento — la
+ * finestra ufficiale delle partite è ven-sab-dom-lun (vedi
+ * src/lib/match-window.ts), quindi il lunedì finisce quando inizia il
+ * martedì. È solo un'indicazione di calendario: non segue la chiusura
+ * reale per mano dell'organizzatore, che può avvenire prima o dopo.
+ */
+export function computeNextRoundReopenAt(pickDeadline: Date): Date {
+  const target = new Date(pickDeadline);
+  target.setHours(0, 0, 0, 0);
+  const TUESDAY = 2;
+  let daysToAdd = (TUESDAY - target.getDay() + 7) % 7;
+  if (daysToAdd === 0) daysToAdd = 7;
+  target.setDate(target.getDate() + daysToAdd);
+  return target;
+}
