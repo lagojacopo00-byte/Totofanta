@@ -5,6 +5,7 @@ import { card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { TeamBadge } from "@/components/team-badge";
 import { TrophyIcon } from "@/components/rule-icons";
 import { PlayerSlotHistoryTable } from "@/components/player-slot-history-table";
+import { AliveCount } from "@/components/alive-count";
 import { computePickDeadline, isPickingWindowOpen } from "@/lib/pick-window";
 import { groupFixturesByDay } from "@/lib/match-window";
 import { computeFinalPrizeShares, computeTeamOutcomes } from "@/lib/game-logic";
@@ -528,8 +529,11 @@ export default async function PlayerTournamentPage(
               <span className="font-display text-sm font-bold text-foreground">
                 {player.display_name} (tu)
               </span>
-              <span className="flex-none text-foreground-faint transition-transform group-open:rotate-180">
-                ▾
+              <span className="flex flex-none items-center gap-2">
+                <AliveCount alive={myAliveSlots} total={myHistory.slots.length} />
+                <span className="text-foreground-faint transition-transform group-open:rotate-180">
+                  ▾
+                </span>
               </span>
             </summary>
             <div className="mt-3">

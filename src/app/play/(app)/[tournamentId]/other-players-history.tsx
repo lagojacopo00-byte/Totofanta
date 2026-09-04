@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cardTight } from "@/components/ui";
+import { AliveCount } from "@/components/alive-count";
 import { PlayerSlotHistoryTable } from "@/components/player-slot-history-table";
 import type { TournamentSlotHistoryPlayer } from "@/lib/queries";
 
@@ -37,10 +38,7 @@ export function OtherPlayersHistory({
               <span className="font-display text-sm font-bold text-foreground">
                 {p.displayName}
               </span>
-              <span className="flex-none font-mono text-sm font-bold">
-                <span className="text-accent">{alive}</span>
-                <span className="text-foreground-faint">/{p.slots.length}</span>
-              </span>
+              <AliveCount alive={alive} total={p.slots.length} />
             </button>
             {isOpen ? (
               <div className="mt-3">
