@@ -515,21 +515,30 @@ export default async function PlayerTournamentPage(
 
       {/* Storico: direttamente in pagina, niente click per aprirlo (richiesto
           dall'utente il 2026-09-04 — prima era una pagina a parte). Il
-          proprio storico è sempre visibile; quello degli altri giocatori è
-          un elenco apribile/chiudibile, uno alla volta, sotto. Solo se
-          almeno una giornata è già chiusa: prima non c'è niente da vedere. */}
+          proprio storico è aperto di default ma richiudibile come quello
+          degli altri (con <details>, niente JS necessario) — quello degli
+          altri giocatori resta un elenco apribile/chiudibile uno alla
+          volta, sotto. Solo se almeno una giornata è già chiusa: prima non
+          c'è niente da vedere. */}
       {slotHistory.matchdayNumbers.length > 0 && myHistory && myHistory.slots.length > 0 ? (
         <section className="flex flex-col gap-3">
           <p className={eyebrow}>Storico</p>
-          <div>
-            <p className="mb-2 font-display text-sm font-bold text-foreground">
-              {player.display_name} (tu)
-            </p>
-            <PlayerSlotHistoryTable
-              matchdayNumbers={slotHistory.matchdayNumbers}
-              slots={myHistory.slots}
-            />
-          </div>
+          <details open className={`${cardTight} group`}>
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
+              <span className="font-display text-sm font-bold text-foreground">
+                {player.display_name} (tu)
+              </span>
+              <span className="flex-none text-foreground-faint transition-transform group-open:rotate-180">
+                ▾
+              </span>
+            </summary>
+            <div className="mt-3">
+              <PlayerSlotHistoryTable
+                matchdayNumbers={slotHistory.matchdayNumbers}
+                slots={myHistory.slots}
+              />
+            </div>
+          </details>
           {otherHistories.length > 0 ? (
             <OtherPlayersHistory
               matchdayNumbers={slotHistory.matchdayNumbers}
