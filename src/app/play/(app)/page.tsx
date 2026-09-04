@@ -4,11 +4,7 @@ import * as queries from "@/lib/queries";
 import { buttonGhost, card, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { PickCountdown } from "@/components/pick-countdown";
 import { MatchdayReopenCountdown } from "@/components/matchday-reopen-countdown";
-import {
-  computeNextRoundReopenAt,
-  computePickDeadline,
-  isPickingWindowOpen,
-} from "@/lib/pick-window";
+import { computeNextRoundReopenAt, computePickDeadline } from "@/lib/pick-window";
 
 const statusLabel: Record<string, string> = {
   draft: "Non ancora iniziato",
@@ -54,30 +50,22 @@ export default async function PlayHomePage() {
       const openMatchday = matchdays.find((md) => md.status === "open");
 
       let deadlineIso: string | null = null;
-      let pickingOpen = true;
       let pickedCount = 0;
       let reopenAtIso: string | null = null;
 
       if (openMatchday) {
-        const [fixtures, excludedTeamNames] = await Promise.all([
+        const myAliveSlotIds = m.slots
+          .filter((s) => s.status === "alive")
+          .map((s) => s.id);
+        const [fixtures, excludedTeamNames, myPicks] = await Promise.all([
           queries.getFixturesForRound(supabase, openMatchday.number),
           queries.getExcludedTeamNames(supabase, openMatchday.number),
+          queries.getAllPicksForTournamentSlots(supabase, myAliveSlotIds),
         ]);
         const deadline = computePickDeadline(fixtures, excludedTeamNames);
-        pickingOpen = isPickingWindowOpen(deadline);
         deadlineIso = deadline?.toISOString() ?? null;
-
-        if (!pickingOpen && deadline) {
-          reopenAtIso = computeNextRoundReopenAt(deadline).toISOString();
-          const myAliveSlotIds = m.slots
-            .filter((s) => s.status === "alive")
-            .map((s) => s.id);
-          const myPicks = await queries.getAllPicksForTournamentSlots(
-            supabase,
-            myAliveSlotIds
-          );
-          pickedCount = myPicks.filter((p) => p.matchday_id === openMatchday.id).length;
-        }
+        reopenAtIso = deadline ? computeNextRoundReopenAt(deadline).toISOString() : null;
+        pickedCount = myPicks.filter((p) => p.matchday_id === openMatchday.id).length;
       }
 
       return [
@@ -86,7 +74,6 @@ export default async function PlayHomePage() {
           totalSlots: slotCounts.totalSlots,
           aliveSlots: slotCounts.aliveSlots,
           hasOpenMatchday: Boolean(openMatchday),
-          pickingOpen,
           deadlineIso,
           reopenAtIso,
           pickedCount,
@@ -121,20 +108,24 @@ export default async function PlayHomePage() {
             const tournament = m.tournaments;
             const extras = extrasByTournamentId.get(tournament.id);
 
-            // Premio e quota attuale: quota = fetta di montepremi che
-            // spetterebbe a questo giocatore se TUTTI gli slot vivi del
-            // torneo uscissero insieme sulla stessa giornata (stesso
-            // criterio usato nella pagina del torneo) — non sul totale
-            // slot venduti, morti compresi.
             const showPrize =
               Boolean(extras) &&
               tournament.slot_value > 0 &&
               extras!.totalSlots > 0 &&
               extras!.aliveSlots > 0;
-            const prizeShare = showPrize ? (myAlive / extras!.aliveSlots) * 100 : 0;
             const totalPrize = showPrize
               ? tournament.slot_value * extras!.totalSlots
               : 0;
+
+            // Ho già schierato tutti i miei slot vivi per la giornata
+            // aperta? Non dipende dalla scadenza (che riguarda la finestra
+            // per TUTTI): se ho finito il mio, non ha senso mostrarmi
+            // ancora un conto alla rovescia per schierare — vedo invece la
+            // conferma e il conto alla rovescia verso la prossima giornata.
+            const doneScheduling =
+              Boolean(extras?.hasOpenMatchday) &&
+              myAlive > 0 &&
+              (extras?.pickedCount ?? 0) >= myAlive;
 
             return (
               <li key={m.id}>
@@ -151,46 +142,24 @@ export default async function PlayHomePage() {
                         {tournament.competition}
                       </p>
                     </div>
-                    <div className="flex flex-none flex-col items-end gap-1">
-                      {showPrize ? (
-                        <>
-                          <span className="font-mono text-lg font-bold text-accent">
-                            {prizeShare.toLocaleString("it-IT", {
-                              maximumFractionDigits: 1,
-                            })}
-                            %
-                          </span>
-                          <span className="text-[11px] text-foreground-faint">
-                            {myAlive}/{myTotal} slot vivi
-                          </span>
-                        </>
-                      ) : (
-                        <span
-                          className={
-                            tournament.status === "finished" ? pillOut : pillAlive
-                          }
-                        >
-                          {myAlive}/{myTotal}
-                        </span>
-                      )}
-                    </div>
+                    <span
+                      className={`flex-none ${tournament.status === "finished" ? pillOut : pillAlive}`}
+                    >
+                      {myAlive}/{myTotal}
+                    </span>
                   </div>
 
                   {showPrize ? (
-                    <div className="flex items-center justify-between rounded-lg border border-line bg-surface-2 px-3 py-2">
-                      <span className="text-[11px] text-foreground-faint">
-                        Premio totale
-                      </span>
-                      <span className="font-mono text-sm font-bold text-foreground">
+                    <div className="rounded-lg border border-line bg-surface-2 px-3 py-2.5 text-center">
+                      <p className="text-[11px] text-foreground-faint">Premio totale</p>
+                      <p className="mt-0.5 font-display text-3xl font-extrabold leading-none text-accent">
                         {prizeFormat.format(totalPrize)}
-                      </span>
+                      </p>
                     </div>
                   ) : null}
 
-                  {extras?.hasOpenMatchday ? (
-                    extras.pickingOpen ? (
-                      <PickCountdown deadline={extras.deadlineIso} />
-                    ) : (
+                  {extras?.hasOpenMatchday && myAlive > 0 ? (
+                    doneScheduling ? (
                       <div className="flex items-center justify-between gap-2">
                         <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-accent">
                           <span aria-hidden>✓</span>
@@ -198,6 +167,8 @@ export default async function PlayHomePage() {
                         </span>
                         <MatchdayReopenCountdown targetIso={extras.reopenAtIso} />
                       </div>
+                    ) : (
+                      <PickCountdown deadline={extras.deadlineIso} />
                     )
                   ) : null}
 
