@@ -832,7 +832,8 @@ export async function getPlayerMemberships(db: DB, userId: string) {
 }
 
 /**
- * Anteprima pubblica (nome, competizione, slot di default) di un torneo
+ * Anteprima pubblica (nome, competizione, slot di default, prezzo per
+ * slot) di un torneo
  * ancora "draft", per la pagina di invito — usa una funzione del database
  * perché chi non fa ancora parte del torneo non potrebbe altrimenti
  * leggere la riga in `tournaments` (RLS). Torna `null` se l'id non esiste
@@ -846,6 +847,7 @@ export async function getTournamentInvitePreview(db: DB, tournamentId: string) {
     name: string;
     competition: string;
     default_num_slots: number;
+    slot_value: number;
   }[];
   return rows[0] ?? null;
 }

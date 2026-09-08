@@ -5,6 +5,7 @@ import * as queries from "@/lib/queries";
 import { button, card, eyebrow, input, label } from "@/components/ui";
 import { joinTournamentAction } from "./actions";
 import { InviteWelcome } from "./invite-welcome";
+import { SlotChoice } from "./slot-choice";
 
 const joinPath = (tournamentId: string) => `/play/join/${tournamentId}`;
 
@@ -98,24 +99,10 @@ export default async function JoinTournamentPage(
           defaultValue={defaultDisplayName}
           placeholder="Il tuo nome"
         />
-        <label className={label} htmlFor="num_slots">
-          Quanti slot vuoi
-        </label>
-        <input
-          className={input}
-          id="num_slots"
-          name="num_slots"
-          type="number"
-          min={1}
-          max={100}
-          required
-          defaultValue={preview.default_num_slots}
+        <SlotChoice
+          defaultNumSlots={preview.default_num_slots}
+          slotValue={preview.slot_value}
         />
-        <p className="text-xs text-foreground-faint">
-          Sono le tue vite in questo torneo: uno slot eliminato non
-          rientra più in gara. L&apos;organizzatore potrà comunque
-          cambiare il numero più avanti.
-        </p>
 
         <button className={`${button} mt-2`} type="submit">
           Sono dentro

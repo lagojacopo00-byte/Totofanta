@@ -686,6 +686,24 @@ richiede prima una decisione di prodotto).
   `addPlayer` — due varianti a seconda che l'invito sia ancora orfano
   (basta che si registri di nuovo con quella email, si riaggancia da
   solo) o già agganciato a un account (già dentro, niente da fare).
+- **Barra fissa del picker a scelte chiuse**: "Slot ancora disponibili"
+  è sempre 0/N dopo la scadenza, quindi inutile — la barra ora mostra
+  invece vittoria/pareggio-persa/da decidere per i propri slot di
+  quella giornata (stessa classificazione già usata nel riepilogo
+  giornata sotto). Rinominata anche l'etichetta per quando si può ancora
+  schierare, da "Slot ancora disponibili" a "Slot da schierare", più
+  chiara. Vedi [team-picker.tsx](../src/app/play/(app)/[tournamentId]/team-picker.tsx).
+- **Scelta del numero di slot all'iscrizione da link d'invito**: prima
+  chi entrava con l'invito prendeva sempre `default_num_slots` del
+  torneo senza poter scegliere; ora `/play/join/[id]` ha un campo
+  numerico (1-100, precompilato col default dell'organizzatore) —
+  l'organizzatore può comunque cambiarlo più avanti da dashboard come
+  già poteva fare. Nella stessa schermata, se il torneo ha un prezzo per
+  slot, si vede anche prezzo singolo e totale (aggiornato mentre si
+  cambia il numero) — richiesta la funzione RPC
+  `tournament_invite_preview` di ritornare anche `slot_value`, vedi
+  `add_slot_value_to_invite_preview.sql` e
+  [06_Database.md](./06_Database.md).
 
 ## Da fare — complessa
 

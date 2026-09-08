@@ -116,6 +116,14 @@ uscissero insieme (spareggio ex aequo), questa percentuale è la fetta di
 premio che gli spetterebbe — la logica di split effettivo del premio non
 è ancora implementata, per ora è solo mostrata come informazione.
 
+Anche `tournament_invite_preview` (la funzione RPC dietro la pagina
+d'invito `/play/join/[id]`, unico modo per chi non è ancora nel torneo
+di leggere questi dati vista la RLS) lo ritorna, da
+`add_slot_value_to_invite_preview.sql`: chi si iscrive da un link vede
+prezzo singolo e totale (in base a quanti slot sceglie, campo aggiunto
+nello stesso passaggio) prima di confermare, non solo dopo essere
+entrato nel torneo.
+
 ## Stato partita (`serie_a_fixtures.kickoff_at` / `.status`)
 
 Due colonne nuove su `serie_a_fixtures`, entrambe gestite

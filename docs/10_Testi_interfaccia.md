@@ -96,7 +96,9 @@ File: `src/app/play/join/[tournamentId]/page.tsx`
 - `[INVITO-LINK-NON-VALIDO]`: "Questo link non è valido, oppure il torneo a cui punta è già iniziato e non accetta più nuove iscrizioni."
 - `[INVITO-LABEL-NOME]`: "Come vuoi essere chiamato in questo torneo"
 - `[INVITO-PLACEHOLDER-NOME]`: "Il tuo nome"
-- `[INVITO-NOTA-SLOT]`: "Ti verranno assegnati {N} slot (le "vite" con cui giochi in questo torneo)." — {N} è un numero, non toccarlo
+- `[INVITO-LABEL-SLOT]`: "Quanti slot vuoi" — campo numerico, precompilato col numero proposto dall'organizzatore ma modificabile da chi si iscrive
+- `[INVITO-PREZZO]`: "Prezzo slot {PREZZO} · Totale {TOTALE}" — {PREZZO}/{TOTALE} sono importi in euro, non toccarli; visibile solo se l'organizzatore ha impostato un prezzo per slot
+- `[INVITO-NOTA-SLOT]`: "Sono le tue vite in questo torneo: uno slot eliminato non rientra più in gara. L'organizzatore potrà comunque cambiare il numero più avanti."
 - `[INVITO-BTN]`: "Partecipa"
 
 ---
@@ -201,7 +203,10 @@ File: `src/components/pick-countdown.tsx` (conto alla rovescia, solo nella pagin
 
 File: `src/app/play/(app)/[tournamentId]/team-picker.tsx`
 
-- `[PICKER-SLOT-DISPONIBILI]`: "Slot ancora disponibili"
+- `[PICKER-SLOT-DA-SCHIERARE]`: "Slot da schierare" — mentre si può ancora schierare
+- `[PICKER-ESITO-VITTORIA]`: "Vittoria" — a scelte chiuse, conteggio slot al posto di "Slot ancora disponibili"
+- `[PICKER-ESITO-PERSA]`: "Pareggio/persa"
+- `[PICKER-ESITO-DECIDERE]`: "Da decidere"
 - `[PICKER-MODIFICHE-NON-SALVATE]`: "Modifiche non salvate"
 - `[PICKER-TITOLO-SCEGLI]`: "Giornata {N} · scegli le squadre"
 - `[PICKER-TITOLO-CALENDARIO]`: "Giornata {N} · calendario"

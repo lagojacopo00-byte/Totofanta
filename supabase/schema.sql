@@ -384,10 +384,10 @@ as $$
 $$;
 
 create or replace function public.tournament_invite_preview(check_tournament_id uuid)
-returns table(name text, competition text, default_num_slots integer)
+returns table(name text, competition text, default_num_slots integer, slot_value numeric)
 language sql stable security definer set search_path = public
 as $$
-  select name, competition, default_num_slots from tournaments
+  select name, competition, default_num_slots, slot_value from tournaments
   where id = check_tournament_id and status = 'draft';
 $$;
 
