@@ -302,6 +302,20 @@ export default async function PlayerTournamentPage(
         .filter((s): s is RecapSlot => s !== null)
     : [];
 
+  // Per la barra fissa del picker a scelte chiuse (readOnly): stessa
+  // classificazione del riepilogo sopra (vittoria = alive/exempt,
+  // pareggio/persa = eliminated, da decidere = pending), qui solo
+  // contata invece che elencata.
+  const outcomeCounts = recapSlots.reduce(
+    (acc, s) => {
+      if (s.status === "alive" || s.status === "exempt") acc.win += 1;
+      else if (s.status === "eliminated") acc.lost += 1;
+      else acc.pending += 1;
+      return acc;
+    },
+    { win: 0, lost: 0, pending: 0 }
+  );
+
   return (
     <div className="flex min-w-0 flex-col gap-6">
       {tournament.status === "active" && openMatchday ? (
@@ -480,6 +494,7 @@ export default async function PlayerTournamentPage(
           teams={teamOptions}
           readOnly={!pickingOpen}
           deadline={pickDeadline?.toISOString() ?? null}
+          outcomeCounts={outcomeCounts}
         />
       ) : tournament.status === "active" && myAliveSlotsList.length > 0 ? (
         <p className="text-sm text-foreground-faint">

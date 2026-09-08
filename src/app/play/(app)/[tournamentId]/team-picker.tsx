@@ -102,6 +102,12 @@ interface TeamPickerProps {
    * pick-window.ts), per il conto alla rovescia nella barra fissa in
    * cima — null se non ancora nota. */
   deadline: string | null;
+  /** Solo con readOnly: quanti dei propri slot schierati questa giornata
+   * sono in vittoria, pareggio/persa o ancora da decidere (stessa
+   * classificazione del riepilogo in matchday-recap.tsx) — a scelte
+   * chiuse "slot ancora disponibili" non ha più senso (sono sempre 0),
+   * questo prende il suo posto nella barra fissa. */
+  outcomeCounts?: { win: number; lost: number; pending: number };
 }
 
 function initialCounts(slots: PickerSlot[]): Record<string, number> {
@@ -124,6 +130,7 @@ export function TeamPicker({
   teams,
   readOnly = false,
   deadline,
+  outcomeCounts,
 }: TeamPickerProps) {
   const [counts, setCounts] = useState<Record<string, number>>(() => initialCounts(slots));
   const [error, setError] = useState<string | null>(null);
@@ -364,27 +371,50 @@ export function TeamPicker({
   const stickyBar = (
     <div className="bg-background">
       <div className="mx-auto w-full max-w-lg px-7 pb-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className={eyebrow}>Slot ancora disponibili</p>
-            <p className="mt-1 font-display text-4xl font-extrabold leading-none text-foreground">
-              {remainingSlots}
-              <span className="ml-1 text-base font-bold text-foreground-faint">
-                /{totalSlots}
-              </span>
-            </p>
-          </div>
-          {showCollapsed ? (
-            <div className="min-w-0 text-right">
-              <p className="whitespace-nowrap font-display text-2xl font-extrabold leading-none text-accent sm:text-3xl">
-                ✓
+        {readOnly && outcomeCounts ? (
+          <div className="grid grid-cols-3 gap-3">
+            <div className="min-w-0">
+              <p className={eyebrow}>Vittoria</p>
+              <p className="mt-1 font-display text-2xl font-extrabold leading-none text-accent sm:text-3xl">
+                {outcomeCounts.win}
               </p>
-              <p className="mt-1 text-[11px] text-foreground-faint">Formazione schierata</p>
             </div>
-          ) : (
-            <PickCountdown deadline={deadline} variant="large" />
-          )}
-        </div>
+            <div className="min-w-0">
+              <p className={eyebrow}>Pareggio/persa</p>
+              <p className="mt-1 font-display text-2xl font-extrabold leading-none text-lose sm:text-3xl">
+                {outcomeCounts.lost}
+              </p>
+            </div>
+            <div className="min-w-0">
+              <p className={eyebrow}>Da decidere</p>
+              <p className="mt-1 font-display text-2xl font-extrabold leading-none text-foreground-faint sm:text-3xl">
+                {outcomeCounts.pending}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className={eyebrow}>Slot da schierare</p>
+              <p className="mt-1 font-display text-4xl font-extrabold leading-none text-foreground">
+                {remainingSlots}
+                <span className="ml-1 text-base font-bold text-foreground-faint">
+                  /{totalSlots}
+                </span>
+              </p>
+            </div>
+            {showCollapsed ? (
+              <div className="min-w-0 text-right">
+                <p className="whitespace-nowrap font-display text-2xl font-extrabold leading-none text-accent sm:text-3xl">
+                  ✓
+                </p>
+                <p className="mt-1 text-[11px] text-foreground-faint">Formazione schierata</p>
+              </div>
+            ) : (
+              <PickCountdown deadline={deadline} variant="large" />
+            )}
+          </div>
+        )}
         {!readOnly && !saved ? (
           <div className="mt-2 flex items-center gap-2">
             <p className="text-xs text-foreground-faint">Modifiche non salvate</p>
