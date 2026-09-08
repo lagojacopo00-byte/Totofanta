@@ -16,6 +16,14 @@ export async function joinTournamentAction(
     );
   }
 
+  const numSlots = Number(formData.get("num_slots"));
+  if (!Number.isInteger(numSlots) || numSlots < 1 || numSlots > 100) {
+    redirect(
+      `/play/join/${tournamentId}?error=` +
+        encodeURIComponent("Numero di slot non valido")
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,7 +46,7 @@ export async function joinTournamentAction(
     userId: user.id,
     displayName,
     email: user.email,
-    numSlots: preview.default_num_slots,
+    numSlots,
   });
 
   redirect(`/play/${tournamentId}`);

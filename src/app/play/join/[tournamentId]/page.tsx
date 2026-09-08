@@ -98,9 +98,23 @@ export default async function JoinTournamentPage(
           defaultValue={defaultDisplayName}
           placeholder="Il tuo nome"
         />
+        <label className={label} htmlFor="num_slots">
+          Quanti slot vuoi
+        </label>
+        <input
+          className={input}
+          id="num_slots"
+          name="num_slots"
+          type="number"
+          min={1}
+          max={100}
+          required
+          defaultValue={preview.default_num_slots}
+        />
         <p className="text-xs text-foreground-faint">
-          Parti con {preview.default_num_slots} slot: sono le tue vite in
-          questo torneo. Usale bene.
+          Sono le tue vite in questo torneo: uno slot eliminato non
+          rientra più in gara. L&apos;organizzatore potrà comunque
+          cambiare il numero più avanti.
         </p>
 
         <button className={`${button} mt-2`} type="submit">
