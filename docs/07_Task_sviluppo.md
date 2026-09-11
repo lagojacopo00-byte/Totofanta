@@ -795,8 +795,8 @@ su richiesta esplicita dell'utente questa parte è partita. Dettagli in
   leggere via API le scelte altrui a chi nascondeva le proprie. Ora tutti
   vedono tutto, sempre. Migrazione
   [remove_hide_picks.sql](../supabase/remove_hide_picks.sql) (sostituisce
-  `add_hide_picks.sql`, tolta dal repo) — **da eseguire nell'SQL Editor
-  di Supabase**; l'app funziona già anche prima.
+  `add_hide_picks.sql`, tolta dal repo) — **eseguita**, confermato in
+  produzione il 2026-09-11.
 - **Bug RLS trovato di conseguenza: i giocatori non leggevano le scelte
   altrui.** Su `picks` esistevano solo le policy "organizer manages picks
   of own tournament" e "a player manages picks on their own slots":
