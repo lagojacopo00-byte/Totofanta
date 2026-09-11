@@ -14,6 +14,7 @@ import { fetchSerieAFixtures, matchTeamName } from "./football-api";
 import { createAdminClient } from "./supabase/admin";
 import ExcelJS from "exceljs";
 import { buildStoricoSheet, type StoricoPlayerHistory } from "./matchday-export";
+import type { LivePickPlayer } from "./live-picks";
 import type {
   Fixture,
   FixtureResult,
@@ -23,6 +24,7 @@ import type {
   Pick,
   Player,
   Slot,
+  SlotStatus,
   Team,
   Tournament,
 } from "./types";
@@ -406,6 +408,78 @@ export async function getMatchdayResults(db: DB, matchdayId: string) {
     .select("*")
     .eq("matchday_id", matchdayId);
   return assertNoError(res) as MatchdayResult[];
+}
+
+/** Le scelte di TUTTI i giocatori per la giornata aperta, per la
+ * classifica apribile giocatore per giocatore (vedi standings-list.tsx).
+ * Chi vede cosa non si decide qui — questa funzione restituisce il dato
+ * grezzo, la visibilità la applica resolveLivePicks in live-picks.ts.
+ *
+ * Legge col client admin di proposito: le scelte altrui sono coperte da
+ * RLS (giustamente, chi le nasconde non deve poterle far leggere via API)
+ * e la soglia di quella policy è la chiusura della giornata da parte
+ * dell'organizzatore, mentre qui serve scoprirle già alla scadenza per
+ * schierare, che il database non conosce. Chiamarla solo dopo aver
+ * verificato che chi guarda è davvero un giocatore di questo torneo.
+ *
+ * Torna null se la colonna hide_picks non esiste ancora (migrazione
+ * supabase/add_hide_picks.sql non ancora eseguita): la pagina giocatore
+ * resta quella di prima invece di rompersi a torneo in corso. */
+export async function getLiveMatchdayPicks(
+  tournamentId: string,
+  matchdayId: string
+): Promise<LivePickPlayer[] | null> {
+  const admin = createAdminClient();
+  const playersRes = await admin
+    .from("players")
+    .select("id, hide_picks, slots(id, label, status)")
+    .eq("tournament_id", tournamentId);
+  if (playersRes.error) return null;
+  const players = playersRes.data as {
+    id: string;
+    hide_picks: boolean;
+    slots: { id: string; label: string; status: SlotStatus }[];
+  }[];
+
+  const picks = assertNoError(
+    await admin.from("picks").select("slot_id, team_id").eq("matchday_id", matchdayId)
+  ) as { slot_id: string; team_id: string }[];
+
+  const teamNameById = new Map(
+    (await getTeamsByIds(admin, Array.from(new Set(picks.map((p) => p.team_id))))).map(
+      (t) => [t.id, t.name]
+    )
+  );
+  const teamNameBySlot = new Map(
+    picks.map((p) => [p.slot_id, teamNameById.get(p.team_id) ?? null])
+  );
+
+  return players.map((player) => {
+    const aliveSlots = player.slots.filter((s) => s.status === "alive");
+    return {
+      playerId: player.id,
+      hidePicks: player.hide_picks,
+      aliveSlots: aliveSlots.length,
+      picks: aliveSlots
+        .slice()
+        .sort((a, b) => Number(a.label) - Number(b.label))
+        .flatMap((slot) => {
+          const teamName = teamNameBySlot.get(slot.id);
+          return teamName ? [{ slotLabel: slot.label, teamName }] : [];
+        }),
+    };
+  });
+}
+
+/** L'interruttore "nascondi le mie scelte agli altri" di un giocatore in
+ * un torneo. Passa da una funzione security definer sul database
+ * (`set_hide_picks`) perché un giocatore non ha il permesso di scrivere
+ * sulla propria riga `players` — potrebbe cambiarsi gli slot o il nome —
+ * e quella funzione tocca solo questa colonna. */
+export async function setHidePicks(db: DB, tournamentId: string, hide: boolean) {
+  assertNoError(
+    await db.rpc("set_hide_picks", { check_tournament_id: tournamentId, hide })
+  );
 }
 
 export interface TournamentSlotHistoryPlayer {

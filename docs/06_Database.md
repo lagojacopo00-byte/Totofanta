@@ -79,6 +79,40 @@ personalizzato di un altro giocatore (e ora nome/cognome) non si
 vedevano mai. Corretto usando sempre il client admin in quella
 funzione, che legge solo le tre colonne sopra (mai l'email o altro).
 
+## Scelte nascoste (`players.hide_picks`)
+
+Booleana, `false` di default: chi la attiva (interruttore nel picker, via
+la funzione `set_hide_picks`) tiene le proprie scelte nascoste agli altri
+giocatori finché la giornata è aperta. Regole complete in
+[02_Regole_gioco.md](./02_Regole_gioco.md) e in `src/lib/live-picks.ts`.
+
+Due dettagli non ovvi:
+
+- **Perché una funzione `security definer` e non un update diretto**: un
+  giocatore non ha il permesso di scrivere sulla propria riga `players`
+  (potrebbe cambiarsi `num_slots` o `display_name`), e RLS non sa
+  limitare per colonna. `set_hide_picks` tocca solo quella colonna, solo
+  sulla riga del proprio account.
+- **Due soglie diverse, apposta**: la policy RLS scopre le scelte quando
+  la giornata non è più `open` (l'organizzatore ha inserito i risultati),
+  l'interfaccia già alla scadenza per schierare. Il database non conosce
+  gli orari di calcio d'inizio (stanno in `serie_a_fixtures`, l'app li
+  usa con `computePickDeadline`), quindi la policy è volutamente più
+  prudente: è la rete di sicurezza contro chi interroghi l'API Supabase
+  direttamente, mentre la pagina usa il client admin e applica le regole
+  in `live-picks.ts`.
+
+**Bug trovato lavorandoci (2026-09-11), stessa famiglia di quello su
+`profiles` qui sopra**: su `picks` esistevano solo le policy
+dell'organizzatore e quella sui propri slot. Un giocatore non
+organizzatore non poteva leggere le scelte di nessun altro, quindi lo
+Storico degli altri giocatori gli usciva con le celle delle squadre
+sempre vuote — mai notato perché chi provava l'app era anche
+l'organizzatore del torneo, che vede tutto. Corretto in
+[add_hide_picks.sql](../supabase/add_hide_picks.sql) con la policy
+"players read visible picks of their tournaments", che rispetta anche
+`hide_picks`.
+
 ## Tornei di test (`tournaments.is_test`)
 
 Colonna booleana, `false` di default. Creabile solo da un account

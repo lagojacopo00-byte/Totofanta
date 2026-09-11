@@ -12,7 +12,9 @@ import { computeFinalPrizeShares, computeTeamOutcomes } from "@/lib/game-logic";
 import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
 import { MatchdayRecap, type RecapSlot } from "./matchday-recap";
 import { OtherPlayersHistory } from "./other-players-history";
+import { StandingsList } from "./standings-list";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { resolveLivePicks } from "@/lib/live-picks";
 
 const prizeFormat = new Intl.NumberFormat("it-IT", {
   style: "currency",
@@ -84,12 +86,13 @@ export default async function PlayerTournamentPage(
 
   // Accoppiamenti reali di Serie A per la giornata aperta (giornata N del
   // torneo = giornata reale N) — vedi src/app/dashboard/fixtures.
-  const [openFixtures, excludedTeamNames] = openMatchday
+  const [openFixtures, excludedTeamNames, livePickPlayers] = openMatchday
     ? await Promise.all([
         queries.getFixturesForRound(supabase, openMatchday.number),
         queries.getExcludedTeamNames(supabase, openMatchday.number),
+        queries.getLiveMatchdayPicks(tournament.id, openMatchday.id),
       ])
-    : [[], new Set<string>()];
+    : [[], new Set<string>(), null];
   const fixtureDayGroups = groupFixturesByDay(openFixtures);
   const teamNamesInFixtures = new Set(
     openFixtures.flatMap((f) => [f.home_team, f.away_team])
@@ -217,6 +220,20 @@ export default async function PlayerTournamentPage(
   // src/lib/pick-window.ts.
   const pickDeadline = computePickDeadline(openFixtures, excludedTeamNames);
   const pickingOpen = isPickingWindowOpen(pickDeadline);
+
+  // Cosa ha schierato ciascuno in questa giornata, per la classifica
+  // apribile in fondo alla pagina: di default lo vedono tutti subito, ma
+  // chi vuole può nascondere le proprie scelte finché non chiudono — e in
+  // quel caso non vede nemmeno quelle degli altri (vedi live-picks.ts).
+  const myHidePicks = livePickPlayers?.find((p) => p.playerId === player.id)?.hidePicks;
+  const livePicksByPlayer = livePickPlayers
+    ? resolveLivePicks({
+        viewerPlayerId: player.id,
+        viewerHidesPicks: myHidePicks ?? false,
+        pickingOpen,
+        players: livePickPlayers,
+      })
+    : null;
 
   // Per il picker unico: le squadre che OGNI slot può ancora scegliere per
   // la giornata aperta (tutte le disponibili nel torneo, tranne quelle
@@ -495,6 +512,7 @@ export default async function PlayerTournamentPage(
           readOnly={!pickingOpen}
           deadline={pickDeadline?.toISOString() ?? null}
           outcomeCounts={outcomeCounts}
+          hidePicks={myHidePicks ?? null}
         />
       ) : tournament.status === "active" && myAliveSlotsList.length > 0 ? (
         <p className="text-sm text-foreground-faint">
@@ -632,66 +650,32 @@ export default async function PlayerTournamentPage(
         ) : null}
       </section>
 
+      {/* Classifica: ogni riga si apre sulle scelte di quel giocatore per
+          la giornata in corso (vedi standings-list.tsx e live-picks.ts). */}
       {withRank.length > 1 ? (
-        <section className={cardTight}>
-          <p className={eyebrow}>Classifica</p>
-          <ul className="mt-2 flex flex-col gap-1.5">
-            {withRank.map((s) => {
-              const isMe = s.id === player.id;
-              return (
-                <li
-                  key={s.id}
-                  className="flex items-center justify-between gap-2 text-sm"
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="font-mono text-xs text-foreground-faint">
-                      {s.rank}°
-                    </span>
-                    <span className="min-w-0">
-                      <span
-                        className={
-                          isMe
-                            ? "block truncate font-display font-bold text-foreground"
-                            : "block truncate text-foreground-soft"
-                        }
-                      >
-                        {s.display_name}
-                        {isMe ? " (tu)" : ""}
-                      </span>
-                      {/* Nome e cognome, se impostati: utili quando
-                          qualcuno sceglie un nome pubblico che non fa
-                          capire subito chi è. */}
-                      {s.full_name ? (
-                        <span className="block truncate text-[11px] text-foreground-faint">
-                          {s.full_name}
-                        </span>
-                      ) : null}
-                    </span>
-                  </span>
-                  {tournament.status === "finished" ? (
-                    tournament.winners.includes(s.id) ? (
-                      <span className={pillAlive}>
-                        {(s.prizeShare * 100).toLocaleString("it-IT", {
-                          maximumFractionDigits: 1,
-                        })}
-                        %
-                        {tournament.slot_value > 0
-                          ? ` · ${prizeFormat.format(tournament.slot_value * totalSlots * s.prizeShare)}`
-                          : ""}
-                      </span>
-                    ) : (
-                      <span className={pillOut}>eliminato</span>
-                    )
-                  ) : (
-                    <span className={s.alive > 0 ? pillAlive : pillOut}>
-                      {s.alive}/{s.slots.length} vivi
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+        <StandingsList
+          matchdayNumber={openMatchday?.number ?? null}
+          rows={withRank.map((s) => ({
+            playerId: s.id,
+            displayName: s.display_name,
+            fullName: s.full_name,
+            rank: s.rank,
+            alive: s.alive,
+            totalSlots: s.slots.length,
+            isMe: s.id === player.id,
+            isFinished: tournament.status === "finished",
+            prizeLabel: tournament.winners.includes(s.id)
+              ? `${(s.prizeShare * 100).toLocaleString("it-IT", {
+                  maximumFractionDigits: 1,
+                })}%${
+                  tournament.slot_value > 0
+                    ? ` · ${prizeFormat.format(tournament.slot_value * totalSlots * s.prizeShare)}`
+                    : ""
+                }`
+              : null,
+            picks: livePicksByPlayer?.get(s.id) ?? null,
+          }))}
+        />
       ) : null}
 
       {matchdayBackupUrl ? (

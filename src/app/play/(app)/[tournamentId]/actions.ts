@@ -10,6 +10,16 @@ export interface PickAssignment {
   teamId: string;
 }
 
+/** Interruttore "nascondi le mie scelte agli altri" (vedi
+ * src/lib/live-picks.ts per le regole). Non serve verificare che chi
+ * chiama sia un giocatore di questo torneo: la funzione sul database
+ * aggiorna solo la riga del proprio account, se c'è. */
+export async function setHidePicksAction(tournamentId: string, hide: boolean) {
+  const { supabase } = await requirePlayer();
+  await queries.setHidePicks(supabase, tournamentId, hide);
+  revalidatePath(`/play/${tournamentId}`);
+}
+
 /**
  * Riceve l'intera assegnazione slot -> squadra scelta nella schermata di
  * scelta (vedi team-picker.tsx) per la giornata aperta, e la applica in

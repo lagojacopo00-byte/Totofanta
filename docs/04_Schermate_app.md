@@ -38,7 +38,9 @@
   più, un bottone rosso "−" ne toglie uno, si conferma tutto insieme —
   resta visibile in sola lettura, con gli orari, anche a scelte chiuse;
   vedi [07_Task_sviluppo.md](./07_Task_sviluppo.md)), poi storico
-  squadre giocate, posizione in classifica, classifica completa
+  squadre giocate, posizione in classifica, classifica completa (ogni
+  riga si apre sulle scelte di quel giocatore per la giornata in corso,
+  se non le tiene nascoste — vedi [02_Regole_gioco.md](./02_Regole_gioco.md))
 - `/play/how-it-works` — tutorial (mostrato obbligatoriamente la prima
   volta, poi sempre raggiungibile dal menu)
 - `/play/regolamento` — regolamento completo con i casi particolari

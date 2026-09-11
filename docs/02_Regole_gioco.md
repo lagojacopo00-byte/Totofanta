@@ -36,6 +36,16 @@ Fonte di verità: `src/lib/game-logic.ts` (logica pura, testata in
   togliere la scelta di qualsiasi slot in qualsiasi momento (anche dopo
   la scadenza dei giocatori), dalla pagina di gestione giornata
   (`organizerSetPickAction` / `organizerClearPickAction`).
+- **Chi vede le scelte degli altri** (deciso con l'utente il 2026-09-11,
+  logica pura in `src/lib/live-picks.ts`): di default le scelte sono di
+  tutti, subito — anche mentre la giornata è ancora aperta, si aprono dal
+  nome di un giocatore in classifica. Chi vuole può nasconderle
+  (`players.hide_picks`, interruttore nel picker), ma solo **finché le
+  scelte sono aperte**: alla scadenza si scoprono comunque, e nello
+  Storico restano visibili per sempre. Scambio alla pari: chi nasconde le
+  proprie non vede quelle degli altri finché sono aperte. Di chi nasconde
+  resta visibile se ha schierato o no, mai cosa. Le proprie si vedono
+  sempre, e l'organizzatore vede tutto come prima.
 - **Finestra ufficiale delle partite** (venerdì-sabato-domenica-lunedì,
   vedi `src/lib/match-window.ts`) **e stato partita (valida/esclusa)**:
   ogni partita del calendario (`serie_a_fixtures`) ha ora una data/ora
