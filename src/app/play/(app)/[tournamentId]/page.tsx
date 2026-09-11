@@ -222,18 +222,9 @@ export default async function PlayerTournamentPage(
   const pickingOpen = isPickingWindowOpen(pickDeadline);
 
   // Cosa ha schierato ciascuno in questa giornata, per la classifica
-  // apribile in fondo alla pagina: di default lo vedono tutti subito, ma
-  // chi vuole può nascondere le proprie scelte finché non chiudono — e in
-  // quel caso non vede nemmeno quelle degli altri (vedi live-picks.ts).
-  const myHidePicks = livePickPlayers?.find((p) => p.playerId === player.id)?.hidePicks;
-  const livePicksByPlayer = livePickPlayers
-    ? resolveLivePicks({
-        viewerPlayerId: player.id,
-        viewerHidesPicks: myHidePicks ?? false,
-        pickingOpen,
-        players: livePickPlayers,
-      })
-    : null;
+  // apribile in fondo alla pagina: lo vedono tutti, subito (vedi
+  // live-picks.ts).
+  const livePicksByPlayer = livePickPlayers ? resolveLivePicks(livePickPlayers) : null;
 
   // Per il picker unico: le squadre che OGNI slot può ancora scegliere per
   // la giornata aperta (tutte le disponibili nel torneo, tranne quelle
@@ -512,7 +503,6 @@ export default async function PlayerTournamentPage(
           readOnly={!pickingOpen}
           deadline={pickDeadline?.toISOString() ?? null}
           outcomeCounts={outcomeCounts}
-          hidePicks={myHidePicks ?? null}
         />
       ) : tournament.status === "active" && myAliveSlotsList.length > 0 ? (
         <p className="text-sm text-foreground-faint">

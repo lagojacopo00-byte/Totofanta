@@ -40,9 +40,6 @@ export interface Player {
   display_name: string;
   email: string;
   num_slots: number;
-  // Se true, gli altri giocatori non vedono le sue scelte finché la
-  // giornata è aperta (vedi src/lib/live-picks.ts).
-  hide_picks: boolean;
   created_at: string;
 }
 

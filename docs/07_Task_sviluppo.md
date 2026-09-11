@@ -779,19 +779,24 @@ su richiesta esplicita dell'utente questa parte è partita. Dettagli in
   [eslint.config.mjs](../eslint.config.mjs). Il worktree in sé non è
   stato toccato (branch già mersato, ma la rimozione è una scelta
   dell'utente).
-- **Scelte degli altri visibili dalla classifica, con interruttore per
-  nasconderle** (deciso con l'utente il 2026-09-11, a torneo già
-  iniziato): in classifica ogni riga si apre e mostra cosa ha schierato
-  quel giocatore nella giornata in corso, slot per slot — subito, senza
-  aspettare la chiusura. Nel picker c'è un interruttore "Scelte
-  visibili/nascoste agli altri" (`players.hide_picks`): chi lo attiva non
-  si fa vedere finché le scelte sono aperte, e per reciprocità non vede
-  nemmeno quelle degli altri; di chi nasconde resta visibile solo *se* ha
-  schierato. Alla scadenza si scopre tutto. Regole in
-  [live-picks.ts](../src/lib/live-picks.ts) (pure, testate), dati in
+- **Scelte degli altri visibili dalla classifica** (deciso con l'utente
+  il 2026-09-11, a torneo già iniziato): in classifica ogni riga si apre
+  e mostra cosa ha schierato quel giocatore nella giornata in corso, slot
+  per slot — subito, senza aspettare la chiusura. Logica in
+  [live-picks.ts](../src/lib/live-picks.ts) (pura, testata), dati in
   `getLiveMatchdayPicks`, UI in
   [standings-list.tsx](../src/app/play/(app)/[tournamentId]/standings-list.tsx).
-  Migrazione: [add_hide_picks.sql](../supabase/add_hide_picks.sql).
+- **Tolto l'interruttore per nascondere le proprie scelte** (stesso
+  giorno, su richiesta dell'utente): nella prima versione c'era "Scelte
+  visibili/nascoste agli altri" (`players.hide_picks`, reciprocità "chi
+  nasconde non vede"), ma si aggirava — nascondi tutta la settimana,
+  scopri un attimo prima della scadenza, guarda, cambia, rinascondi — e
+  la reciprocità stava solo nell'interfaccia: la RLS lasciava comunque
+  leggere via API le scelte altrui a chi nascondeva le proprie. Ora tutti
+  vedono tutto, sempre. Migrazione
+  [remove_hide_picks.sql](../supabase/remove_hide_picks.sql) (sostituisce
+  `add_hide_picks.sql`, tolta dal repo) — **da eseguire nell'SQL Editor
+  di Supabase**; l'app funziona già anche prima.
 - **Bug RLS trovato di conseguenza: i giocatori non leggevano le scelte
   altrui.** Su `picks` esistevano solo le policy "organizer manages picks
   of own tournament" e "a player manages picks on their own slots":
@@ -801,6 +806,6 @@ su richiesta esplicita dell'utente questa parte è partita. Dettagli in
   l'app era sempre l'organizzatore, che vede tutto. Stessa famiglia del
   bug su `profiles` del 2026-09-03 (vedi
   [06_Database.md](./06_Database.md)). Aggiunta la policy "players read
-  visible picks of their tournaments" in
-  [add_hide_picks.sql](../supabase/add_hide_picks.sql), che rispetta
-  anche `hide_picks`.
+  picks of their tournaments" in
+  [remove_hide_picks.sql](../supabase/remove_hide_picks.sql) e in
+  `schema.sql`.

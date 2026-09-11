@@ -37,15 +37,14 @@ Fonte di verità: `src/lib/game-logic.ts` (logica pura, testata in
   la scadenza dei giocatori), dalla pagina di gestione giornata
   (`organizerSetPickAction` / `organizerClearPickAction`).
 - **Chi vede le scelte degli altri** (deciso con l'utente il 2026-09-11,
-  logica pura in `src/lib/live-picks.ts`): di default le scelte sono di
+  logica pura in `src/lib/live-picks.ts`): tutti vedono le scelte di
   tutti, subito — anche mentre la giornata è ancora aperta, si aprono dal
-  nome di un giocatore in classifica. Chi vuole può nasconderle
-  (`players.hide_picks`, interruttore nel picker), ma solo **finché le
-  scelte sono aperte**: alla scadenza si scoprono comunque, e nello
-  Storico restano visibili per sempre. Scambio alla pari: chi nasconde le
-  proprie non vede quelle degli altri finché sono aperte. Di chi nasconde
-  resta visibile se ha schierato o no, mai cosa. Le proprie si vedono
-  sempre, e l'organizzatore vede tutto come prima.
+  nome di un giocatore in classifica, e nello Storico restano visibili per
+  sempre. Nessuna opzione per nasconderle: c'era un interruttore
+  (`players.hide_picks`, con reciprocità "chi nasconde non vede"), tolto
+  lo stesso giorno perché si aggirava — nascondi tutta la settimana,
+  scopri un attimo prima della scadenza, guarda, cambia, rinascondi — e
+  la reciprocità stava solo nell'interfaccia, non nella RLS.
 - **Finestra ufficiale delle partite** (venerdì-sabato-domenica-lunedì,
   vedi `src/lib/match-window.ts`) **e stato partita (valida/esclusa)**:
   ogni partita del calendario (`serie_a_fixtures`) ha ora una data/ora

@@ -1,13 +1,12 @@
 /**
- * Chi vede cosa, tra le scelte della giornata APERTA (quelle delle
- * giornate già chiuse sono di tutti, vedi lo Storico).
+ * Cosa mostra la classifica delle scelte della giornata APERTA (quelle
+ * delle giornate già chiuse sono nello Storico).
  *
- * Regole decise con l'utente il 2026-09-11:
- * - di default le scelte sono visibili a tutti, subito, anche mentre la
- *   giornata è ancora aperta;
- * - chi vuole può nasconderle (`hidePicks`), ma solo finché le scelte
- *   sono aperte: al primo calcio d'inizio si scoprono comunque;
- * - scambio onesto: chi nasconde le proprie non vede quelle degli altri.
+ * Regola decisa con l'utente il 2026-09-11: le scelte sono di tutti,
+ * subito, anche mentre la giornata è ancora aperta. C'era un interruttore
+ * per nasconderle, tolto lo stesso giorno: si poteva aggirare (nascondi
+ * tutta la settimana, scopri un attimo prima della scadenza, guarda,
+ * cambia, rinascondi).
  */
 
 export interface LivePickSlot {
@@ -17,7 +16,6 @@ export interface LivePickSlot {
 
 export interface LivePickPlayer {
   playerId: string;
-  hidePicks: boolean;
   aliveSlots: number;
   picks: LivePickSlot[];
 }
@@ -25,47 +23,18 @@ export interface LivePickPlayer {
 export type LivePickVisibility =
   /** Fuori dal torneo: nessuno slot ancora vivo, niente da schierare. */
   | { kind: "out" }
-  /** Nessuna scelta ancora fatta (e nessun motivo per nasconderlo). */
+  /** Nessuna scelta ancora fatta. */
   | { kind: "not-picked" }
-  | { kind: "visible"; picks: LivePickSlot[] }
-  /** `by: "them"` = le tiene nascoste lui; `by: "me"` = le tengo nascoste
-   * io, quindi per reciprocità non vedo le sue. */
-  | { kind: "hidden"; by: "them" | "me"; hasPicked: boolean };
+  | { kind: "visible"; picks: LivePickSlot[] };
 
-export function resolveLivePicks({
-  viewerPlayerId,
-  viewerHidesPicks,
-  pickingOpen,
-  players,
-}: {
-  viewerPlayerId: string;
-  viewerHidesPicks: boolean;
-  /** false quando la finestra di scelta è già scaduta: da lì in poi le
-   * scelte di tutti sono visibili, hide_picks incluso. */
-  pickingOpen: boolean;
-  players: LivePickPlayer[];
-}): Map<string, LivePickVisibility> {
+export function resolveLivePicks(
+  players: LivePickPlayer[]
+): Map<string, LivePickVisibility> {
   return new Map(
     players.map((player): [string, LivePickVisibility] => {
-      const hasPicked = player.picks.length > 0;
-      const own: LivePickVisibility = hasPicked
-        ? { kind: "visible", picks: player.picks }
-        : { kind: "not-picked" };
-
       if (player.aliveSlots === 0) return [player.playerId, { kind: "out" }];
-
-      // Le proprie scelte si vedono sempre, anche se nascoste agli altri;
-      // a scelte chiuse si vedono quelle di tutti.
-      if (player.playerId === viewerPlayerId || !pickingOpen) {
-        return [player.playerId, own];
-      }
-      if (player.hidePicks) {
-        return [player.playerId, { kind: "hidden", by: "them", hasPicked }];
-      }
-      if (viewerHidesPicks) {
-        return [player.playerId, { kind: "hidden", by: "me", hasPicked }];
-      }
-      return [player.playerId, own];
+      if (player.picks.length === 0) return [player.playerId, { kind: "not-picked" }];
+      return [player.playerId, { kind: "visible", picks: player.picks }];
     })
   );
 }

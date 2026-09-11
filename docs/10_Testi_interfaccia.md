@@ -235,10 +235,6 @@ File: `src/app/play/(app)/[tournamentId]/team-picker.tsx`
 - `[PICKER-BTN-SALVATE]`: "Scelte salvate"
 - `[PICKER-BTN-CONFERMA]`: "Conferma le scelte"
 - `[PICKER-BTN-ANNULLA]`: "Annulla"
-- `[PICKER-VISIBILI-TITOLO]`: "Scelte visibili agli altri" — interruttore, stato normale
-- `[PICKER-VISIBILI-TESTO]`: "Dalla classifica possono aprire il tuo nome e vedere cosa hai schierato."
-- `[PICKER-NASCOSTE-TITOLO]`: "Scelte nascoste agli altri" — interruttore attivo
-- `[PICKER-NASCOSTE-TESTO]`: "Nessuno vede cosa schieri — e tu non vedi le loro finché le scelte sono aperte. Alla chiusura si scopre tutto."
 
 ---
 
@@ -253,8 +249,6 @@ File: `src/app/play/(app)/[tournamentId]/standings-list.tsx`
 - `[CLASSIFICA-PICK-SLOT]`: "{squadra} · slot {N}"
 - `[CLASSIFICA-FUORI]`: "Fuori dal torneo: non ha più slot da schierare."
 - `[CLASSIFICA-NON-SCHIERATO]`: "Non ha ancora schierato per questa giornata." (su di sé: "Non hai ancora schierato per questa giornata.")
-- `[CLASSIFICA-NASCOSTE-ALTRO]`: "Ha già schierato, ma tiene le scelte nascoste finché non chiudono." ("Non ha ancora schierato, ma tiene…" se non ha schierato)
-- `[CLASSIFICA-NASCOSTE-MIE]`: "Ha già schierato. Tieni nascoste le tue scelte, quindi non vedi quelle degli altri finché sono aperte."
 
 ---
 

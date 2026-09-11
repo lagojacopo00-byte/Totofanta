@@ -7,7 +7,7 @@ import { button, buttonGhost, card, eyebrow } from "@/components/ui";
 import { maxAssignableForTeam, solveSlotAssignment, type SlotOption } from "@/lib/slot-assignment";
 import type { MatchDayGroup } from "@/lib/match-window";
 import { PickCountdown } from "@/components/pick-countdown";
-import { setHidePicksAction, submitPicksAction } from "./actions";
+import { submitPicksAction } from "./actions";
 
 const dayGroupLabel: Record<MatchDayGroup, string> = {
   venerdì: "Venerdì",
@@ -40,24 +40,6 @@ function AwayIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 flex-none" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function EyeIcon({ crossed }: { crossed: boolean }) {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4 flex-none" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="12" r="2.8" stroke="currentColor" strokeWidth="1.8" />
-      {crossed ? (
-        <path d="m4 20 16-16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      ) : null}
     </svg>
   );
 }
@@ -126,10 +108,6 @@ interface TeamPickerProps {
    * chiuse "slot ancora disponibili" non ha più senso (sono sempre 0),
    * questo prende il suo posto nella barra fissa. */
   outcomeCounts?: { win: number; lost: number; pending: number };
-  /** Stato attuale dell'interruttore "nascondi le mie scelte agli altri"
-   * — null quando la migrazione supabase/add_hide_picks.sql non è ancora
-   * stata eseguita: in quel caso l'interruttore non si mostra affatto. */
-  hidePicks: boolean | null;
 }
 
 function initialCounts(slots: PickerSlot[]): Record<string, number> {
@@ -153,18 +131,12 @@ export function TeamPicker({
   readOnly = false,
   deadline,
   outcomeCounts,
-  hidePicks,
 }: TeamPickerProps) {
   const [counts, setCounts] = useState<Record<string, number>>(() => initialCounts(slots));
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(true);
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
-  // Lo stato dell'interruttore lo teniamo anche qui, non solo nel dato dal
-  // server: il click deve cambiare aspetto subito, senza aspettare il
-  // revalidate della pagina.
-  const [hidden, setHidden] = useState(hidePicks ?? false);
-  const [isHidePending, startHideTransition] = useTransition();
 
   // La barra "Slot ancora disponibili" non è un secondo elemento sticky
   // indipendente (vedi play/(app)/layout.tsx): è un portale dentro il
@@ -271,21 +243,6 @@ export function TeamPicker({
       const next = { ...prev, [teamId]: current - 1 };
       if (next[teamId] === 0) delete next[teamId];
       return next;
-    });
-  }
-
-  function toggleHidePicks() {
-    const next = !hidden;
-    setHidden(next);
-    startHideTransition(async () => {
-      try {
-        await setHidePicksAction(tournamentId, next);
-      } catch {
-        // Se il salvataggio fallisce l'interruttore deve tornare com'era:
-        // far credere che le proprie scelte siano nascoste quando non lo
-        // sono è peggio che non offrire il tasto.
-        setHidden(!next);
-      }
     });
   }
 
@@ -497,49 +454,6 @@ export function TeamPicker({
             </p>
           ) : null}
         </div>
-
-        {/* Chi vede le mie scelte: di default le vedono tutti aprendo il
-            mio nome in classifica. Nascondendole vale lo scambio deciso
-            con l'utente il 2026-09-11 — se non le mostro, non vedo
-            nemmeno le loro finché le scelte sono aperte (vedi
-            src/lib/live-picks.ts). A scelte chiuse non ha più senso:
-            l'interruttore sparisce e tutto torna visibile a tutti. */}
-        {!readOnly && hidePicks !== null ? (
-          <button
-            type="button"
-            disabled={isHidePending}
-            onClick={toggleHidePicks}
-            aria-pressed={hidden}
-            className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors ${
-              hidden
-                ? "border-accent/50 bg-accent/10 text-foreground"
-                : "border-line bg-surface-2 text-foreground"
-            }`}
-          >
-            <EyeIcon crossed={hidden} />
-            <span className="flex min-w-0 flex-col">
-              <span className="text-xs font-semibold">
-                {hidden ? "Scelte nascoste agli altri" : "Scelte visibili agli altri"}
-              </span>
-              <span className="text-[10px] leading-relaxed text-foreground-faint">
-                {hidden
-                  ? "Nessuno vede cosa schieri — e tu non vedi le loro finché le scelte sono aperte. Alla chiusura si scopre tutto."
-                  : "Dalla classifica possono aprire il tuo nome e vedere cosa hai schierato."}
-              </span>
-            </span>
-            <span
-              className={`ml-auto flex h-5 w-9 flex-none items-center rounded-full p-0.5 transition-colors ${
-                hidden ? "bg-accent" : "bg-line"
-              }`}
-            >
-              <span
-                className={`h-4 w-4 rounded-full bg-background transition-transform ${
-                  hidden ? "translate-x-4" : ""
-                }`}
-              />
-            </span>
-          </button>
-        ) : null}
 
         <div className="flex min-w-0 flex-col gap-3">
           {visibleDayGroups.map(({ group, fixtures }) => (

@@ -17,16 +17,16 @@ export interface StandingsRow {
   /** Solo a torneo concluso: la fetta di montepremi già formattata (es.
    * "50% · 125,00 €"), o null per chi non ha vinto. */
   prizeLabel: string | null;
-  /** Cosa può vedere chi guarda delle scelte di QUESTO giocatore per la
-   * giornata aperta — null quando non c'è nessuna giornata aperta: la
-   * riga resta una riga di classifica e basta, non si apre. */
+  /** Le scelte di QUESTO giocatore per la giornata aperta — null quando
+   * non c'è nessuna giornata aperta: la riga resta una riga di classifica
+   * e basta, non si apre. */
   picks: LivePickVisibility | null;
 }
 
 /** La classifica del torneo, con le righe apribili per vedere cosa ha
- * schierato ciascuno nella giornata aperta (regole di visibilità in
- * src/lib/live-picks.ts). Una alla volta, come lo storico degli altri
- * giocatori più sopra nella stessa pagina. */
+ * schierato ciascuno nella giornata aperta (vedi src/lib/live-picks.ts).
+ * Una alla volta, come lo storico degli altri giocatori più sopra nella
+ * stessa pagina. */
 export function StandingsList({
   rows,
   matchdayNumber,
@@ -155,13 +155,9 @@ function PickDetail({
   const text =
     visibility.kind === "out"
       ? "Fuori dal torneo: non ha più slot da schierare."
-      : visibility.kind === "not-picked"
-        ? isMe
-          ? "Non hai ancora schierato per questa giornata."
-          : "Non ha ancora schierato per questa giornata."
-        : visibility.by === "them"
-          ? `${visibility.hasPicked ? "Ha già schierato" : "Non ha ancora schierato"}, ma tiene le scelte nascoste finché non chiudono.`
-          : `${visibility.hasPicked ? "Ha già schierato" : "Non ha ancora schierato"}. Tieni nascoste le tue scelte, quindi non vedi quelle degli altri finché sono aperte.`;
+      : isMe
+        ? "Non hai ancora schierato per questa giornata."
+        : "Non ha ancora schierato per questa giornata.";
 
   return (
     <p className="mt-2 mb-1 rounded-lg border border-line bg-surface-2 p-2 text-[11px] leading-relaxed text-foreground-soft">

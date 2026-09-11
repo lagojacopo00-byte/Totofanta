@@ -79,39 +79,34 @@ personalizzato di un altro giocatore (e ora nome/cognome) non si
 vedevano mai. Corretto usando sempre il client admin in quella
 funzione, che legge solo le tre colonne sopra (mai l'email o altro).
 
-## Scelte nascoste (`players.hide_picks`)
+## Lettura delle scelte altrui (policy su `picks`)
 
-Booleana, `false` di default: chi la attiva (interruttore nel picker, via
-la funzione `set_hide_picks`) tiene le proprie scelte nascoste agli altri
-giocatori finché la giornata è aperta. Regole complete in
-[02_Regole_gioco.md](./02_Regole_gioco.md) e in `src/lib/live-picks.ts`.
+Tutti i giocatori di un torneo leggono tutte le scelte di quel torneo,
+anche a giornata aperta: policy "players read picks of their
+tournaments", `using (plays_in_matchday(matchday_id))`. Regole in
+[02_Regole_gioco.md](./02_Regole_gioco.md).
 
-Due dettagli non ovvi:
+**Bug trovato il 2026-09-11, stessa famiglia di quello su `profiles` qui
+sopra**: su `picks` esistevano solo le policy dell'organizzatore e quella
+sui propri slot. Un giocatore non organizzatore non poteva leggere le
+scelte di nessun altro, quindi lo Storico degli altri giocatori gli
+usciva con le celle delle squadre sempre vuote — mai notato perché chi
+provava l'app era anche l'organizzatore del torneo, che vede tutto.
 
-- **Perché una funzione `security definer` e non un update diretto**: un
-  giocatore non ha il permesso di scrivere sulla propria riga `players`
-  (potrebbe cambiarsi `num_slots` o `display_name`), e RLS non sa
-  limitare per colonna. `set_hide_picks` tocca solo quella colonna, solo
-  sulla riga del proprio account.
-- **Due soglie diverse, apposta**: la policy RLS scopre le scelte quando
-  la giornata non è più `open` (l'organizzatore ha inserito i risultati),
-  l'interfaccia già alla scadenza per schierare. Il database non conosce
-  gli orari di calcio d'inizio (stanno in `serie_a_fixtures`, l'app li
-  usa con `computePickDeadline`), quindi la policy è volutamente più
-  prudente: è la rete di sicurezza contro chi interroghi l'API Supabase
-  direttamente, mentre la pagina usa il client admin e applica le regole
-  in `live-picks.ts`.
+Storia della correzione: prima aggiunta con `add_hide_picks.sql` insieme
+a una colonna `players.hide_picks` (interruttore "nascondi le mie scelte
+agli altri", con la funzione `set_hide_picks` e una policy che le copriva
+fino alla chiusura della giornata), poi lo stesso giorno l'interruttore è
+stato tolto: si aggirava, e la reciprocità "chi nasconde non vede" stava
+solo nell'interfaccia. [remove_hide_picks.sql](../supabase/remove_hide_picks.sql)
+lascia la policy semplice qui sopra, cancella colonna e funzioni, e va
+eseguita anche se `add_hide_picks.sql` non era mai stata eseguita (in quel
+caso aggiunge solo la policy mancante). Anche
+[schema.sql](../supabase/schema.sql) ora la contiene.
 
-**Bug trovato lavorandoci (2026-09-11), stessa famiglia di quello su
-`profiles` qui sopra**: su `picks` esistevano solo le policy
-dell'organizzatore e quella sui propri slot. Un giocatore non
-organizzatore non poteva leggere le scelte di nessun altro, quindi lo
-Storico degli altri giocatori gli usciva con le celle delle squadre
-sempre vuote — mai notato perché chi provava l'app era anche
-l'organizzatore del torneo, che vede tutto. Corretto in
-[add_hide_picks.sql](../supabase/add_hide_picks.sql) con la policy
-"players read visible picks of their tournaments", che rispetta anche
-`hide_picks`.
+La pagina giocatore (`getLiveMatchdayPicks`) legge comunque col client
+admin, così funziona qualunque delle due versioni della policy ci sia sul
+database.
 
 ## Tornei di test (`tournaments.is_test`)
 

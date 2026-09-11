@@ -551,6 +551,13 @@ create policy "a player manages picks on their own slots"
   using (public.is_own_slot(slot_id))
   with check (public.is_own_slot(slot_id));
 
+-- Le scelte degli altri giocatori dello stesso torneo si leggono tutte,
+-- anche a giornata aperta (deciso con l'utente il 2026-09-11): servono
+-- allo Storico e alla classifica apribile.
+create policy "players read picks of their tournaments"
+  on picks for select
+  using (public.plays_in_matchday(matchday_id));
+
 -- Risultati ------------------------------------------------------------------
 
 create policy "organizer manages results of own tournament"
