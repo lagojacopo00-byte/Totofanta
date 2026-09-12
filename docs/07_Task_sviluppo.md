@@ -809,3 +809,23 @@ su richiesta esplicita dell'utente questa parte è partita. Dettagli in
   picks of their tournaments" in
   [remove_hide_picks.sql](../supabase/remove_hide_picks.sql) e in
   `schema.sql`.
+- **Riepilogo giornata leggibile a colpo d'occhio** (richiesta
+  dell'utente il 2026-09-12): nel riepilogo della giornata aperta le due
+  squadre di ogni partita erano solo due badge accostati — non si capiva
+  quale delle due fosse quella schierata, e non c'era data né ora. Ora
+  ogni riga è centrata sulla squadra SCELTA (badge cerchiato di verde e
+  nome per esteso), con sotto l'avversaria sbiadita, casa/trasferta,
+  giorno e ora del calcio d'inizio e l'esito quando c'è. L'orario è
+  formattato fissando `timeZone: "Europe/Rome"`: la sezione è
+  renderizzata lato server (su Vercel il fuso di sistema è UTC) e
+  `kickoff_at` è un `timestamptz`, quindi senza fuso esplicito un 15:00
+  italiano sarebbe uscito "13:00". Il riepilogo ora compare anche appena
+  le scelte si chiudono, senza aspettare il primo risultato: è proprio
+  lì che serve sapere chi si è schierato e quando gioca (prima, in quella
+  finestra, restava nascosto e sotto c'era solo il calendario completo).
+  Vedi
+  [matchday-recap.tsx](../src/app/play/(app)/[tournamentId]/matchday-recap.tsx)
+  e [10_Testi_interfaccia.md](./10_Testi_interfaccia.md) (nuovo blocco
+  `[RIEPILOGO-*]`). Verificato con uno smoke test isolato (render a
+  stringa, nessun login) su ora italiana, risalto della squadra scelta e
+  stati dello slot.

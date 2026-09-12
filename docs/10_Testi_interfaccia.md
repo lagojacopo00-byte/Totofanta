@@ -190,6 +190,21 @@ File: `src/app/play/(app)/[tournamentId]/page.tsx`
 - `[TORNEO-CLASSIFICA-TU]`: "(tu)" — aggiunto dopo il tuo nome in classifica
 - `[TORNEO-CLASSIFICA-VIVI]`: "{N}/{M} vivi"
 
+File: `src/app/play/(app)/[tournamentId]/matchday-recap.tsx` (riepilogo della giornata aperta, una riga per ogni slot schierato)
+
+- `[RIEPILOGO-TITOLO]`: "Giornata {N} · riepilogo"
+- `[RIEPILOGO-LEGENDA]`: "Cerchiata in verde la squadra che hai schierato, sbiadita l'avversaria."
+- `[RIEPILOGO-CASA]`: "in casa con {squadra}"
+- `[RIEPILOGO-TRASFERTA]`: "in trasferta con {squadra}"
+- `[RIEPILOGO-ORARIO]`: "{gg} {N} {mese}, {hh:mm}" — giorno e ora del calcio d'inizio, sempre in ora italiana (Europe/Rome)
+- `[RIEPILOGO-SENZA-ORARIO]`: "data da confermare"
+- `[RIEPILOGO-ESITO-PAREGGIO]`: "pareggio"
+- `[RIEPILOGO-ESITO-VITTORIA]`: "ha vinto {squadra}" — solo a partita finita: finché è in corso lo dice già la pillola di stato
+- `[RIEPILOGO-STATO-VIVO]`: "Vivo"
+- `[RIEPILOGO-STATO-ELIMINATO]`: "Eliminato"
+- `[RIEPILOGO-STATO-IN-CORSO]`: "In corso"
+- `[RIEPILOGO-STATO-ESENTE]`: "Esente"
+
 File: `src/components/pick-countdown.tsx` (conto alla rovescia, solo nella pagina del singolo torneo — tolto dalla home "I tuoi tornei" il 2026-09-02: con la scadenza dinamica per giornata, un countdown unico lì non ha più un valore singolo corretto se ci sono più tornei su giornate diverse)
 
 - `[COUNTDOWN-SENZA-ORARIO]`: "Orario giornata da confermare" (nessun kickoff ancora noto per la giornata aperta)

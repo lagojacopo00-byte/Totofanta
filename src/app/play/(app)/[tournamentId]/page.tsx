@@ -303,6 +303,7 @@ export default async function PlayerTournamentPage(
             homeTeam: fixture.home_team,
             awayTeam: fixture.away_team,
             pickedTeam: teamName,
+            kickoffAt: fixture.kickoff_at,
             result: fixture.result,
             status,
           };
@@ -474,13 +475,16 @@ export default async function PlayerTournamentPage(
         </section>
       ) : null}
 
-      {/* Riepilogo giornata: uno sguardo veloce a come sono andati i TUOI
-          slot, prima della lista completa di tutte le partite qui sotto —
-          compare solo quando c'è almeno un risultato disponibile (non ha
-          senso mostrare una lista di soli slot "In corso"). */}
+      {/* Riepilogo giornata: uno sguardo veloce ai TUOI slot — quale
+          squadra hai schierato, quando gioca e com'è andata — prima della
+          lista completa di tutte le partite qui sotto. Compare appena le
+          scelte si chiudono (da lì in poi non si cambia più idea: serve
+          solo sapere chi hai schierato e quando gioca, e il calendario
+          completo sotto non lo dice a colpo d'occhio) oppure appena
+          arriva il primo risultato, se le scelte sono ancora aperte. */}
       {openMatchday &&
       recapSlots.length > 0 &&
-      openFixtures.some((f) => f.result !== null) ? (
+      (!pickingOpen || openFixtures.some((f) => f.result !== null)) ? (
         <MatchdayRecap matchdayNumber={openMatchday.number} slots={recapSlots} />
       ) : null}
 
