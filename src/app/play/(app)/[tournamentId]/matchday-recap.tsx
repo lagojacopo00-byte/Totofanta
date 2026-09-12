@@ -62,14 +62,44 @@ function resultLabel(slot: RecapSlot): string | null {
   return `ha vinto ${slot.result === "home_win" ? slot.homeTeam : slot.awayTeam}`;
 }
 
+/** Un lato della partita, nello stesso ordine del picker: casa a
+ * sinistra, ospite a destra. La squadra schierata dallo slot è cerchiata
+ * di verde, l'altra resta in grigio e sbiadita. */
+function TeamSide({ name, picked }: { name: string; picked: boolean }) {
+  return (
+    <div
+      className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border px-2 py-1.5 ${
+        picked ? "border-accent/50" : "border-line/60 opacity-40"
+      }`}
+    >
+      <span
+        className={
+          picked
+            ? "inline-flex flex-none rounded-full ring-2 ring-accent ring-offset-2 ring-offset-surface-2"
+            : "inline-flex flex-none grayscale"
+        }
+      >
+        <TeamBadge name={name} size="sm" />
+      </span>
+      <span
+        className={`min-w-0 truncate text-xs ${
+          picked ? "font-semibold text-foreground" : "text-foreground-faint"
+        }`}
+      >
+        {name}
+      </span>
+    </div>
+  );
+}
+
 /**
  * Riepilogo della giornata aperta, uno slot dello schierato dal
- * giocatore. Ogni riga è centrata sulla SQUADRA SCELTA da quello slot
- * (badge cerchiato di verde e nome per esteso), non sulla partita in
- * quanto tale: l'avversaria compare sotto, sbiadita, insieme a
- * casa/trasferta e a giorno e ora del calcio d'inizio — chiesto
- * dall'utente il 2026-09-12, che dal solo accostamento dei due badge non
- * capiva quale delle due squadre avesse schierato né quando giocasse.
+ * giocatore. La partita è presentata come nel picker — squadra di casa a
+ * sinistra, ospite a destra, separate da "vs" — con la squadra scelta
+ * dallo slot cerchiata di verde e l'altra in grigio sbiadito, più giorno
+ * e ora del calcio d'inizio: chiesto dall'utente il 2026-09-12, che dal
+ * solo accostamento di due badge identici non capiva quale delle due
+ * avesse schierato né quando giocasse.
  * Anche se due slot hanno scelto la stessa squadra, ognuno compare
  * separatamente con il proprio stato (deciso con l'utente: "se avevo due
  * slot sull'Inter e l'Inter perde, entrambi eliminati").
@@ -95,14 +125,12 @@ export function MatchdayRecap({
       <div>
         <p className={eyebrow}>Giornata {matchdayNumber} · riepilogo</p>
         <p className="mt-1 text-xs text-foreground-faint">
-          Cerchiata in verde la squadra che hai schierato, sbiadita
-          l&apos;avversaria.
+          Squadra di casa a sinistra, ospite a destra: cerchiata in verde
+          quella che hai schierato.
         </p>
       </div>
       <ul className="flex flex-col gap-2">
         {slots.map((slot) => {
-          const isHome = slot.pickedTeam === slot.homeTeam;
-          const opponent = isHome ? slot.awayTeam : slot.homeTeam;
           const result = resultLabel(slot);
           return (
             <li key={slot.id} className={`${cardTight} flex flex-col gap-2`}>
@@ -110,34 +138,21 @@ export function MatchdayRecap({
                 <span className="flex-none rounded-full border border-line bg-surface px-2 py-0.5 font-mono text-[10px] text-foreground-faint">
                   {slot.label}
                 </span>
-                <span className="inline-flex flex-none rounded-full ring-2 ring-accent ring-offset-2 ring-offset-surface-2">
-                  <TeamBadge name={slot.pickedTeam} size="sm" />
-                </span>
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-                  {slot.pickedTeam}
+                <span className="min-w-0 flex-1 truncate text-[11px] text-foreground-faint">
+                  {kickoffLabel(slot.kickoffAt)}
                 </span>
                 <span className={`flex-none ${statusPillClass(slot.status)}`}>
                   {statusLabel[slot.status]}
                 </span>
               </div>
-              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-foreground-faint">
-                <span className="inline-flex min-w-0 items-center gap-1.5">
-                  <span className="inline-flex flex-none opacity-40 grayscale">
-                    <TeamBadge name={opponent} size="xs" />
-                  </span>
-                  <span className="min-w-0 truncate">
-                    {isHome ? "in casa con" : "in trasferta con"} {opponent}
-                  </span>
-                </span>
-                <span aria-hidden="true">·</span>
-                <span className="whitespace-nowrap">{kickoffLabel(slot.kickoffAt)}</span>
-                {result ? (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span className="whitespace-nowrap">{result}</span>
-                  </>
-                ) : null}
+              <div className="flex min-w-0 items-center gap-2">
+                <TeamSide name={slot.homeTeam} picked={slot.pickedTeam === slot.homeTeam} />
+                <span className="flex-none font-mono text-[10px] text-foreground-faint">vs</span>
+                <TeamSide name={slot.awayTeam} picked={slot.pickedTeam === slot.awayTeam} />
               </div>
+              {result ? (
+                <p className="text-[11px] text-foreground-faint">{result}</p>
+              ) : null}
             </li>
           );
         })}

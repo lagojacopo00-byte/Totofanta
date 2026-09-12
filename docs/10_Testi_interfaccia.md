@@ -193,9 +193,8 @@ File: `src/app/play/(app)/[tournamentId]/page.tsx`
 File: `src/app/play/(app)/[tournamentId]/matchday-recap.tsx` (riepilogo della giornata aperta, una riga per ogni slot schierato)
 
 - `[RIEPILOGO-TITOLO]`: "Giornata {N} · riepilogo"
-- `[RIEPILOGO-LEGENDA]`: "Cerchiata in verde la squadra che hai schierato, sbiadita l'avversaria."
-- `[RIEPILOGO-CASA]`: "in casa con {squadra}"
-- `[RIEPILOGO-TRASFERTA]`: "in trasferta con {squadra}"
+- `[RIEPILOGO-LEGENDA]`: "Squadra di casa a sinistra, ospite a destra: cerchiata in verde quella che hai schierato."
+- `[RIEPILOGO-VS]`: "vs" — separatore tra casa e ospite, come nel picker
 - `[RIEPILOGO-ORARIO]`: "{gg} {N} {mese}, {hh:mm}" — giorno e ora del calcio d'inizio, sempre in ora italiana (Europe/Rome)
 - `[RIEPILOGO-SENZA-ORARIO]`: "data da confermare"
 - `[RIEPILOGO-ESITO-PAREGGIO]`: "pareggio"

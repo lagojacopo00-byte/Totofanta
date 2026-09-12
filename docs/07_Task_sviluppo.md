@@ -813,9 +813,14 @@ su richiesta esplicita dell'utente questa parte è partita. Dettagli in
   dell'utente il 2026-09-12): nel riepilogo della giornata aperta le due
   squadre di ogni partita erano solo due badge accostati — non si capiva
   quale delle due fosse quella schierata, e non c'era data né ora. Ora
-  ogni riga è centrata sulla squadra SCELTA (badge cerchiato di verde e
-  nome per esteso), con sotto l'avversaria sbiadita, casa/trasferta,
-  giorno e ora del calcio d'inizio e l'esito quando c'è. L'orario è
+  ogni riga mostra la partita con lo stesso ordine del picker (squadra di
+  casa a sinistra, ospite a destra, separate da "vs" — richiesto
+  esplicitamente dall'utente in un secondo passaggio, al posto di una
+  prima versione che metteva la squadra scelta sempre per prima): quella
+  schierata dallo slot è cerchiata di verde e col nome in evidenza,
+  l'altra resta in grigio sbiadito. Sopra la partita, il numero dello
+  slot, giorno e ora del calcio d'inizio e la pillola di stato; sotto,
+  l'esito quando c'è. L'orario è
   formattato fissando `timeZone: "Europe/Rome"`: la sezione è
   renderizzata lato server (su Vercel il fuso di sistema è UTC) e
   `kickoff_at` è un `timestamptz`, quindi senza fuso esplicito un 15:00
