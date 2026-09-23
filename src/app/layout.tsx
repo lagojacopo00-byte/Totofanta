@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { resolveTheme, THEME_COOKIE_NAME } from "@/lib/theme";
 import "./globals.css";
@@ -7,6 +7,15 @@ export const metadata: Metadata = {
   title: "Totofanta",
   description:
     "Scegli la squadra vincente. Sbagli, sei fuori. Il last man standing di Serie A tra amici.",
+};
+
+// viewportFit "cover" fa disegnare la pagina fin sotto le aree "sicure"
+// del telefono (tacca, barra gesture in basso su iPhone): senza, i
+// valori env(safe-area-inset-*) restano sempre 0 e non hanno alcun
+// effetto — serve alla barra flottante del torneo per non restare
+// nascosta sotto la barra gesture (vedi tournament-footer-nav.tsx).
+export const viewport: Viewport = {
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

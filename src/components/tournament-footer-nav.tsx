@@ -26,7 +26,8 @@ export function TournamentFooterNav({ tournamentId }: { tournamentId: string }) 
 
   return (
     <nav
-      className="header-terra fixed inset-x-0 bottom-4 z-20 flex justify-center px-4"
+      className="header-terra fixed inset-x-0 z-20 flex justify-center px-4"
+      style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
       aria-label="Navigazione torneo"
     >
       <div className="flex items-center gap-1 rounded-full bg-background p-1.5 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.6)]">
