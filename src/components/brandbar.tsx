@@ -15,7 +15,7 @@ export function Brandbar({
       href={href}
       className={`flex items-center gap-3 ${center ? "justify-center" : ""}`}
     >
-      <div className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[#f4f3ee] shadow-[0_6px_20px_-6px_rgba(62,209,126,0.4)]">
+      <div className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[#f4f3ee]">
         <BallMark className="h-7 w-7" />
       </div>
       <div>

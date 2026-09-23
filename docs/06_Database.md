@@ -9,7 +9,7 @@ esistente — ogni file indica quali eseguire prima).
 
 | Tabella | A cosa serve |
 |---|---|
-| `profiles` | un profilo per utente Supabase Auth: `tutorial_seen_at`, `role`, e l'identità pubblica facoltativa `display_name`/`first_name`/`last_name` (vedi sotto) |
+| `profiles` | un profilo per utente Supabase Auth: `tutorial_seen_at`, `role`, l'identità pubblica facoltativa `display_name`/`first_name`/`last_name` (vedi sotto) e `theme` (chiaro/scuro, vedi sotto) |
 | `tournaments` | un torneo: nome, competizione, organizzatore (`owner_id`), stato (`draft`/`active`/`finished`), vincitori, `is_test` (torneo di prova), `slot_value` (valore in € di ogni slot — 0 = nessun premio, vedi sotto) |
 | `teams` | squadre selezionabili: quelle di riferimento condivise (`tournament_id` nullo, es. Serie A precaricata) o custom di un singolo torneo |
 | `players` | un giocatore *in un torneo* (email, nome, account collegato se già registrato) |
@@ -78,6 +78,19 @@ riga di CHI GUARDA, mai quelle degli altri giocatori: il nome pubblico
 personalizzato di un altro giocatore (e ora nome/cognome) non si
 vedevano mai. Corretto usando sempre il client admin in quella
 funzione, che legge solo le tre colonne sopra (mai l'email o altro).
+
+## Preferenza di tema (`profiles.theme`)
+
+`'light'` di default (identità "sabbia") o `'dark'`, scelta da
+`/play/profile` (`updateThemeAction`). Applicata via un attributo
+`data-theme` sull'`<html>` (vedi `src/app/layout.tsx`), letto da un
+cookie invece che dal database a ogni pagina: il cookie si aggiorna
+subito quando si cambia tema dal profilo (stessa sessione) e si
+risincronizza dal valore salvato sull'account a ogni login
+(`loginAction`), così un browser/dispositivo nuovo parte già con la
+scelta giusta invece che dal default. Migrazione
+[add_profile_theme.sql](../supabase/add_profile_theme.sql). Dettagli
+sulla palette in [08_Direzione_visiva_UX.md](./08_Direzione_visiva_UX.md).
 
 ## Lettura delle scelte altrui (policy su `picks`)
 

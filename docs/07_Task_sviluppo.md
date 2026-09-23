@@ -834,3 +834,13 @@ su richiesta esplicita dell'utente questa parte è partita. Dettagli in
   `[RIEPILOGO-*]`). Verificato con uno smoke test isolato (render a
   stringa, nessun login) su ora italiana, risalto della squadra scelta e
   stati dello slot.
+- **Nuova identità grafica "terra" + tema chiaro/scuro** (richiesta
+  dell'utente il 2026-09-23): sostituita la base scura su tonalità verdi
+  con una palette calda sabbia (chiaro, default)/espresso (scuro),
+  accento senape, rimosso l'unico effetto "neon" del sito (ombra a
+  bagliore verde dietro il logo). Il tema non è più fisso: selezionabile
+  da `/play/profile` (nuova colonna `profiles.theme`, migrazione
+  [add_profile_theme.sql](../supabase/add_profile_theme.sql) — **da
+  eseguire in produzione**), applicato via `data-theme` sull'`<html>`
+  letto da un cookie sincronizzato a ogni login. Dettagli in
+  [08_Direzione_visiva_UX.md](./08_Direzione_visiva_UX.md).

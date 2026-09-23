@@ -1,27 +1,45 @@
 @import "tailwindcss";
 
-/* Totofanta — stessa direzione visiva del concept "Totofanta UI":
-   base scura, verde come accento primario, tipografia Sora + Manrope,
-   JetBrains Mono per numeri e dati. Tema scuro fisso (scelta di stile,
-   non un default dimenticato: rispecchia il genere "fantatool").
-   Deciso con l'utente (docs/08_Direzione_visiva_UX.md): lo sfondo va
-   spostato su tonalità verdi, non lasciato nero/grigio neutro con solo
-   l'accento verde — qui il verde è marcato anche su sfondo/bordi/testo
-   secondario, non un'ombra quasi impercettibile. */
+/* Totofanta — identità visiva "terra": sfondo caldo (sabbia in chiaro,
+   espresso in scuro), accento senape, niente verde neon né effetti
+   glow. Deciso con l'utente il 2026-09-23 (docs/08_Direzione_visiva_UX.md),
+   sostituisce la precedente base scura su tonalità verdi. Tema
+   selezionabile da /play/profile (profiles.theme): l'attributo
+   data-theme sull'<html> (vedi src/app/layout.tsx, letto da un cookie,
+   non dal DB a ogni pagina) sceglie tra i due blocchi sotto — "sabbia"
+   di default finché l'utente non sceglie "scuro". */
 :root {
-  --background: #081712;
-  --surface: #0f231b;
-  --surface-2: #173326;
-  --foreground: #eaf5ee;
-  --foreground-soft: #9fc2ab;
-  --foreground-faint: #5f8570;
-  --accent: #3ed17e;
-  --accent-deep: #1b8f55;
-  --accent-ink: #072612;
-  --line: #24422f;
-  --lose: #ff6e5e;
-  --lose-bg: rgba(255, 110, 94, 0.12);
-  --win-bg: rgba(62, 209, 126, 0.14);
+  --background: #ede3d0;
+  --surface: #f6efe1;
+  --surface-2: #f1e6cd;
+  --foreground: #332b1e;
+  --foreground-soft: #6b5d43;
+  --foreground-faint: #9c8f73;
+  --accent: #a97c24;
+  --accent-deep: #7c5a18;
+  --accent-ink: #fbf3df;
+  --line: #dccead;
+  --lose: #b0432b;
+  --lose-bg: rgba(176, 67, 43, 0.12);
+  --win-bg: rgba(169, 124, 36, 0.14);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --background: #1c1610;
+  --surface: #241c14;
+  --surface-2: #2c2318;
+  --foreground: #f2e9d8;
+  --foreground-soft: #c9b89a;
+  --foreground-faint: #8c7a5e;
+  --accent: #d79a3c;
+  --accent-deep: #b67d28;
+  --accent-ink: #241c10;
+  --line: #3a2e20;
+  --lose: #e07156;
+  --lose-bg: rgba(224, 113, 86, 0.16);
+  --win-bg: rgba(215, 154, 60, 0.16);
+  color-scheme: dark;
 }
 
 @theme inline {

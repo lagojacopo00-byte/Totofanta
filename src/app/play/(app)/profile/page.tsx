@@ -3,8 +3,9 @@ import {
   getOrganizerTournaments,
   getProfileDisplayName,
   getProfileFullName,
+  getProfileTheme,
 } from "@/lib/queries";
-import { card, cardTight, eyebrow, input, label, button } from "@/components/ui";
+import { card, cardTight, eyebrow, input, label, button, buttonGhost } from "@/components/ui";
 import { DeleteAccountButton } from "./delete-account-button";
 import { EditableField } from "./editable-field";
 import { ChangePasswordField } from "./change-password-field";
@@ -13,14 +14,16 @@ import {
   updateEmailAction,
   updateFullNameAction,
   updatePasswordAction,
+  updateThemeAction,
 } from "./actions";
 
 export default async function ProfilePage(props: PageProps<"/play/profile">) {
   const { supabase, user } = await requirePlayer();
-  const [displayName, fullName, ownedTournaments] = await Promise.all([
+  const [displayName, fullName, ownedTournaments, theme] = await Promise.all([
     getProfileDisplayName(supabase, user.id),
     getProfileFullName(supabase, user.id),
     getOrganizerTournaments(supabase, user.id),
+    getProfileTheme(supabase, user.id),
   ]);
   const params = await props.searchParams;
   const passwordError = typeof params.passwordError === "string" ? params.passwordError : null;
@@ -112,6 +115,34 @@ export default async function ProfilePage(props: PageProps<"/play/profile">) {
           error={passwordError}
           saved={savedPassword}
         />
+      </section>
+
+      <section className={`${card} flex flex-col gap-2`}>
+        <p className={label}>Aspetto</p>
+        <p className="text-xs text-foreground-faint">
+          Chiaro o scuro: vale su ogni dispositivo dove accedi con questo
+          account.
+        </p>
+        <div className="mt-1 flex gap-2">
+          <form action={updateThemeAction}>
+            <input type="hidden" name="theme" value="light" />
+            <button
+              type="submit"
+              className={theme === "light" ? button : buttonGhost}
+            >
+              Chiaro
+            </button>
+          </form>
+          <form action={updateThemeAction}>
+            <input type="hidden" name="theme" value="dark" />
+            <button
+              type="submit"
+              className={theme === "dark" ? button : buttonGhost}
+            >
+              Scuro
+            </button>
+          </form>
+        </div>
       </section>
 
       <section className={`${cardTight} flex flex-col gap-2 border-dashed`}>

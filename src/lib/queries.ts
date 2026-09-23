@@ -1360,6 +1360,30 @@ export async function updateProfileFullName(
   );
 }
 
+/** Preferenza di tema (profiles.theme) scelta in /play/profile —
+ * "light" (default, sabbia) o "dark". "light" anche se la colonna non
+ * esiste ancora (migrazione add_profile_theme.sql non eseguita) o la
+ * riga non è leggibile, stesso criterio prudente di getProfileDisplayName. */
+export async function getProfileTheme(db: DB, userId: string): Promise<"light" | "dark"> {
+  const res = await db
+    .from("profiles")
+    .select("theme")
+    .eq("id", userId)
+    .maybeSingle();
+  if (res.error) return "light";
+  const row = res.data as { theme: string | null } | null;
+  return row?.theme === "dark" ? "dark" : "light";
+}
+
+export async function updateProfileTheme(db: DB, userId: string, theme: "light" | "dark") {
+  assertNoError(
+    await db
+      .from("profiles")
+      .update({ theme })
+      .eq("id", userId)
+  );
+}
+
 interface ProfileOverride {
   displayName: string | null;
   firstName: string | null;

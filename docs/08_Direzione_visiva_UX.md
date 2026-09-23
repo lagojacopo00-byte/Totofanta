@@ -12,10 +12,25 @@ di partire con questa parte: lo stato di ogni voce è segnato qui sotto.
 - L'app deve comunicare tecnologia, sport, calcio, competizione,
   freschezza, semplicità — non deve sembrare un'app finanziaria/seria, né
   un gioco poco curato.
-- **Fatto**: base scura su tonalità **verdi** (non nero puro), contrasto
-  testo alto. Le variabili di tema in
-  [globals.css](../src/app/globals.css) ora hanno sfondo/bordi/testo
-  secondario chiaramente verdi, non solo l'accento sui pulsanti/pill.
+- **Fatto (2026-09-23) — identità "terra"**: sostituita la base scura su
+  tonalità verdi con una palette calda su base **sabbia** (chiaro,
+  default) / **espresso** (scuro), accento **senape**, niente verde
+  neon né effetti glow — decisa con l'utente confrontando 4 alternative
+  (crema, sabbia, argilla, pietra), scelta "sabbia". Rimosso anche
+  l'unico effetto "neon" trovato nel codice: un'ombra a bagliore verde
+  dietro il logo in [brandbar.tsx](../src/components/brandbar.tsx). Le
+  variabili di tema restano in
+  [globals.css](../src/app/globals.css) (`:root` = chiaro, `:root[data-theme="dark"]`
+  = scuro): il resto dell'app (pulsanti, pill, badge) non ha dovuto
+  cambiare, legge sempre le stesse variabili CSS.
+- **Fatto — tema selezionabile**: chiaro/scuro non è più fisso, si
+  sceglie da `/play/profile` (nuova colonna `profiles.theme`, vedi
+  [06_Database.md](./06_Database.md)). Applicato via un attributo
+  `data-theme` sull'`<html>` letto da un cookie (non dal database a ogni
+  pagina, per non appesantire il caricamento) — il cookie si aggiorna
+  subito quando si cambia tema dal profilo, e si risincronizza dal
+  valore salvato sull'account a ogni login (così un dispositivo/browser
+  nuovo parte già con la scelta giusta, non con il default).
 - Interfaccia pulita, poche schermate, flusso costante: evitare di
   disperdere l'utente in tante sezioni. Oggi l'app è già abbastanza
   compatta (home, torneo, dashboard, regolamento, how-it-works) — da

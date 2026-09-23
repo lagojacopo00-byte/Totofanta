@@ -44,7 +44,12 @@ create table profiles (
   -- ogni torneo, così se qualcuno sceglie un nickname strano gli altri
   -- capiscono comunque chi è. Nessuno dei due obbligatorio.
   first_name text,
-  last_name text
+  last_name text,
+  -- Preferenza di tema scelta in /play/profile: 'light' (default,
+  -- "sabbia") o 'dark'. Applicata leggendo un cookie sincronizzato al
+  -- login (vedi src/lib/theme.ts e loginAction) — non richiede una
+  -- query al database a ogni pagina.
+  theme text not null default 'light' check (theme in ('light', 'dark'))
 );
 
 alter table profiles enable row level security;

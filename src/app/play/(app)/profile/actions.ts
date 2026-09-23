@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requirePlayer } from "@/lib/supabase/require-player";
@@ -9,7 +9,9 @@ import {
   getOrganizerTournaments,
   updateProfileDisplayName,
   updateProfileFullName,
+  updateProfileTheme,
 } from "@/lib/queries";
+import { isTheme, THEME_COOKIE_NAME, THEME_COOKIE_MAX_AGE } from "@/lib/theme";
 
 export async function updateDisplayNameAction(formData: FormData) {
   const { supabase, user } = await requirePlayer();
@@ -36,6 +38,25 @@ export async function updateFullNameAction(formData: FormData) {
 
   await updateProfileFullName(supabase, user.id, firstName, lastName);
   revalidatePath("/play", "layout");
+}
+
+/** Tema chiaro/scuro (profiles.theme): salva sul profilo (vale su ogni
+ * dispositivo dove si accede con questo account, sincronizzato al
+ * prossimo login — vedi loginAction) e aggiorna subito il cookie letto
+ * dal layout radice, così l'effetto è immediato anche in questa stessa
+ * sessione senza attendere un nuovo accesso. */
+export async function updateThemeAction(formData: FormData) {
+  const { supabase, user } = await requirePlayer();
+  const theme = String(formData.get("theme") ?? "");
+  if (!isTheme(theme)) return;
+
+  await updateProfileTheme(supabase, user.id, theme);
+  (await cookies()).set(THEME_COOKIE_NAME, theme, {
+    path: "/",
+    maxAge: THEME_COOKIE_MAX_AGE,
+    sameSite: "lax",
+  });
+  revalidatePath("/", "layout");
 }
 
 /** Cambia la password da loggati: a differenza del recupero via email,
