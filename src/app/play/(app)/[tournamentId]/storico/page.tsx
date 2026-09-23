@@ -21,7 +21,12 @@ export default async function StoricoPage(
   if (!player) notFound();
 
   const tournament = player.tournaments;
-  const slotHistory = await queries.getTournamentSlotHistory(supabase, tournament.id);
+  const [slotHistory, matchdayBackupUrl] = await Promise.all([
+    queries.getTournamentSlotHistory(supabase, tournament.id),
+    tournament.auto_backup_matchdays
+      ? queries.getMatchdayBackupUrl(supabase, tournament.id)
+      : Promise.resolve(null),
+  ]);
 
   // Classifica per slot vivi decrescente, pari merito compresi — stessa
   // regola della classifica sul torneo (vedi assignRanks in
@@ -55,6 +60,14 @@ export default async function StoricoPage(
           poi.
         </p>
       )}
+
+      {matchdayBackupUrl ? (
+        <p className="text-center text-xs text-foreground-faint">
+          <a href={matchdayBackupUrl} className="underline hover:text-accent" download>
+            Scarica Excel del torneo
+          </a>
+        </p>
+      ) : null}
     </div>
   );
 }

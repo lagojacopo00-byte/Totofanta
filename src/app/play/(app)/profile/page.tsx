@@ -6,6 +6,7 @@ import {
   getProfileTheme,
 } from "@/lib/queries";
 import { card, cardTight, eyebrow, input, label, button, buttonGhost } from "@/components/ui";
+import { TournamentFooterNav } from "@/components/tournament-footer-nav";
 import { DeleteAccountButton } from "./delete-account-button";
 import { EditableField } from "./editable-field";
 import { ChangePasswordField } from "./change-password-field";
@@ -30,9 +31,13 @@ export default async function ProfilePage(props: PageProps<"/play/profile">) {
   const emailError = typeof params.emailError === "string" ? params.emailError : null;
   const savedPassword = params.savedPassword === "1";
   const emailChangeRequested = params.emailChangeRequested === "1";
+  // Se si arriva qui dalla barra flottante di un torneo (?t=<id>), tiene
+  // la stessa barra anche qui invece di farla sparire — vedi
+  // tournament-footer-nav.tsx.
+  const fromTournamentId = typeof params.t === "string" ? params.t : null;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={`flex flex-col gap-6 ${fromTournamentId ? "pb-36" : ""}`}>
       <div>
         <p className={eyebrow}>Profilo</p>
         <h1 className="mt-1 font-display text-2xl font-extrabold">
@@ -170,6 +175,8 @@ export default async function ProfilePage(props: PageProps<"/play/profile">) {
           </>
         )}
       </section>
+
+      {fromTournamentId ? <TournamentFooterNav tournamentId={fromTournamentId} /> : null}
     </div>
   );
 }

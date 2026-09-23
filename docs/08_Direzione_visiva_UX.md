@@ -62,6 +62,25 @@ di partire con questa parte: lo stato di ogni voce è segnato qui sotto.
   proprie (`/play/[tournamentId]/storico` e `/…/stats`), non più sezioni
   in pagina — vedi [04_Schermate_app.md](./04_Schermate_app.md) e
   [07_Task_sviluppo.md](./07_Task_sviluppo.md).
+- **Fatto (2026-09-24, seconda passata) — barra più grande, schermata
+  principale ridotta a Premio + picker, Excel spostato**: le icone della
+  barra (segnalate "piccoline") sono passate da 44 a 56px. La schermata
+  principale del torneo (Giornata) ora mostra solo lo stato
+  finito/draft, il Premio, il riepilogo giornata e il picker — tolte
+  "La tua posizione" e la classifica con le scelte live (ridondanti con
+  Storico/Stats, dove si trova ormai la stessa informazione o meglio).
+  Il link "Scarica Excel del torneo" si è spostato in fondo allo
+  Storico. `viewport-fit=cover` (vedi [layout.tsx](../src/app/layout.tsx))
+  + `env(safe-area-inset-bottom)` sulla barra: senza, su iPhone con
+  barra gesture restava seminascosta sotto quella di sistema — bug
+  segnalato lo stesso giorno ("non vedo modifiche... footer da
+  mobile"). "Tu" ora porta a `/play/profile?t=<torneo>`: la pagina
+  profilo, se arriva da lì, rimonta la stessa barra invece di farla
+  sparire (prima si perdeva del tutto navigando all'account).
+  **Nota**: `standings-list.tsx` e `live-picks.ts` (classifica con
+  scelte live, decisa il 2026-09-11) non sono stati cancellati, solo
+  scollegati dalla schermata — da rimuovere per davvero se non
+  servono più da nessuna parte.
 - Interfaccia pulita, poche schermate, flusso costante: evitare di
   disperdere l'utente in tante sezioni. Oggi l'app è già abbastanza
   compatta (home, torneo, dashboard, regolamento, how-it-works) — da

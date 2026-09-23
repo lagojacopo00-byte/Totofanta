@@ -1,16 +1,14 @@
 import { notFound } from "next/navigation";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
-import { card, eyebrow, pillAlive, pillOut } from "@/components/ui";
+import { card, eyebrow, pillAlive } from "@/components/ui";
 import { TrophyIcon } from "@/components/rule-icons";
 import { computePickDeadline, isPickingWindowOpen } from "@/lib/pick-window";
 import { groupFixturesByDay } from "@/lib/match-window";
-import { assignRanks, computeFinalPrizeShares, computeTeamOutcomes } from "@/lib/game-logic";
+import { computeFinalPrizeShares, computeTeamOutcomes } from "@/lib/game-logic";
 import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
 import { MatchdayRecap, type RecapSlot } from "./matchday-recap";
-import { StandingsList } from "./standings-list";
 import { AutoRefresh } from "@/components/auto-refresh";
-import { resolveLivePicks } from "@/lib/live-picks";
 
 const prizeFormat = new Intl.NumberFormat("it-IT", {
   style: "currency",
@@ -64,28 +62,23 @@ export default async function PlayerTournamentPage(
     return a.label.localeCompare(b.label);
   });
 
-  const [matchdays, allPicks, availableTeams, standings, matchdayBackupUrl] =
-    await Promise.all([
-      queries.getMatchdays(supabase, tournament.id),
-      queries.getAllPicksForTournamentSlots(supabase, slots.map((s) => s.id)),
-      queries.getAvailableTeams(supabase, tournament.id, tournament.competition),
-      queries.getTournamentStandings(supabase, tournament.id),
-      tournament.auto_backup_matchdays
-        ? queries.getMatchdayBackupUrl(supabase, tournament.id)
-        : Promise.resolve(null),
-    ]);
+  const [matchdays, allPicks, availableTeams, standings] = await Promise.all([
+    queries.getMatchdays(supabase, tournament.id),
+    queries.getAllPicksForTournamentSlots(supabase, slots.map((s) => s.id)),
+    queries.getAvailableTeams(supabase, tournament.id, tournament.competition),
+    queries.getTournamentStandings(supabase, tournament.id),
+  ]);
 
   const openMatchday = matchdays.find((m) => m.status === "open");
 
   // Accoppiamenti reali di Serie A per la giornata aperta (giornata N del
   // torneo = giornata reale N) — vedi src/app/dashboard/fixtures.
-  const [openFixtures, excludedTeamNames, livePickPlayers] = openMatchday
+  const [openFixtures, excludedTeamNames] = openMatchday
     ? await Promise.all([
         queries.getFixturesForRound(supabase, openMatchday.number),
         queries.getExcludedTeamNames(supabase, openMatchday.number),
-        queries.getLiveMatchdayPicks(tournament.id, openMatchday.id),
       ])
-    : [[], new Set<string>(), null];
+    : [[], new Set<string>()];
   const fixtureDayGroups = groupFixturesByDay(openFixtures);
   const teamNamesInFixtures = new Set(
     openFixtures.flatMap((f) => [f.home_team, f.away_team])
@@ -126,43 +119,19 @@ export default async function PlayerTournamentPage(
   }
   const isWinner = tournament.winners.includes(player.id);
   const myPrizeShare = prizeBreakdown.find((s) => s.playerId === player.id)?.share ?? null;
-  const prizeShareByPlayer = new Map(prizeBreakdown.map((s) => [s.playerId, s.share]));
 
-  // Classifica ordinata per slot vivi (decrescente) mentre il torneo è
-  // ancora attivo; a torneo concluso ordinata invece per quota di
-  // montepremi (decrescente) — coi soli slot vivi, in uno spareggio ex
-  // aequo "zero superstiti" anche i vincitori risultano a 0 (i loro slot
-  // sono `eliminated`, vedi computeFinalPrizeShares), che appiattirebbe
-  // tutti alla stessa posizione proprio quando la classifica finale conta
-  // di più. Pari merito quando la chiave di ordinamento coincide (vedi
-  // assignRanks in game-logic.ts).
-  const rankedStandings = standings
-    .map((s) => ({
-      ...s,
-      alive: s.slots.filter((sl) => sl.status === "alive").length,
-      prizeShare: prizeShareByPlayer.get(s.id) ?? 0,
-    }))
-    .sort((a, b) =>
-      tournament.status === "finished" ? b.prizeShare - a.prizeShare : b.alive - a.alive
-    );
-  const withRank = assignRanks(rankedStandings, (s) =>
-    tournament.status === "finished" ? s.prizeShare : s.alive
-  );
-
-  // Statistiche del torneo, per la panoramica: quanti giocatori in totale
-  // e quanti slot sono ancora vivi sul totale complessivo.
-  const totalPlayers = standings.length;
+  // Statistiche del torneo (quanti slot sono ancora vivi sul totale
+  // complessivo): solo quanto serve al calcolo del Premio qui sotto — il
+  // resto (giocatori, slot totali, classifica) è nella pagina Stats/
+  // Storico, non più qui (richiesto dall'utente il 2026-09-24: la
+  // schermata del torneo deve avere solo Premio e picker).
   const totalSlots = standings.reduce((sum, s) => sum + s.slots.length, 0);
   const aliveSlots = standings.reduce(
     (sum, s) => sum + s.slots.filter((sl) => sl.status === "alive").length,
     0
   );
 
-  const me = withRank.find((s) => s.id === player.id);
-  const myRank = me?.rank ?? 1;
   const myAliveSlots = slots.filter((s) => s.status === "alive").length;
-  const tiedWithMe = withRank.filter((s) => s.rank === myRank).length - 1;
-
   const myAliveSlotsList = slots.filter((s) => s.status === "alive");
 
   // Scadenza per schierare = orario del primo calcio d'inizio non escluso
@@ -170,11 +139,6 @@ export default async function PlayerTournamentPage(
   // src/lib/pick-window.ts.
   const pickDeadline = computePickDeadline(openFixtures, excludedTeamNames);
   const pickingOpen = isPickingWindowOpen(pickDeadline);
-
-  // Cosa ha schierato ciascuno in questa giornata, per la classifica
-  // apribile in fondo alla pagina: lo vedono tutti, subito (vedi
-  // live-picks.ts).
-  const livePicksByPlayer = livePickPlayers ? resolveLivePicks(livePickPlayers) : null;
 
   // Per il picker unico: le squadre che OGNI slot può ancora scegliere per
   // la giornata aperta (tutte le disponibili nel torneo, tranne quelle
@@ -461,70 +425,6 @@ export default async function PlayerTournamentPage(
       ) : tournament.status === "active" && myAliveSlotsList.length > 0 ? (
         <p className="text-sm text-foreground-faint">
           Nessuna giornata aperta. Per ora riposa.
-        </p>
-      ) : null}
-
-      {/* La tua posizione: spostata più in basso di proposito — mentre si
-          gioca conta di più quanti slot restano da assegnare (vedi il
-          picker sopra), la posizione in classifica è un'informazione di
-          contorno. */}
-      <section className={`${card} border-accent/30`}>
-        <p className={eyebrow}>La tua posizione</p>
-        <div className="mt-2 flex items-end justify-between gap-4">
-          <p className="font-display text-4xl font-extrabold leading-none text-foreground">
-            {myRank}
-            <span className="ml-1 text-base font-bold text-foreground-faint">
-              /{totalPlayers}
-            </span>
-          </p>
-          <span className={myAliveSlots > 0 ? pillAlive : pillOut}>
-            {myAliveSlots}/{slots.length} tuoi slot vivi
-          </span>
-        </div>
-        {totalPlayers > 1 ? (
-          <p className="mt-2 text-xs text-foreground-faint">
-            {tiedWithMe > 0
-              ? `A pari merito con altri ${tiedWithMe} ${tiedWithMe === 1 ? "giocatore" : "giocatori"}.`
-              : myRank === 1
-                ? "Comandi tu la classifica."
-                : "Continua a spingere: la vetta è lì."}
-          </p>
-        ) : null}
-      </section>
-
-      {/* Classifica: ogni riga si apre sulle scelte di quel giocatore per
-          la giornata in corso (vedi standings-list.tsx e live-picks.ts). */}
-      {withRank.length > 1 ? (
-        <StandingsList
-          matchdayNumber={openMatchday?.number ?? null}
-          rows={withRank.map((s) => ({
-            playerId: s.id,
-            displayName: s.display_name,
-            fullName: s.full_name,
-            rank: s.rank,
-            alive: s.alive,
-            totalSlots: s.slots.length,
-            isMe: s.id === player.id,
-            isFinished: tournament.status === "finished",
-            prizeLabel: tournament.winners.includes(s.id)
-              ? `${(s.prizeShare * 100).toLocaleString("it-IT", {
-                  maximumFractionDigits: 1,
-                })}%${
-                  tournament.slot_value > 0
-                    ? ` · ${prizeFormat.format(tournament.slot_value * totalSlots * s.prizeShare)}`
-                    : ""
-                }`
-              : null,
-            picks: livePicksByPlayer?.get(s.id) ?? null,
-          }))}
-        />
-      ) : null}
-
-      {matchdayBackupUrl ? (
-        <p className="text-center text-xs text-foreground-faint">
-          <a href={matchdayBackupUrl} className="underline hover:text-accent" download>
-            Scarica Excel del torneo
-          </a>
         </p>
       ) : null}
     </div>

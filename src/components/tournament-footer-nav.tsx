@@ -10,10 +10,13 @@ import { BarChartIcon, CalendarIcon, ClockIcon, UserIcon } from "@/components/ru
  * icone (niente etichette: confermato dall'utente), attiva sul verde
  * scuro fisso dell'header (.header-terra, vedi globals.css) per lo
  * stesso motivo — resta la stessa "cornice" fissa dell'app a
- * prescindere dal tema chiaro/scuro scelto. "Tu" punta al profilo
- * globale (non per-torneo): prima era l'icona utente nell'header,
- * tolta da lì per lasciarci solo il menu ad hamburger (vedi
- * play/(app)/layout.tsx). */
+ * prescindere dal tema chiaro/scuro scelto. Icone grandi (56px, non le
+ * 44px iniziali): segnalate "piccoline" lo stesso giorno. "Tu" porta al
+ * profilo globale (non per-torneo, prima era l'icona utente nell'header,
+ * tolta da lì per lasciarci solo il menu ad hamburger — vedi
+ * play/(app)/layout.tsx) mantenendo però il torneo in `?t=`, così la
+ * pagina profilo può rimontare la STESSA barra (vedi
+ * play/(app)/profile/page.tsx) invece di farla sparire. */
 export function TournamentFooterNav({ tournamentId }: { tournamentId: string }) {
   const pathname = usePathname();
 
@@ -21,7 +24,7 @@ export function TournamentFooterNav({ tournamentId }: { tournamentId: string }) 
     { href: `/play/${tournamentId}`, label: "Giornata", Icon: CalendarIcon },
     { href: `/play/${tournamentId}/storico`, label: "Storico", Icon: ClockIcon },
     { href: `/play/${tournamentId}/stats`, label: "Stats", Icon: BarChartIcon },
-    { href: "/play/profile", label: "Tu", Icon: UserIcon },
+    { href: `/play/profile?t=${tournamentId}`, label: "Tu", Icon: UserIcon },
   ];
 
   return (
@@ -30,20 +33,20 @@ export function TournamentFooterNav({ tournamentId }: { tournamentId: string }) 
       style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
       aria-label="Navigazione torneo"
     >
-      <div className="flex items-center gap-1 rounded-full bg-background p-1.5 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.6)]">
+      <div className="flex items-center gap-1.5 rounded-full bg-background p-2 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.6)]">
         {items.map(({ href, label, Icon }) => {
-          const active = pathname === href;
+          const active = pathname === href.split("?")[0];
           return (
             <Link
               key={href}
               href={href}
               aria-label={label}
               aria-current={active ? "page" : undefined}
-              className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+              className={`flex h-14 w-14 items-center justify-center rounded-full transition-colors ${
                 active ? "text-accent" : "text-foreground-soft hover:text-accent"
               }`}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-6 w-6" />
             </Link>
           );
         })}
