@@ -56,8 +56,12 @@
   --surface: #0f231b;
   --surface-2: #173326;
   --foreground: #eaf5ee;
-  --foreground-soft: #9fc2ab;
-  --foreground-faint: #5f8570;
+  /* Testo secondario/eyebrow (es. "Area giocatore", "Slot da
+     schierare", "Schiera entro") sabbia, non più verde salvia come la
+     vecchia identità: richiesto dall'utente il 2026-09-24, leggeva
+     "troppo verdino" sopra il verde scuro di sfondo. */
+  --foreground-soft: #d3c4a0;
+  --foreground-faint: #a89877;
   --line: #24422f;
   color-scheme: dark;
 }

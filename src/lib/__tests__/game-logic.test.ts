@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   applyMatchdayResults,
+  assignRanks,
   computeFinalPrizeShares,
   computeRoundOutcomes,
   computeTeamOutcomes,
@@ -302,4 +303,26 @@ test('computeFinalPrizeShares: slot eliminati in una giornata precedente a quell
 test('computeFinalPrizeShares: nessuno slot dei vincitori trovato -> array vuoto', () => {
   const shares = computeFinalPrizeShares([], ['p1'], 5)
   assert.deepEqual(shares, [])
+})
+
+test('assignRanks: pari merito in testa, il terzo salta la posizione 2', () => {
+  const sorted = [{ id: 'a', alive: 5 }, { id: 'b', alive: 5 }, { id: 'c', alive: 3 }]
+  const ranked = assignRanks(sorted, (s) => s.alive)
+  assert.deepEqual(
+    ranked.map((r) => r.rank),
+    [1, 1, 3]
+  )
+})
+
+test('assignRanks: nessun pari merito -> posizioni consecutive', () => {
+  const sorted = [{ id: 'a', alive: 5 }, { id: 'b', alive: 3 }, { id: 'c', alive: 1 }]
+  const ranked = assignRanks(sorted, (s) => s.alive)
+  assert.deepEqual(
+    ranked.map((r) => r.rank),
+    [1, 2, 3]
+  )
+})
+
+test('assignRanks: array vuoto -> array vuoto', () => {
+  assert.deepEqual(assignRanks([], () => 0), [])
 })

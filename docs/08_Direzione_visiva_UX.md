@@ -38,8 +38,30 @@ di partire con questa parte: lo stato di ogni voce è segnato qui sotto.
   restyling. Classe `.header-terra` in
   [globals.css](../src/app/globals.css), che ri-dichiara le variabili
   di colore solo dentro l'header: tutto quello che ci sta dentro (logo,
-  menu ☰/account, il contatore "Slot da schierare" del picker
-  portalato lì) le eredita senza bisogno di toccare ogni componente.
+  menu ☰, il contatore "Slot da schierare" del picker portalato lì, e
+  ora anche la barra flottante sotto — vedi sotto) le eredita senza
+  bisogno di toccare ogni componente. Testo secondario/eyebrow
+  ("Area giocatore", "Slot da schierare", "Schiera entro") sabbia, non
+  più verde salvia della vecchia identità — segnalato "troppo verdino"
+  lo stesso giorno.
+- **Fatto (2026-09-24) — header ridotto a logo + menu ☰, navigazione nel
+  footer**: la schermata di un torneo (specialmente con molti
+  giocatori/slot, es. Fantafill: 11 giocatori, 35 slot) aveva troppa
+  roba da scorrere. Tolti dall'header la freccetta "indietro" (il logo
+  stesso torna a "I tuoi tornei", cliccandolo) e l'icona account (il
+  cerchio col profilo/uscita è confluito nel menu ☰, vedi
+  [player-header-menus.tsx](../src/components/player-header-menus.tsx));
+  tolto anche il cerchio col bordo attorno all'icona ☰ stessa, resta
+  solo il tratto. Al suo posto, una **barra flottante in fondo allo
+  schermo** (`.header-terra`, stessa base verde scura dell'header —
+  vedi [tournament-footer-nav.tsx](../src/components/tournament-footer-nav.tsx)),
+  solo icone (niente etichette, confermato dall'utente): **Giornata**
+  (la schermata principale di oggi), **Storico**, **Stats**, **Tu**
+  (profilo — non più "Classifica" a parte: lo Storico, ordinato per
+  slot vivi, fa già da classifica). Storico e Stats sono ora pagine
+  proprie (`/play/[tournamentId]/storico` e `/…/stats`), non più sezioni
+  in pagina — vedi [04_Schermate_app.md](./04_Schermate_app.md) e
+  [07_Task_sviluppo.md](./07_Task_sviluppo.md).
 - Interfaccia pulita, poche schermate, flusso costante: evitare di
   disperdere l'utente in tante sezioni. Oggi l'app è già abbastanza
   compatta (home, torneo, dashboard, regolamento, how-it-works) — da

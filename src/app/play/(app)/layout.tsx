@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { Brandbar } from "@/components/brandbar";
-import { HeaderBackLink } from "@/components/header-back-link";
-import { HamburgerMenu, UserMenu } from "@/components/player-header-menus";
+import { HamburgerMenu } from "@/components/player-header-menus";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
 import { playerSignOutAction } from "../actions";
@@ -42,13 +41,11 @@ export default async function PlayAreaLayout({
           tutte le altre pagine di /play (nessun impatto visivo lì). */}
       <header className="header-terra sticky top-0 z-10 flex flex-col border-b border-line bg-background">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3 px-7 py-3 sm:py-4">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <HeaderBackLink />
+          <div className="min-w-0">
             <Brandbar subtitle="Area giocatore" href="/play" />
           </div>
-          <div className="flex flex-none items-center gap-2.5">
-            <HamburgerMenu />
-            <UserMenu email={user.email ?? ""} signOutAction={playerSignOutAction} />
+          <div className="flex flex-none items-center">
+            <HamburgerMenu email={user.email ?? ""} signOutAction={playerSignOutAction} />
           </div>
         </div>
         <div id="picker-sticky-bar-slot" />

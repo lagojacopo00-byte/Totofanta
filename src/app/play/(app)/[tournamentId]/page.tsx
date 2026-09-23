@@ -1,17 +1,13 @@
 import { notFound } from "next/navigation";
 import { requirePlayer } from "@/lib/supabase/require-player";
 import * as queries from "@/lib/queries";
-import { card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
-import { TeamBadge } from "@/components/team-badge";
+import { card, eyebrow, pillAlive, pillOut } from "@/components/ui";
 import { TrophyIcon } from "@/components/rule-icons";
-import { PlayerSlotHistoryTable } from "@/components/player-slot-history-table";
-import { AliveCount } from "@/components/alive-count";
 import { computePickDeadline, isPickingWindowOpen } from "@/lib/pick-window";
 import { groupFixturesByDay } from "@/lib/match-window";
-import { computeFinalPrizeShares, computeTeamOutcomes } from "@/lib/game-logic";
+import { assignRanks, computeFinalPrizeShares, computeTeamOutcomes } from "@/lib/game-logic";
 import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
 import { MatchdayRecap, type RecapSlot } from "./matchday-recap";
-import { OtherPlayersHistory } from "./other-players-history";
 import { StandingsList } from "./standings-list";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { resolveLivePicks } from "@/lib/live-picks";
@@ -68,7 +64,7 @@ export default async function PlayerTournamentPage(
     return a.label.localeCompare(b.label);
   });
 
-  const [matchdays, allPicks, availableTeams, standings, matchdayBackupUrl, slotHistory] =
+  const [matchdays, allPicks, availableTeams, standings, matchdayBackupUrl] =
     await Promise.all([
       queries.getMatchdays(supabase, tournament.id),
       queries.getAllPicksForTournamentSlots(supabase, slots.map((s) => s.id)),
@@ -77,12 +73,9 @@ export default async function PlayerTournamentPage(
       tournament.auto_backup_matchdays
         ? queries.getMatchdayBackupUrl(supabase, tournament.id)
         : Promise.resolve(null),
-      queries.getTournamentSlotHistory(supabase, tournament.id),
     ]);
 
   const openMatchday = matchdays.find((m) => m.status === "open");
-  const myHistory = slotHistory.players.find((p) => p.playerId === player.id);
-  const otherHistories = slotHistory.players.filter((p) => p.playerId !== player.id);
 
   // Accoppiamenti reali di Serie A per la giornata aperta (giornata N del
   // torneo = giornata reale N) — vedi src/app/dashboard/fixtures.
@@ -141,7 +134,8 @@ export default async function PlayerTournamentPage(
   // aequo "zero superstiti" anche i vincitori risultano a 0 (i loro slot
   // sono `eliminated`, vedi computeFinalPrizeShares), che appiattirebbe
   // tutti alla stessa posizione proprio quando la classifica finale conta
-  // di più. Pari merito quando la chiave di ordinamento coincide.
+  // di più. Pari merito quando la chiave di ordinamento coincide (vedi
+  // assignRanks in game-logic.ts).
   const rankedStandings = standings
     .map((s) => ({
       ...s,
@@ -151,20 +145,9 @@ export default async function PlayerTournamentPage(
     .sort((a, b) =>
       tournament.status === "finished" ? b.prizeShare - a.prizeShare : b.alive - a.alive
     );
-  const withRank = rankedStandings.reduce<
-    ((typeof rankedStandings)[number] & { rank: number })[]
-  >((acc, s, idx) => {
-    const previous = acc[idx - 1];
-    const tieKey = tournament.status === "finished" ? s.prizeShare : s.alive;
-    const previousTieKey = previous
-      ? tournament.status === "finished"
-        ? previous.prizeShare
-        : previous.alive
-      : undefined;
-    const rank = previous && previousTieKey === tieKey ? previous.rank : idx + 1;
-    acc.push({ ...s, rank });
-    return acc;
-  }, []);
+  const withRank = assignRanks(rankedStandings, (s) =>
+    tournament.status === "finished" ? s.prizeShare : s.alive
+  );
 
   // Statistiche del torneo, per la panoramica: quanti giocatori in totale
   // e quanti slot sono ancora vivi sul totale complessivo.
@@ -180,40 +163,7 @@ export default async function PlayerTournamentPage(
   const myAliveSlots = slots.filter((s) => s.status === "alive").length;
   const tiedWithMe = withRank.filter((s) => s.rank === myRank).length - 1;
 
-  // Tutte le squadre già giocate da questo giocatore (su qualunque suo
-  // slot), per il piccolo "album" delle squadre bruciate finora — con,
-  // per ciascuna, su quanti dei suoi slot ANCORA VIVI non è più
-  // disponibile: è l'informazione che serve davvero mentre si sceglie,
-  // non solo "l'hai già giocata da qualche parte".
-  const playedTeams = Array.from(new Set(allPicks.map((p) => p.team_id)))
-    .map((id) => ({ id, name: teamById.get(id) }))
-    .filter((t): t is { id: string; name: string } => Boolean(t.name))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
   const myAliveSlotsList = slots.filter((s) => s.status === "alive");
-
-  const teamAliveBurnCount = new Map<string, number>();
-  for (const slot of myAliveSlotsList) {
-    const usedTeamIds = new Set(
-      allPicks
-        .filter(
-          (p) =>
-            p.slot_id === slot.id &&
-            (!openMatchday || p.matchday_id !== openMatchday.id)
-        )
-        .map((p) => p.team_id)
-    );
-    for (const teamId of usedTeamIds) {
-      teamAliveBurnCount.set(teamId, (teamAliveBurnCount.get(teamId) ?? 0) + 1);
-    }
-  }
-
-  // Solo le squadre che bloccano ancora almeno uno slot vivo: quelle
-  // giocate solo su slot ormai eliminati non contano più per le scelte
-  // future, mostrarle sarebbe solo rumore.
-  const burnedTeams = playedTeams.filter(
-    (t) => (teamAliveBurnCount.get(t.id) ?? 0) > 0
-  );
 
   // Scadenza per schierare = orario del primo calcio d'inizio non escluso
   // di QUESTA giornata (non più un giorno fisso di calendario) — vedi
@@ -512,108 +462,6 @@ export default async function PlayerTournamentPage(
         <p className="text-sm text-foreground-faint">
           Nessuna giornata aperta. Per ora riposa.
         </p>
-      ) : null}
-
-      <div className="grid grid-cols-3 gap-2.5">
-        <div className={`${cardTight} text-center`}>
-          <p className="font-mono text-2xl font-bold text-foreground">
-            {totalPlayers}
-          </p>
-          <p className="mt-0.5 text-[11px] text-foreground-faint">
-            {totalPlayers === 1 ? "giocatore" : "giocatori"}
-          </p>
-        </div>
-        <div className={`${cardTight} text-center`}>
-          <p className="font-mono text-2xl font-bold text-accent">
-            {aliveSlots}
-          </p>
-          <p className="mt-0.5 text-[11px] text-foreground-faint">
-            slot in gara
-          </p>
-        </div>
-        <div className={`${cardTight} text-center`}>
-          <p className="font-mono text-2xl font-bold text-foreground">
-            {totalSlots}
-          </p>
-          <p className="mt-0.5 text-[11px] text-foreground-faint">
-            slot totali
-          </p>
-        </div>
-      </div>
-
-      {/* Storico: direttamente in pagina, niente click per aprirlo (richiesto
-          dall'utente il 2026-09-04 — prima era una pagina a parte). Il
-          proprio storico è aperto di default ma richiudibile come quello
-          degli altri (con <details>, niente JS necessario) — quello degli
-          altri giocatori resta un elenco apribile/chiudibile uno alla
-          volta, sotto. Solo se almeno una giornata è già chiusa: prima non
-          c'è niente da vedere. */}
-      {slotHistory.matchdayNumbers.length > 0 && myHistory && myHistory.slots.length > 0 ? (
-        <section className="flex flex-col gap-3">
-          <p className={eyebrow}>Storico</p>
-          <details open className={`${cardTight} group`}>
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
-              <span className="font-display text-sm font-bold text-foreground">
-                {player.display_name} (tu)
-              </span>
-              <span className="flex flex-none items-center gap-2">
-                <AliveCount alive={myAliveSlots} total={myHistory.slots.length} />
-                <span className="text-foreground-faint transition-transform group-open:rotate-180">
-                  ▾
-                </span>
-              </span>
-            </summary>
-            <div className="mt-3">
-              <PlayerSlotHistoryTable
-                matchdayNumbers={slotHistory.matchdayNumbers}
-                slots={myHistory.slots}
-              />
-            </div>
-          </details>
-          {otherHistories.length > 0 ? (
-            <OtherPlayersHistory
-              matchdayNumbers={slotHistory.matchdayNumbers}
-              players={otherHistories}
-            />
-          ) : null}
-        </section>
-      ) : null}
-
-      {burnedTeams.length > 0 ? (
-        <section className={cardTight}>
-          <details>
-            <summary className="flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden">
-              <p className={eyebrow}>Le squadre già bruciate</p>
-              <InfoIcon className="h-3.5 w-3.5 flex-none text-foreground-faint" />
-            </summary>
-            <p className="mt-2 rounded-lg border border-line bg-surface-2 p-2.5 text-[11px] leading-relaxed text-foreground-soft">
-              Il numero sotto ogni squadra dice su quanti dei tuoi slot
-              ancora vivi non puoi più schierarla: l&apos;hai già usata lì in
-              una giornata precedente.
-            </p>
-          </details>
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {burnedTeams.map((t) => {
-              const burned = teamAliveBurnCount.get(t.id) ?? 0;
-              return (
-                <span
-                  key={t.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 py-1 pl-1 pr-2.5"
-                >
-                  <TeamBadge name={t.name} size="sm" />
-                  <span className="text-[11px] text-foreground-faint">
-                    {t.name}
-                    {" · "}
-                    <span className="font-mono text-foreground">
-                      {burned}/{myAliveSlotsList.length}
-                    </span>{" "}
-                    slot vivi
-                  </span>
-                </span>
-              );
-            })}
-          </div>
-        </section>
       ) : null}
 
       {/* La tua posizione: spostata più in basso di proposito — mentre si

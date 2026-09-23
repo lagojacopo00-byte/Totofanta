@@ -30,21 +30,34 @@
 ## Area giocatore (`/play`, richiede login giocatore)
 
 - `/play` — elenco dei propri tornei con anteprima slot vivi e countdown
-- `/play/[tournamentId]` — la schermata principale: in cima il premio in
-  palio e la propria quota (se l'organizzatore ha impostato un valore
-  per slot), poi il **picker** (una sola lista di partite per la
-  giornata aperta, raggruppate per giorno e mostrate casa-ospite con
+- `/play/[tournamentId]` ("Giornata") — la schermata principale: in cima
+  il premio in palio e la propria quota (se l'organizzatore ha impostato
+  un valore per slot), poi il **picker** (una sola lista di partite per
+  la giornata aperta, raggruppate per giorno e mostrate casa-ospite con
   "vs"; si clicca il badge di una squadra per assegnarle uno slot in
   più, un bottone rosso "−" ne toglie uno, si conferma tutto insieme —
   resta visibile in sola lettura, con gli orari, anche a scelte chiuse;
-  vedi [07_Task_sviluppo.md](./07_Task_sviluppo.md)), poi storico
-  squadre giocate, posizione in classifica, classifica completa (ogni
-  riga si apre sulle scelte di quel giocatore per la giornata in corso,
-  visibili a tutti — vedi [02_Regole_gioco.md](./02_Regole_gioco.md))
+  vedi [07_Task_sviluppo.md](./07_Task_sviluppo.md)), poi posizione in
+  classifica e classifica completa (ogni riga si apre sulle scelte di
+  quel giocatore per la giornata in corso, visibili a tutti — vedi
+  [02_Regole_gioco.md](./02_Regole_gioco.md))
+- `/play/[tournamentId]/storico` ("Storico") — storico completo del
+  torneo come classifica: una riga per giocatore in ordine di slot vivi
+  decrescente (pari merito = stesso numero), il proprio evidenziato; un
+  click apre la tabella giornata per giornata di quel giocatore
+- `/play/[tournamentId]/stats` ("Stats") — i numeri del torneo:
+  giocatori, slot ancora in gara, slot totali
 - `/play/how-it-works` — tutorial (mostrato obbligatoriamente la prima
   volta, poi sempre raggiungibile dal menu)
 - `/play/regolamento` — regolamento completo con i casi particolari
   (rinvii, tavolino, mancata scelta, ecc.)
+
+Le tre schermate di un torneo (Giornata/Storico/Stats) più il profilo
+("Tu") si raggiungono da una barra flottante in fondo allo schermo, solo
+icone — vedi [08_Direzione_visiva_UX.md](./08_Direzione_visiva_UX.md).
+Nell'header sopra resta solo il logo (torna a "I tuoi tornei") e il menu
+☰ (le altre pagine — tutorial, regolamento, modalità admin — più
+profilo/uscita, spostati lì dall'icona account che c'era prima).
 
 ## Proposte, non ancora costruite
 

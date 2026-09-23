@@ -12,10 +12,11 @@ import type { TournamentSlotHistoryPlayer } from "@/lib/queries";
  * dire aver sempre vinto, quindi l'unica cosa da segnalare è che quello
  * slot è uscito. Le giornate dopo l'eliminazione restano vuote: lo slot
  * non gioca più. La colonna "Slot" resta fissa (sticky) mentre si scorre
- * in orizzontale, per i tornei con molte giornate già giocate. Usato
- * direttamente nella pagina del torneo (play/[tournamentId]/page.tsx),
- * sopra le squadre già bruciate — spostato lì dal 2026-09-04 da una
- * pagina "Storico" separata, per vederlo senza dover cliccare via.
+ * in orizzontale, per i tornei con molte giornate già giocate. Usato da
+ * storico-list.tsx nella pagina Storico dedicata
+ * (play/[tournamentId]/storico) — era stato portato dentro alla pagina
+ * del torneo il 2026-09-04, spostato di nuovo qui il 2026-09-24 per
+ * sfoltirla (troppa roba da scorrere con molti giocatori/slot).
  */
 export function PlayerSlotHistoryTable({
   matchdayNumbers,

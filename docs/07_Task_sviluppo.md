@@ -844,3 +844,21 @@ su richiesta esplicita dell'utente questa parte è partita. Dettagli in
   eseguire in produzione**), applicato via `data-theme` sull'`<html>`
   letto da un cookie sincronizzato a ogni login. Dettagli in
   [08_Direzione_visiva_UX.md](./08_Direzione_visiva_UX.md).
+- **Header ridotto a logo + menu ☰, Storico/Stats spostati in pagine
+  proprie, navigazione in una barra flottante** (richiesto dall'utente
+  il 2026-09-24, torneo Fantafill: 11 giocatori, 35 slot — troppa roba
+  da scorrere): tolti dalla schermata principale del torneo il blocco
+  statistiche (giocatori/slot in gara/slot totali), lo storico inline e
+  "le squadre già bruciate" (ridondante: già visibile nello storico).
+  Storico e Stats sono ora `/play/[tournamentId]/storico` e `/…/stats`,
+  raggiungibili con Giornata (la schermata principale) e Tu (profilo)
+  da una barra flottante in fondo allo schermo, solo icone. Lo Storico è
+  ora ordinato come una classifica (slot vivi decrescente, pari merito
+  = stesso numero — nuova `assignRanks` in
+  [game-logic.ts](../src/lib/game-logic.ts), condivisa con la classifica
+  della schermata principale), il proprio evidenziato: sostituisce la
+  necessità di una Classifica separata, scartata di proposito. "La tua
+  posizione" e la classifica con le scelte live della giornata restano
+  sulla schermata principale, invariate. Dettagli in
+  [08_Direzione_visiva_UX.md](./08_Direzione_visiva_UX.md) e
+  [04_Schermate_app.md](./04_Schermate_app.md).

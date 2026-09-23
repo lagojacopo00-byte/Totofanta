@@ -285,3 +285,25 @@ export function computeFinalPrizeShares(
     share: count / totalWinningSlots,
   }))
 }
+
+/**
+ * Assegna la posizione a una classifica: `sorted` deve già essere
+ * ordinato per `keyOf` decrescente. Pari merito quando la chiave
+ * coincide con la riga precedente (stessa posizione), altrimenti la
+ * posizione è l'indice 1-based — es. due primi pari merito vedono
+ * entrambi 1, il terzo vede 3, non 2 (la posizione "salta"). Usata sia
+ * dalla classifica del torneo sia dallo Storico, che ordina per slot
+ * vivi invece che per quota montepremi.
+ */
+export function assignRanks<T>(
+  sorted: T[],
+  keyOf: (item: T) => number
+): (T & { rank: number })[] {
+  return sorted.reduce<(T & { rank: number })[]>((acc, item, idx) => {
+    const previous = acc[idx - 1]
+    const key = keyOf(item)
+    const rank = previous && keyOf(previous) === key ? previous.rank : idx + 1
+    acc.push({ ...item, rank })
+    return acc
+  }, [])
+}

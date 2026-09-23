@@ -21,9 +21,19 @@ const dropdown =
 const dropdownLink =
   "block rounded-lg px-3 py-2 text-sm text-foreground-soft transition-colors hover:bg-surface-2 hover:text-foreground";
 
-/** Menu ☰: le pagine di contorno (tutorial, regolamento) che non servono
- * a colpo d'occhio ogni volta, tolte dall'header per lasciargli spazio. */
-export function HamburgerMenu() {
+/** Menu ☰: unica voce di navigazione rimasta nell'header (richiesto
+ * dall'utente il 2026-09-24 — prima c'era anche l'icona account a
+ * parte, ora l'account/uscita sono qui sotto, e il conto alla rovescia
+ * per schierare/la freccetta indietro sono spariti perché il logo
+ * stesso torna a "I tuoi tornei"). Nessun cerchio attorno all'icona
+ * (richiesto lo stesso giorno): solo il tratto dell'hamburger. */
+export function HamburgerMenu({
+  email,
+  signOutAction,
+}: {
+  email: string;
+  signOutAction: () => Promise<void>;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useClickOutside(() => setOpen(false));
 
@@ -34,9 +44,9 @@ export function HamburgerMenu() {
         aria-label="Menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex h-9 w-9 flex-none items-center justify-center rounded-full border border-line text-foreground-soft transition-colors hover:border-accent hover:text-accent"
+        className="flex h-9 w-9 flex-none items-center justify-center text-foreground-soft transition-colors hover:text-accent"
       >
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
             d="M4 6h16M4 12h16M4 18h16"
             stroke="currentColor"
@@ -64,45 +74,7 @@ export function HamburgerMenu() {
           >
             Modalità admin
           </Link>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-/** Icona utente in alto a destra: email dell'account e uscita, tolte
- * dall'header diretto per lasciare spazio al contenuto della pagina. */
-export function UserMenu({
-  email,
-  signOutAction,
-}: {
-  email: string;
-  signOutAction: () => Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useClickOutside(() => setOpen(false));
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        aria-label="Account"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-        className="flex h-9 w-9 flex-none items-center justify-center rounded-full border border-line text-foreground-soft transition-colors hover:border-accent hover:text-accent"
-      >
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="8.5" r="3.2" stroke="currentColor" strokeWidth="1.8" />
-          <path
-            d="M4.8 19.2c1.3-3.2 4-4.9 7.2-4.9s5.9 1.7 7.2 4.9"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
-      {open ? (
-        <div className={`${dropdown} right-0`}>
+          <div className="my-1 border-t border-line" />
           <p className="truncate px-3 py-1.5 text-xs text-foreground-faint">{email}</p>
           <Link href="/play/profile" className={dropdownLink} onClick={() => setOpen(false)}>
             Profilo
