@@ -40,7 +40,7 @@ export default async function PlayAreaLayout({
           dello stesso blocco sticky — non può scollarsi dall'header per
           costruzione, non c'è nessun valore da far combaciare. Vuoto su
           tutte le altre pagine di /play (nessun impatto visivo lì). */}
-      <header className="sticky top-0 z-10 flex flex-col border-b border-line bg-background">
+      <header className="header-terra sticky top-0 z-10 flex flex-col border-b border-line bg-background">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3 px-7 py-3 sm:py-4">
           <div className="flex min-w-0 items-center gap-1.5">
             <HeaderBackLink />

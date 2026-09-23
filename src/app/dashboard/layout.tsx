@@ -15,7 +15,7 @@ export default async function DashboardLayout({
     // header `position: sticky` che dipende dallo scroll del documento
     // riapre il bug di scroll orizzontale su Safari iOS già risolto lì.
     <div className="flex h-dvh flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain">
-      <header className="sticky top-0 z-10 border-b border-line bg-background px-7 py-4">
+      <header className="header-terra sticky top-0 z-10 border-b border-line bg-background px-7 py-4">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between">
           <Brandbar subtitle="Dashboard organizzatore" />
           <div className="flex items-center gap-3">

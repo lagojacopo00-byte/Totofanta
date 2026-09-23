@@ -31,6 +31,15 @@ di partire con questa parte: lo stato di ogni voce è segnato qui sotto.
   subito quando si cambia tema dal profilo, e si risincronizza dal
   valore salvato sull'account a ogni login (così un dispositivo/browser
   nuovo parte già con la scelta giusta, non con il default).
+- **Fatto (2026-09-24) — header verde scuro fisso**: su richiesta
+  esplicita dell'utente, l'header dell'area giocatore e della dashboard
+  (non il resto della pagina) resta sulla vecchia base verde scura a
+  prescindere dal tema chiaro/scuro scelto — stesso verde di prima del
+  restyling. Classe `.header-terra` in
+  [globals.css](../src/app/globals.css), che ri-dichiara le variabili
+  di colore solo dentro l'header: tutto quello che ci sta dentro (logo,
+  menu ☰/account, il contatore "Slot da schierare" del picker
+  portalato lì) le eredita senza bisogno di toccare ogni componente.
 - Interfaccia pulita, poche schermate, flusso costante: evitare di
   disperdere l'utente in tante sezioni. Oggi l'app è già abbastanza
   compatta (home, torneo, dashboard, regolamento, how-it-works) — da

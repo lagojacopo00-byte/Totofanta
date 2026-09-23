@@ -42,6 +42,26 @@
   color-scheme: dark;
 }
 
+/* L'header dell'area giocatore/dashboard resta verde scuro a
+   prescindere dal tema chiaro/scuro scelto per il resto del sito
+   (richiesta esplicita dell'utente il 2026-09-23) — la stessa base
+   verde della vecchia identità, tenuta solo qui. Ri-dichiara le
+   variabili di colore (non --accent, resta senape ovunque): tutto
+   quello che sta dentro l'header (logo, menu, contatore slot del
+   picker portalato lì dentro — vedi #picker-sticky-bar-slot in
+   src/app/play/(app)/layout.tsx) le eredita in automatico, senza dover
+   toccare ogni componente. */
+.header-terra {
+  --background: #081712;
+  --surface: #0f231b;
+  --surface-2: #173326;
+  --foreground: #eaf5ee;
+  --foreground-soft: #9fc2ab;
+  --foreground-faint: #5f8570;
+  --line: #24422f;
+  color-scheme: dark;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
