@@ -705,7 +705,43 @@ richiede prima una decisione di prodotto).
   `add_slot_value_to_invite_preview.sql` e
   [06_Database.md](./06_Database.md).
 
+- **Fatto (2026-09-24) — calendario Serie A protetto e sincronizzato da
+  solo**: con l'apertura a nuovi utenti, chiunque organizzasse un torneo
+  poteva modificare/cancellare le partite condivise da TUTTI i tornei
+  (policy RLS troppo larga). Ora solo il creator scrive su
+  `serie_a_fixtures` (funzione `is_creator()` + policy, vedi
+  `supabase/restrict_fixtures_to_creator.sql`; azioni server e UI di
+  `/dashboard/fixtures` sono in sola lettura per gli altri). In più cron
+  giornaliero Vercel (`vercel.json` → `/api/cron/sync-fixtures`, protetto
+  da `CRON_SECRET`) che sincronizza orari e risultati da
+  football-data.org senza dipendere dal clic del creator. Chiave
+  `FOOTBALL_API_KEY` verificata: risponde 200, 380 partite.
+  **Da fare a mano**: eseguire la migrazione SQL su Supabase e impostare
+  `FOOTBALL_API_KEY` + `CRON_SECRET` su Vercel.
+
 ## Da fare — complessa
+
+**Cambio di scope (2026-09-24)**: l'utente ha ripensato la decisione
+"solo amici" del 2026-09-02 e vuole aprire a più utenti e monetizzare.
+Le voci sotto derivano da questa idea. Vanno chiarite le implicazioni
+legali/fiscali (partita IVA, IVA 22% sui consumatori, niente incasso di
+quote di iscrizione/montepremi per non ricadere nel gioco d'azzardo)
+prima di attivare pagamenti reali.
+
+- **Simulatore "e se…" (a pagamento, ~5 €)** — complessa. Lo schieramento
+  di oggi con gli slot (es. Inter-Milan → vince Inter, ecc.), poi vedere
+  il calendario delle giornate successive e simulare le scelte future,
+  per pianificare il percorso. Stack di pagamento previsto: Stripe
+  Checkout (~1,5% + 0,25 € a transazione su carte UE, da verificare).
+  Prerequisiti: gestione utenti pubblica (sotto) e flag "premium" per
+  utente/torneo su DB.
+- **Onboarding utenti aperto** — media/complessa. Registrazione
+  email+password, recupero password, verifica email, gestione abusi
+  (rate limit). Oggi è pensato per gruppi di amici su invito.
+- **Creazione torneo con più regole personalizzabili** — media/complessa.
+  Più scelte sulle regole al momento della creazione (da definire quali
+  con l'utente). Torneo a pagamento scartato: si monetizza solo lo
+  strumento.
 
 - **Documentazione tecnica per portfolio** (richiesta esplicitamente per
   più avanti, NON avviare finché l'utente non lo chiede direttamente):

@@ -92,10 +92,9 @@ export default async function FixturesPage(
         </h1>
         <p className="mt-2 max-w-lg text-sm text-foreground-soft">
           La giornata N di un torneo corrisponde alla giornata N del
-          campionato vero: qui tieni aggiornato chi gioca contro chi, così
-          i tuoi giocatori lo vedono al momento della scelta. Il
-          calendario arriva dalla sincronizzazione con football-data.org
-          — usa &quot;Sincronizza ora&quot; per aggiornarlo.
+          campionato vero. Il calendario è uguale per tutti i tornei e si
+          aggiorna da solo dalla sincronizzazione con football-data.org:
+          qui puoi solo consultarlo.
         </p>
       </div>
 
@@ -197,42 +196,46 @@ export default async function FixturesPage(
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {isCreator ? <FixtureResultButtons fixture={f} /> : null}
-                      <form
-                        action={setFixtureKickoffAction.bind(null, f.id)}
-                        className="flex items-center gap-1.5"
-                      >
-                        <input
-                          className={`${input} w-auto py-1 text-xs`}
-                          type="datetime-local"
-                          name="kickoff_at"
-                          defaultValue={toDatetimeLocalValue(f.kickoff_at)}
-                        />
-                        <button
-                          className={`${buttonGhost} px-2 py-1 text-xs`}
-                          type="submit"
-                        >
-                          Salva ora
-                        </button>
-                      </form>
-                      <form
-                        action={toggleFixtureStatusAction.bind(null, f.id, f.status)}
-                      >
-                        <button
-                          className={`${buttonGhost} px-2 py-1 text-xs`}
-                          type="submit"
-                          title="Una partita esclusa non conta ai fini del gioco per questa giornata"
-                        >
-                          {isExcluded ? "Includi di nuovo" : "Escludi"}
-                        </button>
-                      </form>
-                      <form action={deleteFixtureAction.bind(null, f.id)}>
-                        <button
-                          className={`${buttonGhost} px-2 py-1 text-xs border-lose/40 text-lose hover:border-lose hover:text-lose`}
-                          type="submit"
-                        >
-                          Elimina
-                        </button>
-                      </form>
+                      {isCreator ? (
+                        <>
+                          <form
+                            action={setFixtureKickoffAction.bind(null, f.id)}
+                            className="flex items-center gap-1.5"
+                          >
+                            <input
+                              className={`${input} w-auto py-1 text-xs`}
+                              type="datetime-local"
+                              name="kickoff_at"
+                              defaultValue={toDatetimeLocalValue(f.kickoff_at)}
+                            />
+                            <button
+                              className={`${buttonGhost} px-2 py-1 text-xs`}
+                              type="submit"
+                            >
+                              Salva ora
+                            </button>
+                          </form>
+                          <form
+                            action={toggleFixtureStatusAction.bind(null, f.id, f.status)}
+                          >
+                            <button
+                              className={`${buttonGhost} px-2 py-1 text-xs`}
+                              type="submit"
+                              title="Una partita esclusa non conta ai fini del gioco per questa giornata"
+                            >
+                              {isExcluded ? "Includi di nuovo" : "Escludi"}
+                            </button>
+                          </form>
+                          <form action={deleteFixtureAction.bind(null, f.id)}>
+                            <button
+                              className={`${buttonGhost} px-2 py-1 text-xs border-lose/40 text-lose hover:border-lose hover:text-lose`}
+                              type="submit"
+                            >
+                              Elimina
+                            </button>
+                          </form>
+                        </>
+                      ) : null}
                     </div>
                   </li>
                 );

@@ -581,13 +581,28 @@ create policy "authenticated users read serie a fixtures"
   on serie_a_fixtures for select
   using (auth.uid() is not null);
 
--- Chiunque sia autenticato può tenerlo aggiornato: l'app non ha un ruolo
--- "admin" separato dall'organizzatore, e il calendario è condiviso da
--- tutti i tornei.
-create policy "authenticated users manage serie a fixtures"
+-- Solo il creator (account che gestisce l'app, vedi profiles.role) può
+-- modificarlo: il calendario è condiviso da tutti i tornei, quindi un
+-- organizzatore qualunque non deve poterlo toccare. La sincronizzazione
+-- automatica usa il client service-role (bypassa le RLS). Vedi
+-- supabase/restrict_fixtures_to_creator.sql.
+create or replace function public.is_creator()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'creator'
+  );
+$$;
+
+create policy "only creator manages serie a fixtures"
   on serie_a_fixtures for all
-  using (auth.uid() is not null)
-  with check (auth.uid() is not null);
+  using (public.is_creator())
+  with check (public.is_creator());
 
 -- ---------------------------------------------------------------------------
 -- STORAGE — backup Excel delle giornate (tournaments.auto_backup_matchdays)

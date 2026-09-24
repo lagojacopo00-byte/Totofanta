@@ -15,8 +15,19 @@ function parseKickoff(raw: FormDataEntryValue | null): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+/** Il calendario è condiviso da tutti i tornei: solo il creator lo
+ * modifica (difesa in profondità, oltre alla policy RLS). */
+async function requireCreator() {
+  const ctx = await requireUser();
+  const role = await queries.getProfileRole(ctx.supabase, ctx.user.id);
+  if (role !== "creator") {
+    throw new Error("Solo il creator può modificare il calendario");
+  }
+  return ctx;
+}
+
 export async function deleteFixtureAction(fixtureId: string) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireCreator();
   await queries.deleteFixture(supabase, fixtureId);
   revalidatePath("/dashboard/fixtures");
 }
@@ -28,7 +39,7 @@ export async function setFixtureKickoffAction(
   fixtureId: string,
   formData: FormData
 ) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireCreator();
   const kickoffAt = parseKickoff(formData.get("kickoff_at"));
   await queries.updateFixtureKickoff(supabase, fixtureId, kickoffAt);
   revalidatePath("/dashboard/fixtures");
@@ -41,7 +52,7 @@ export async function toggleFixtureStatusAction(
   fixtureId: string,
   currentStatus: "scheduled" | "excluded"
 ) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireCreator();
   const next = currentStatus === "excluded" ? "scheduled" : "excluded";
   await queries.setFixtureStatus(supabase, fixtureId, next);
   revalidatePath("/dashboard/fixtures");
