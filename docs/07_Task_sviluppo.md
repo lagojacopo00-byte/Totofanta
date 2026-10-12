@@ -38,6 +38,10 @@ richiede prima una decisione di prodotto).
   **Da eseguire a mano su Supabase:** add_pick_lock_and_history.sql (senza,
   la sezione storico dice "non ancora attivo"). Le modifiche avvenute prima
   non sono recuperabili (l'upsert sovrascriveva la riga).
+  Sistemati a mano il 2026-10-12: gli orari di 140 partite (G6–G19) con la
+  sola data, riscritti con quelli veri di football-data.org (la G6 inizia
+  sab 10/10 15:00, non dom 11/10 02:00), e la scelta di Pioberna G6 slot 2
+  riportata ad Atalanta (cambiata a scelte già chiuse; esito identico).
 - Countdown scadenza pick (giovedì/lunedì) su home e pagina torneo
 - Enforcement server-side della finestra di scelta lunedì-giovedì
 - Gestione organizzatore: schierare/cambiare/togliere la scelta di
