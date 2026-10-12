@@ -1,5 +1,7 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChartIcon, CalendarIcon, ClockIcon, UserIcon } from "@/components/rule-icons";
@@ -16,9 +18,20 @@ import { BarChartIcon, CalendarIcon, ClockIcon, UserIcon } from "@/components/ru
  * tolta da lì per lasciarci solo il menu ad hamburger — vedi
  * play/(app)/layout.tsx) mantenendo però il torneo in `?t=`, così la
  * pagina profilo può rimontare la STESSA barra (vedi
- * play/(app)/profile/page.tsx) invece di farla sparire. */
+ * play/(app)/profile/page.tsx) invece di farla sparire.
+ *
+ * Viene montata (portale) direttamente in document.body, non dentro il
+ * contenitore con overflow-y-auto di play/(app)/layout.tsx: su Safari iOS
+ * un elemento `fixed` dentro un contenitore che scrolla può avere l'area
+ * dei tocchi sfalsata, quindi la barra si vedeva ma i tap non facevano
+ * niente (segnalato dall'utente il 2026-10-12). */
 export function TournamentFooterNav({ tournamentId }: { tournamentId: string }) {
   const pathname = usePathname();
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const items = [
     { href: `/play/${tournamentId}`, label: "Giornata", Icon: CalendarIcon },
@@ -27,7 +40,9 @@ export function TournamentFooterNav({ tournamentId }: { tournamentId: string }) 
     { href: `/play/profile?t=${tournamentId}`, label: "Tu", Icon: UserIcon },
   ];
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <nav
       className="header-terra fixed inset-x-0 z-20 flex justify-center px-4"
       style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
@@ -51,6 +66,7 @@ export function TournamentFooterNav({ tournamentId }: { tournamentId: string }) 
           );
         })}
       </div>
-    </nav>
+    </nav>,
+    document.body,
   );
 }
