@@ -9,7 +9,7 @@ import {
   type Outcome as GameOutcome,
 } from "./game-logic";
 import { isWithinMatchWindow } from "./match-window";
-import { computePickDeadline, isPickingWindowOpen } from "./pick-window";
+import { computePickDeadline, isPickingWindowOpen, isPlaceholderKickoff } from "./pick-window";
 import { fetchSerieAFixtures, matchTeamName } from "./football-api";
 import { createAdminClient } from "./supabase/admin";
 import ExcelJS from "exceljs";
@@ -460,6 +460,109 @@ export async function getLiveMatchdayPicks(
           const teamName = teamNameBySlot.get(slot.id);
           return teamName ? [{ slotLabel: slot.label, teamName }] : [];
         }),
+    };
+  });
+}
+
+export interface PickHistoryEntry {
+  changedAt: string;
+  action: "insert" | "update" | "delete";
+  matchdayNumber: number;
+  playerName: string;
+  slotLabel: string;
+  oldTeam: string | null;
+  newTeam: string | null;
+  /** Chi ha scritto: nome del giocatore, o null se lato server (cron,
+   * simulazione, SQL). */
+  changedBy: string | null;
+  /** 'baseline' = scelta preesistente ricostruita da created_at: NON è
+   * una modifica registrata, la sua eventuale modifica successiva è
+   * andata persa. */
+  source: "live" | "baseline";
+  /** true se registrata a scadenza già passata (solo per le entry
+   * 'live' scritte da un utente). */
+  afterDeadline: boolean;
+}
+
+/** Storico delle modifiche alle scelte di un torneo, dalla più recente
+ * (tabella pick_history, vedi supabase/add_pick_lock_and_history.sql).
+ * Solo per l'organizzatore del torneo (RLS). Ritorna null se la tabella
+ * non esiste ancora (migrazione non eseguita). */
+export async function getPickHistory(
+  db: DB,
+  tournamentId: string,
+  limit = 500
+): Promise<PickHistoryEntry[] | null> {
+  const matchdays = await getMatchdays(db, tournamentId);
+  if (matchdays.length === 0) return [];
+  const numberById = new Map(matchdays.map((m) => [m.id, m.number]));
+
+  const res = await db
+    .from("pick_history")
+    .select("changed_at, action, slot_id, matchday_id, old_team_id, new_team_id, changed_by, source")
+    .in("matchday_id", matchdays.map((m) => m.id))
+    .order("changed_at", { ascending: false })
+    .limit(limit);
+  if (res.error) {
+    // 42P01 = relazione inesistente: la migrazione non è ancora stata eseguita.
+    if (res.error.code === "42P01" || res.error.code === "PGRST205") return null;
+    throw new Error(res.error.message);
+  }
+  const rows = (res.data ?? []) as {
+    changed_at: string;
+    action: "insert" | "update" | "delete";
+    slot_id: string;
+    matchday_id: string;
+    old_team_id: string | null;
+    new_team_id: string | null;
+    changed_by: string | null;
+    source: "live" | "baseline";
+  }[];
+
+  const players = await getPlayersWithSlots(db, tournamentId);
+  const slotInfo = new Map<string, { playerName: string; label: string }>();
+  for (const p of players) {
+    for (const s of p.slots) slotInfo.set(s.id, { playerName: p.display_name, label: s.label });
+  }
+  const nameByUserId = new Map(
+    players.filter((p) => p.user_id).map((p) => [p.user_id as string, p.display_name])
+  );
+  const teamIds = Array.from(
+    new Set(rows.flatMap((r) => [r.old_team_id, r.new_team_id]).filter((t): t is string => !!t))
+  );
+  const teamName = new Map((await getTeamsByIds(db, teamIds)).map((t) => [t.id, t.name]));
+
+  // Scadenza per giornata, per segnalare le modifiche arrivate a
+  // scelte già chiuse.
+  const roundNumbers = Array.from(new Set(rows.map((r) => numberById.get(r.matchday_id)!)));
+  const deadlineByRound = new Map<number, Date | null>();
+  for (const round of roundNumbers) {
+    const [fixtures, excluded] = await Promise.all([
+      getFixturesForRound(db, round),
+      getExcludedTeamNames(db, round),
+    ]);
+    deadlineByRound.set(round, computePickDeadline(fixtures, excluded));
+  }
+
+  return rows.map((r) => {
+    const matchdayNumber = numberById.get(r.matchday_id)!;
+    const deadline = deadlineByRound.get(matchdayNumber) ?? null;
+    const info = slotInfo.get(r.slot_id);
+    return {
+      changedAt: r.changed_at,
+      action: r.action,
+      matchdayNumber,
+      playerName: info?.playerName ?? "?",
+      slotLabel: info?.label ?? "?",
+      oldTeam: r.old_team_id ? (teamName.get(r.old_team_id) ?? null) : null,
+      newTeam: r.new_team_id ? (teamName.get(r.new_team_id) ?? null) : null,
+      changedBy: r.changed_by ? (nameByUserId.get(r.changed_by) ?? "organizzatore") : null,
+      source: r.source,
+      afterDeadline:
+        r.source === "live" &&
+        r.changed_by !== null &&
+        deadline !== null &&
+        new Date(r.changed_at).getTime() >= deadline.getTime(),
     };
   });
 }
@@ -1158,7 +1261,10 @@ export async function syncFixturesFromFootballData(
       round: f.round,
       homeTeam,
       awayTeam,
-      kickoffAt: f.kickoffAt,
+      // Un orario segnaposto (solo data, mezzanotte UTC — vedi
+      // isPlaceholderKickoff) non deve mai sovrascrivere un orario vero
+      // già salvato: undefined = lascia il campo com'è.
+      kickoffAt: isPlaceholderKickoff(f.kickoffAt) ? undefined : f.kickoffAt,
     });
     kickoffsSynced += 1;
 

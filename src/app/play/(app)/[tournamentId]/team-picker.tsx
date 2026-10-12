@@ -7,6 +7,7 @@ import { button, buttonGhost, card, eyebrow } from "@/components/ui";
 import { maxAssignableForTeam, solveSlotAssignment, type SlotOption } from "@/lib/slot-assignment";
 import type { MatchDayGroup } from "@/lib/match-window";
 import { PickCountdown } from "@/components/pick-countdown";
+import { isPlaceholderKickoff } from "@/lib/pick-window";
 import { submitPicksAction } from "./actions";
 
 const dayGroupLabel: Record<MatchDayGroup, string> = {
@@ -474,7 +475,7 @@ export function TeamPicker({
                           ? "Finita · pareggio"
                           : `Finita · ha vinto ${f.result === "home_win" ? f.homeTeam : f.awayTeam}`}
                       </p>
-                    ) : f.kickoffAt ? (
+                    ) : f.kickoffAt && !isPlaceholderKickoff(f.kickoffAt) ? (
                       <p className="mb-1.5 text-[10px] text-foreground-faint">
                         {kickoffTimeFormat.format(new Date(f.kickoffAt))}
                       </p>

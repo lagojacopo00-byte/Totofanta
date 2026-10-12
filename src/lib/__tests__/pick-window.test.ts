@@ -1,6 +1,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { computeNextRoundReopenAt, computePickDeadline, isPickingWindowOpen } from '../pick-window'
+import {
+  computeNextRoundReopenAt,
+  computePickDeadline,
+  isPickingWindowOpen,
+  isPlaceholderKickoff,
+} from '../pick-window'
 
 test('computePickDeadline: la scadenza è il primo calcio d\'inizio tra le partite', () => {
   const deadline = computePickDeadline(
@@ -79,4 +84,80 @@ test('computeNextRoundReopenAt: se la scadenza cade già di martedì, punta al m
   assert.equal(reopenAt.getMonth(), 8)
   assert.equal(reopenAt.getDate(), 8)
   assert.equal(reopenAt.getHours(), 0)
+})
+
+test('isPlaceholderKickoff: mezzanotte UTC esatta è solo una data', () => {
+  assert.equal(isPlaceholderKickoff('2026-10-11T00:00:00+00:00'), true)
+  assert.equal(isPlaceholderKickoff('2026-10-11T18:30:00Z'), false)
+  assert.equal(isPlaceholderKickoff('nope'), false)
+})
+
+test('computePickDeadline: solo date senza orario -> venerdì 18:30 di Roma della settimana', () => {
+  // 11/10/2026 è domenica: venerdì 9/10, ora legale (UTC+2) -> 16:30Z
+  const deadline = computePickDeadline(
+    [
+      { kickoff_at: '2026-10-11T00:00:00+00:00', home_team: 'Atalanta', away_team: 'Venezia' },
+      { kickoff_at: '2026-10-11T00:00:00+00:00', home_team: 'Inter', away_team: 'Parma' },
+    ],
+    new Set()
+  )
+  assert.equal(deadline?.toISOString(), '2026-10-09T16:30:00.000Z')
+})
+
+test('computePickDeadline: ripiego in ora solare (UTC+1)', () => {
+  // 1/11/2026 è domenica: venerdì 30/10 ancora ora legale; 8/11 domenica -> venerdì 6/11 ora solare
+  const deadline = computePickDeadline(
+    [{ kickoff_at: '2026-11-08T00:00:00Z', home_team: 'Lazio', away_team: 'Genoa' }],
+    new Set()
+  )
+  assert.equal(deadline?.toISOString(), '2026-11-06T17:30:00.000Z')
+})
+
+test('computePickDeadline: gli orari veri prevalgono sui segnaposto', () => {
+  const deadline = computePickDeadline(
+    [
+      { kickoff_at: '2026-10-11T00:00:00Z', home_team: 'Atalanta', away_team: 'Venezia' },
+      { kickoff_at: '2026-10-10T18:45:00Z', home_team: 'Inter', away_team: 'Parma' },
+    ],
+    new Set()
+  )
+  assert.equal(deadline?.toISOString(), '2026-10-10T18:45:00.000Z')
+})
+
+test('isPlaceholderKickoff: mezzanotte UTC esatta è solo una data', () => {
+  assert.equal(isPlaceholderKickoff('2026-10-11T00:00:00+00:00'), true)
+  assert.equal(isPlaceholderKickoff('2026-10-11T18:30:00Z'), false)
+  assert.equal(isPlaceholderKickoff('nope'), false)
+})
+
+test('computePickDeadline: solo date senza orario -> venerdì 18:30 di Roma della settimana', () => {
+  // 11/10/2026 è domenica: venerdì 9/10, ora legale (UTC+2) -> 16:30Z
+  const deadline = computePickDeadline(
+    [
+      { kickoff_at: '2026-10-11T00:00:00+00:00', home_team: 'Atalanta', away_team: 'Venezia' },
+      { kickoff_at: '2026-10-11T00:00:00+00:00', home_team: 'Inter', away_team: 'Parma' },
+    ],
+    new Set()
+  )
+  assert.equal(deadline?.toISOString(), '2026-10-09T16:30:00.000Z')
+})
+
+test('computePickDeadline: ripiego in ora solare (UTC+1)', () => {
+  // 8/11/2026 è domenica: venerdì 6/11, ora solare -> 17:30Z
+  const deadline = computePickDeadline(
+    [{ kickoff_at: '2026-11-08T00:00:00Z', home_team: 'Lazio', away_team: 'Genoa' }],
+    new Set()
+  )
+  assert.equal(deadline?.toISOString(), '2026-11-06T17:30:00.000Z')
+})
+
+test('computePickDeadline: gli orari veri prevalgono sui segnaposto', () => {
+  const deadline = computePickDeadline(
+    [
+      { kickoff_at: '2026-10-11T00:00:00Z', home_team: 'Atalanta', away_team: 'Venezia' },
+      { kickoff_at: '2026-10-10T18:45:00Z', home_team: 'Inter', away_team: 'Parma' },
+    ],
+    new Set()
+  )
+  assert.equal(deadline?.toISOString(), '2026-10-10T18:45:00.000Z')
 })

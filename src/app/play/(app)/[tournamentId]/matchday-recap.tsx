@@ -1,4 +1,5 @@
 import { TeamBadge } from "@/components/team-badge";
+import { isPlaceholderKickoff } from "@/lib/pick-window";
 import { card, cardTight, eyebrow, pillAlive, pillOut } from "@/components/ui";
 
 export type RecapSlotStatus = "alive" | "eliminated" | "pending" | "exempt";
@@ -47,10 +48,21 @@ const kickoffFormat = new Intl.DateTimeFormat("it-IT", {
   timeZone: "Europe/Rome",
 });
 
+// Stessa cosa, senza ora: per le partite di cui il calendario ha solo la
+// data. Fuso UTC perché il segnaposto è la mezzanotte UTC del giorno.
+const dateOnlyFormat = new Intl.DateTimeFormat("it-IT", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+
 function kickoffLabel(kickoffAt: string | null): string {
   if (!kickoffAt) return "data da confermare";
   const date = new Date(kickoffAt);
   if (Number.isNaN(date.getTime())) return "data da confermare";
+  // Solo data (nessun orario ancora noto): niente "02:00" inventato.
+  if (isPlaceholderKickoff(date)) return dateOnlyFormat.format(date);
   return kickoffFormat.format(date);
 }
 

@@ -16,18 +16,102 @@ export interface FixtureForDeadline {
 }
 
 /**
+ * Alcune partite arrivano dal calendario con la sola DATA, senza orario:
+ * football-data.org (e il sync) le salva come mezzanotte UTC esatta
+ * (T00:00:00Z, cioè le 02:00 italiane — orario in cui in Serie A non si
+ * gioca mai). Quel valore NON è un calcio d'inizio reale: trattarlo come
+ * tale chiudeva le scelte la domenica alle 02:00, a weekend già iniziato
+ * (scoperto il 2026-10-12 sulle giornate 6 e 7).
+ */
+export function isPlaceholderKickoff(kickoffAt: string | Date): boolean {
+  const d = typeof kickoffAt === "string" ? new Date(kickoffAt) : kickoffAt;
+  if (Number.isNaN(d.getTime())) return false;
+  return (
+    d.getUTCHours() === 0 &&
+    d.getUTCMinutes() === 0 &&
+    d.getUTCSeconds() === 0 &&
+    d.getUTCMilliseconds() === 0
+  );
+}
+
+const ROME_TZ = "Europe/Rome";
+const FALLBACK_HOUR = 18;
+const FALLBACK_MINUTE = 30;
+const FRIDAY = 5;
+
+/** Differenza (ms) tra l'ora di Roma e UTC in un dato istante. */
+function romeOffsetMs(at: Date): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: ROME_TZ,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+  }).formatToParts(at);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)!.value);
+  const asUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second")
+  );
+  return asUtc - Math.floor(at.getTime() / 1000) * 1000;
+}
+
+/** L'istante UTC corrispondente a un'ora "a muro" di Roma. */
+function romeWallTimeToDate(y: number, m: number, d: number, h: number, mi: number): Date {
+  const guess = Date.UTC(y, m, d, h, mi);
+  let result = guess - romeOffsetMs(new Date(guess));
+  result = guess - romeOffsetMs(new Date(result));
+  return new Date(result);
+}
+
+/**
+ * Scadenza di ripiego per una giornata in cui NESSUNA partita non esclusa
+ * ha ancora un orario vero (solo la data): venerdì alle 18:30 di Roma
+ * della settimana della partita con la data più vicina. È il peggior caso
+ * plausibile (anticipo del venerdì): meglio chiudere un po' presto che
+ * tenere aperto fin dopo il primo fischio. Quando il calendario avrà gli
+ * orari veri, la scadenza torna quella reale. Questa stessa regola è
+ * replicata in SQL (public.pick_deadline in
+ * supabase/add_pick_lock_and_history.sql): tenerle allineate.
+ */
+function fallbackDeadline(placeholderDates: Date[]): Date {
+  const first = placeholderDates.reduce((a, b) => (a.getTime() <= b.getTime() ? a : b));
+  // La data del segnaposto è la data UTC (00:00Z = giorno del calendario).
+  const day = Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), first.getUTCDate());
+  const back = (new Date(day).getUTCDay() - FRIDAY + 7) % 7;
+  const friday = new Date(day - back * 24 * 60 * 60 * 1000);
+  return romeWallTimeToDate(
+    friday.getUTCFullYear(),
+    friday.getUTCMonth(),
+    friday.getUTCDate(),
+    FALLBACK_HOUR,
+    FALLBACK_MINUTE
+  );
+}
+
+/**
  * La scadenza per schierare: l'orario del PRIMO calcio d'inizio tra le
  * partite non escluse di questa giornata (una partita esclusa a mano, o
  * rinviata fuori dalla finestra ufficiale, non conta per la scadenza:
- * non è comunque giocabile). Ritorna null se nessuna partita non esclusa
- * ha ancora un orario noto — in quel caso le scelte restano aperte,
- * perché non c'è nessun orario reale a cui ancorare la chiusura.
+ * non è comunque giocabile). Gli orari segnaposto (solo data, vedi
+ * isPlaceholderKickoff) non contano come calcio d'inizio: se TUTTE le
+ * partite non escluse hanno solo la data si usa la scadenza di ripiego
+ * (venerdì 18:30 Roma). Ritorna null solo se nessuna partita non esclusa
+ * ha nemmeno una data — in quel caso le scelte restano aperte, perché
+ * non c'è niente a cui ancorare la chiusura.
  */
 export function computePickDeadline(
   fixtures: FixtureForDeadline[],
   excludedTeamNames: Set<string>
 ): Date | null {
-  const kickoffs = fixtures
+  const dates = fixtures
     .filter(
       (f) =>
         !excludedTeamNames.has(f.home_team) && !excludedTeamNames.has(f.away_team)
@@ -35,8 +119,10 @@ export function computePickDeadline(
     .map((f) => (f.kickoff_at ? new Date(f.kickoff_at) : null))
     .filter((d): d is Date => d !== null && !Number.isNaN(d.getTime()));
 
-  if (kickoffs.length === 0) return null;
-  return new Date(Math.min(...kickoffs.map((d) => d.getTime())));
+  const real = dates.filter((d) => !isPlaceholderKickoff(d));
+  if (real.length > 0) return new Date(Math.min(...real.map((d) => d.getTime())));
+  if (dates.length === 0) return null;
+  return fallbackDeadline(dates);
 }
 
 export function isPickingWindowOpen(

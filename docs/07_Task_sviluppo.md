@@ -22,6 +22,22 @@ richiede prima una decisione di prodotto).
 
 ## Fatto
 
+
+- **Scadenza scelte, chiusura sul DB, storico, scelte di tutti (2026-10-12).**
+  Scoperto che le giornate 6 e 7 avevano come `kickoff_at` solo la data
+  (mezzanotte UTC = domenica 02:00 italiane): le scelte restavano aperte
+  fino a weekend iniziato. Fatto: (1) `isPlaceholderKickoff` +
+  scadenza di ripiego venerdì 18:30 Roma in `pick-window.ts`, il sync non
+  sovrascrive più un orario vero con un segnaposto, niente "02:00" mostrato
+  in picker/riepilogo; (2) `supabase/add_pick_lock_and_history.sql`: trigger
+  che rifiuta scritture su `picks` dopo la scadenza anche fuori dall'app
+  (eccezioni: service role, organizzatore su slot altrui, tornei di test);
+  (3) tabella `pick_history` (chi/quando/cosa) + sezione "Storico modifiche
+  scelte" nella pagina organizzatore del torneo; (4) a scelte chiuse la
+  schermata Giornata mostra la classifica apribile con le scelte di tutti.
+  **Da eseguire a mano su Supabase:** add_pick_lock_and_history.sql (senza,
+  la sezione storico dice "non ancora attivo"). Le modifiche avvenute prima
+  non sono recuperabili (l'upsert sovrascriveva la riga).
 - Countdown scadenza pick (giovedì/lunedì) su home e pagina torneo
 - Enforcement server-side della finestra di scelta lunedì-giovedì
 - Gestione organizzatore: schierare/cambiare/togliere la scelta di

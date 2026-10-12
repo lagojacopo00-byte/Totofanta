@@ -5,10 +5,12 @@ import { card, eyebrow, pillAlive } from "@/components/ui";
 import { TrophyIcon } from "@/components/rule-icons";
 import { computePickDeadline, isPickingWindowOpen } from "@/lib/pick-window";
 import { groupFixturesByDay } from "@/lib/match-window";
-import { computeFinalPrizeShares, computeTeamOutcomes } from "@/lib/game-logic";
+import { assignRanks, computeFinalPrizeShares, computeTeamOutcomes } from "@/lib/game-logic";
+import { resolveLivePicks } from "@/lib/live-picks";
 import { TeamPicker, type PickerDayGroup, type PickerSlot } from "./team-picker";
 import { MatchdayRecap, type RecapSlot } from "./matchday-recap";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { StandingsList, type StandingsRow } from "./standings-list";
 
 const prizeFormat = new Intl.NumberFormat("it-IT", {
   style: "currency",
@@ -239,6 +241,37 @@ export default async function PlayerTournamentPage(
     { win: 0, lost: 0, pending: 0 }
   );
 
+  // Scelte di tutti: appena le scelte si chiudono (primo calcio d'inizio)
+  // chi gioca può vedere cosa ha schierato ognuno per la giornata aperta,
+  // anche se manca ancora qualche risultato — richiesto dall'utente il
+  // 2026-10-12. Prima della scadenza restano nascoste (copiare la scelta
+  // di un altro un attimo prima di chiudere). Le scelte si leggono col
+  // client admin (vedi getLiveMatchdayPicks): qui sopra abbiamo già
+  // verificato che chi guarda gioca in questo torneo.
+  let everyoneRows: StandingsRow[] = [];
+  if (tournament.status === "active" && openMatchday && !pickingOpen) {
+    const livePicks = resolveLivePicks(
+      await queries.getLiveMatchdayPicks(tournament.id, openMatchday.id)
+    );
+    const aliveOf = (s: (typeof standings)[number]) =>
+      s.slots.filter((sl) => sl.status === "alive").length;
+    everyoneRows = assignRanks(
+      [...standings].sort((a, b) => aliveOf(b) - aliveOf(a)),
+      aliveOf
+    ).map((s) => ({
+      playerId: s.id,
+      displayName: s.display_name,
+      fullName: s.full_name,
+      rank: s.rank,
+      alive: aliveOf(s),
+      totalSlots: s.slots.length,
+      isMe: s.id === player.id,
+      isFinished: false,
+      prizeLabel: null,
+      picks: livePicks.get(s.id) ?? null,
+    }));
+  }
+
   return (
     <div className="flex min-w-0 flex-col gap-6">
       {tournament.status === "active" && openMatchday ? (
@@ -426,6 +459,10 @@ export default async function PlayerTournamentPage(
         <p className="text-sm text-foreground-faint">
           Nessuna giornata aperta. Per ora riposa.
         </p>
+      ) : null}
+
+      {everyoneRows.length > 0 && openMatchday ? (
+        <StandingsList rows={everyoneRows} matchdayNumber={openMatchday.number} />
       ) : null}
     </div>
   );

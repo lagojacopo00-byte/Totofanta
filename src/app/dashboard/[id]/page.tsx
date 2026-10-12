@@ -26,6 +26,15 @@ import {
   updateSlotValueAction,
 } from "./actions";
 
+const historyTimeFormat = new Intl.DateTimeFormat("it-IT", {
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  timeZone: "Europe/Rome",
+});
+
 const matchdayStatusLabel: Record<string, string> = {
   open: "Aperta",
   locked: "Bloccata",
@@ -48,13 +57,14 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
     notFound();
   }
 
-  const [players, matchdays, undoPreview, matchdayBackupUrl] = await Promise.all([
+  const [players, matchdays, undoPreview, matchdayBackupUrl, pickHistory] = await Promise.all([
     queries.getPlayersWithSlots(supabase, tournament.id),
     queries.getMatchdays(supabase, tournament.id),
     queries.getUndoLastMatchdayPreview(supabase, tournament.id),
     tournament.auto_backup_matchdays
       ? queries.getMatchdayBackupUrl(supabase, tournament.id)
       : Promise.resolve(null),
+    queries.getPickHistory(supabase, tournament.id),
   ]);
 
   const winnerNames = players
@@ -396,6 +406,63 @@ export default async function TournamentPage(props: PageProps<"/dashboard/[id]">
           />
         </section>
       ) : null}
+
+      {/* Storico modifiche alle scelte: chi ha schierato/cambiato cosa e
+          a che ora (tabella pick_history). Le righe "dopo la scadenza"
+          sono quelle scritte a scelte già chiuse. */}
+      <section className={cardTight}>
+        <p className={eyebrow}>Storico modifiche scelte</p>
+        {pickHistory === null ? (
+          <p className="mt-2 text-xs text-foreground-faint">
+            Non ancora attivo: esegui supabase/add_pick_lock_and_history.sql
+            nello SQL Editor di Supabase.
+          </p>
+        ) : pickHistory.length === 0 ? (
+          <p className="mt-2 text-xs text-foreground-faint">Nessuna modifica registrata.</p>
+        ) : (
+          <>
+            <p className="mt-1 text-[11px] text-foreground-faint">
+              {pickHistory.filter((e) => e.afterDeadline).length} a scadenza
+              passata · le righe &quot;scelta preesistente&quot; sono
+              ricostruite dalla data di creazione (le modifiche precedenti
+              non sono recuperabili). Orari di Roma.
+            </p>
+            <ul className="mt-3 flex flex-col gap-1.5">
+              {pickHistory.map((e, i) => (
+                <li
+                  key={i}
+                  className={`rounded-lg border px-3 py-2 text-xs ${
+                    e.afterDeadline
+                      ? "border-lose/60 bg-lose-bg"
+                      : "border-line bg-surface-2"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                    <span className="font-mono text-foreground-faint">
+                      {historyTimeFormat.format(new Date(e.changedAt))}
+                    </span>
+                    <span className="text-foreground-faint">
+                      G{e.matchdayNumber}
+                      {e.afterDeadline ? " · DOPO LA SCADENZA" : ""}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-foreground">
+                    <span className="font-semibold">{e.playerName}</span> · slot {e.slotLabel}:{" "}
+                    {e.action === "insert"
+                      ? `${e.source === "baseline" ? "scelta preesistente" : "schiera"} ${e.newTeam ?? "?"}`
+                      : e.action === "update"
+                        ? `${e.oldTeam ?? "?"} → ${e.newTeam ?? "?"}`
+                        : `tolta ${e.oldTeam ?? "?"}`}
+                    {e.changedBy && e.source === "live" ? (
+                      <span className="text-foreground-faint"> · da {e.changedBy}</span>
+                    ) : null}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
 
       <section className={`${cardTight} flex items-center justify-between gap-4 border-dashed`}>
         <div>
