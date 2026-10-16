@@ -241,15 +241,14 @@ export default async function PlayerTournamentPage(
     { win: 0, lost: 0, pending: 0 }
   );
 
-  // Scelte di tutti: appena le scelte si chiudono (primo calcio d'inizio)
-  // chi gioca può vedere cosa ha schierato ognuno per la giornata aperta,
-  // anche se manca ancora qualche risultato — richiesto dall'utente il
-  // 2026-10-12. Prima della scadenza restano nascoste (copiare la scelta
-  // di un altro un attimo prima di chiudere). Le scelte si leggono col
+  // Scelte di tutti per la giornata aperta, sempre visibili (regola
+  // decisa con l'utente il 2026-09-11, vedi live-picks.ts; riconfermata il
+  // 2026-10-16 quando una versione che le mostrava solo a scelte chiuse
+  // è stata segnalata come "non le vedo"). Le scelte si leggono col
   // client admin (vedi getLiveMatchdayPicks): qui sopra abbiamo già
   // verificato che chi guarda gioca in questo torneo.
   let everyoneRows: StandingsRow[] = [];
-  if (tournament.status === "active" && openMatchday && !pickingOpen) {
+  if (tournament.status === "active" && openMatchday) {
     const livePicks = resolveLivePicks(
       await queries.getLiveMatchdayPicks(tournament.id, openMatchday.id)
     );
